@@ -275,6 +275,7 @@
             <option value="01">Janeiro</option><option value="02">Fevereiro</option><option value="03">Março</option><option value="04">Abril</option><option value="05">Maio</option><option value="06">Junho</option><option value="07">Julho</option><option value="08">Agosto</option><option value="09" selected>Setembro</option><option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
           </select>
           <button class="btn btn-secondary btn-sm" onclick="abrirGerenciadorContas()">⚙️ Contas de Saída</button>
+          <button class="btn btn-secondary btn-sm" onclick="abrirGerenciadorCategorias()">⚙️ Categorias</button>
           <button class="btn btn-success btn-sm" onclick="gerarProximoMes()">🔄 Gerar Próximo Mês</button>
         </div>
       </div>
@@ -328,13 +329,7 @@
             </div>
             <div class="form-group">
               <label>Categoria</label>
-              <select id="categoria">
-                <option value="Imóvel/Aluguel">Imóvel / Aluguel</option>
-                <option value="Serviços públicos">Serviços (Água/Luz)</option>
-                <option value="Impostos">Impostos (IPTU, Seguro)</option>
-                <option value="Atrasos/Multas">Atrasos / Multas</option>
-                <option value="Operacional">Operacional / Marketing</option>
-              </select>
+              <select id="categoria" required></select>
             </div>
             <div style="grid-column: 1 / -1; display:flex; gap:10px;">
               <button type="submit" class="btn" style="flex:1;">Salvar Conta</button>
@@ -594,6 +589,15 @@
   </div>
 </div>
 
+<div class="modal-bg" id="modalCategorias">
+  <div class="modal-content">
+    <h3 style="color: var(--primary); margin-bottom: 10px;">Gerenciar Categorias</h3>
+    <div style="display:flex; gap:8px; margin-bottom:15px;"><input type="text" id="novaCategoriaNome" placeholder="Nova Categoria" style="flex:1;"><button class="btn btn-sm" onclick="adicionarCategoria()">Adicionar</button></div>
+    <div id="listaCategorias" style="max-height:200px; overflow-y:auto; margin-bottom:15px;"></div>
+    <button class="btn btn-secondary" style="width:100%;" onclick="fecharGerenciadorCategorias()">Fechar</button>
+  </div>
+</div>
+
 <div class="modal-bg" id="modalCorretores">
   <div class="modal-content">
     <h3 style="color: var(--primary); margin-bottom: 10px;">Cadastrar Corretor & Foto</h3>
@@ -618,6 +622,7 @@
 
 <script>
   let origens = JSON.parse(localStorage.getItem('origens_db')) || ['Itaú', 'Bradesco', 'Caixa', 'Dinheiro / Caixinha'];
+  let categorias = JSON.parse(localStorage.getItem('categorias_db')) || ['Imóvel/Aluguel', 'Serviços públicos', 'Impostos', 'Atrasos/Multas', 'Operacional'];
   let corretoresDefault = [
     { nome: 'Vinícius Barbosa', foto: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png' },
     { nome: 'Geovana Castro', foto: 'https://cdn-icons-png.flaticon.com/512/3135/3135789.png' }
@@ -725,28 +730,30 @@
     });
   }
 
-  function calcularDataMesSeguinte(dataISO) {
-    if (!dataISO) dataISO = new Date().toISOString().split('T')[0];
-    const [ano, mes, dia] = dataISO.split('-').map(Number);
-    let proxMes = mes + 1, proxAno = ano;
-    if (proxMes > 12) { proxMes = 1; proxAno += 1; }
-    return `${proxAno}-${String(proxMes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
-  }
+  function carregarSelectsFormulario() {
+    const selectOrigem = document.getElementById('contaOrigem');
+    if (selectOrigem) {
+      const valAntigo = selectOrigem.value;
+      selectOrigem.innerHTML = '';
+      origens.forEach(o => {
+        const opt = document.createElement('option');
+        opt.value = o; opt.innerText = o;
+        selectOrigem.appendChild(opt);
+      });
+      if (valAntigo && origens.includes(valAntigo)) selectOrigem.value = valAntigo;
+    }
 
-  function obterFotoCorretor(nomeCorretor) {
-    const c = corretores.find(x => x.nome === nomeCorretor);
-    return c && c.foto ? c.foto : 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
-  }
-
-  function carregarOrigensSelect() {
-    const select = document.getElementById('contaOrigem');
-    if (!select) return;
-    select.innerHTML = '';
-    origens.forEach(o => {
-      const opt = document.createElement('option');
-      opt.value = o; opt.innerText = o;
-      select.appendChild(opt);
-    });
+    const selectCat = document.getElementById('categoria');
+    if (selectCat) {
+      const valAntigoCat = selectCat.value;
+      selectCat.innerHTML = '';
+      categorias.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c; opt.innerText = c;
+        selectCat.appendChild(opt);
+      });
+      if (valAntigoCat && categorias.includes(valAntigoCat)) selectCat.value = valAntigoCat;
+    }
   }
 
   function toggleParcelas() {
@@ -755,7 +762,7 @@
   }
 
   function renderContas() {
-    carregarOrigensSelect();
+    carregarSelectsFormulario();
     const anoSel = document.getElementById('filtroAnoContas').value;
     const mesSel = document.getElementById('filtroMesContas').value;
     const contasFiltradas = contas.filter(c => {
@@ -1002,6 +1009,11 @@
       `;
       contRanking.appendChild(div);
     });
+  }
+
+  function obterFotoCorretor(nomeCorretor) {
+    const c = corretores.find(x => x.nome === nomeCorretor);
+    return c && c.foto ? c.foto : 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
   }
 
   function toggleDataPrevisao() {
@@ -1427,55 +1439,4 @@
     renderListaVeiculos();
   }
 
-  function abrirGerenciadorContas() { document.getElementById('modalOrigens').style.display = 'flex'; renderListaOrigens(); }
-  function fecharGerenciadorContas() { document.getElementById('modalOrigens').style.display = 'none'; renderContas(); }
-  function renderListaOrigens() {
-    const cont = document.getElementById('listaOrigens');
-    cont.innerHTML = '';
-    origens.forEach((o, index) => {
-      const div = document.createElement('div');
-      div.style.cssText = 'display:flex; gap:5px; margin-bottom:8px; align-items:center;';
-      div.innerHTML = `
-        <input type="text" value="${o}" id="origem_${index}" style="flex:1;">
-        <button class="btn btn-sm" onclick="renomearOrigem(${index})">Salvar</button>
-        <button class="btn btn-danger btn-sm" onclick="removerOrigem(${index})">X</button>
-      `;
-      cont.appendChild(div);
-    });
-  }
-  function adicionarOrigem() {
-    const val = document.getElementById('novaOrigemNome').value.trim();
-    if (val && !origens.includes(val)) {
-      origens.push(val);
-      localStorage.setItem('origens_db', JSON.stringify(origens));
-      document.getElementById('novaOrigemNome').value = '';
-      renderListaOrigens();
-    }
-  }
-  function renomearOrigem(index) {
-    const novoNome = document.getElementById(`origem_${index}`).value.trim();
-    if (novoNome) {
-      origens[index] = novoNome;
-      localStorage.setItem('origens_db', JSON.stringify(origens));
-      renderContas();
-      renderListaOrigens();
-    }
-  }
-  function removerOrigem(index) {
-    if (origens.length <= 1) return alert('Mantenha pelo menos uma conta.');
-    origens.splice(index, 1);
-    localStorage.setItem('origens_db', JSON.stringify(origens));
-    renderContas();
-    renderListaOrigens();
-  }
-
-  function calcularProporcional() {
-    const v = parseFloat(document.getElementById('calcVal').value) || 0;
-    const u = parseFloat(document.getElementById('calcDiasUso').value) || 0;
-    const t = parseFloat(document.getElementById('calcDiasTotais').value) || 30;
-    const res = (v / t) * u;
-    document.getElementById('resCalc').innerText = `Valor Proporcional: R$ ${res.toFixed(2)}`;
-  }
-</script>
-</body>
-</html>
+  function abrirGerenciador
