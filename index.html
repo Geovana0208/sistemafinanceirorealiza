@@ -661,6 +661,7 @@
     document.getElementById('appLayout').classList.add('authenticated');
     document.getElementById('userLogadoTxt').innerText = `Logado como: ${user}`;
     initAnoSelectors();
+    sincronizarCustosMarketing();
     renderContas();
   }
 
@@ -761,6 +762,93 @@
     document.getElementById('groupParcelas').style.display = tipo === 'Parcelada' ? 'flex' : 'none';
   }
 
+  // ==== SISTEMA DE AUTOMAÇÃO DE CONTAS DE MARKETING ====
+  function sincronizarCustosMarketing() {
+    let mktVendasPorMes = {};
+    let mktLocacaoPorMes = {};
+
+    // Mapear Vendas
+    comissoes.forEach(c => {
+      if (c.veiculoCapitacao === 'Marketing' && c.dataFechamento) {
+        const [a, m] = c.dataFechamento.split('-');
+        let proxMes = parseInt(m) + 1; let proxAno = parseInt(a);
+        if (proxMes > 12) { proxMes = 1; proxAno++; }
+        const chaveMes = `${proxAno}-${String(proxMes).padStart(2, '0')}`;
+        mktVendasPorMes[chaveMes] = (mktVendasPorMes[chaveMes] || 0) + 1;
+      }
+    });
+
+    // Mapear Locações
+    alugueis.forEach(a => {
+      if (a.veiculoCapitacao === 'Marketing' && a.dataFechamento) {
+        const [a, m] = a.dataFechamento.split('-');
+        let proxMes = parseInt(m) + 1; let proxAno = parseInt(a);
+        if (proxMes > 12) { proxMes = 1; proxAno++; }
+        const chaveMes = `${proxAno}-${String(proxMes).padStart(2, '0')}`;
+        mktLocacaoPorMes[chaveMes] = (mktLocacaoPorMes[chaveMes] || 0) + 1;
+      }
+    });
+
+    // Gerar / Atualizar contas de Vendas (R$ 300)
+    for (const mes in mktVendasPorMes) {
+      const qtd = mktVendasPorMes[mes];
+      let contaExistente = contas.find(c => c.isAutoMkt === 'vendas' && c.vencimento.startsWith(mes));
+      if (contaExistente) {
+        contaExistente.valorPrevisto = qtd * 300;
+        contaExistente.descricao = `Custos Mkt Vendas (${qtd}x)`;
+      } else {
+        contas.push({
+          id: Date.now() + Math.random(),
+          descricao: `Custos Mkt Vendas (${qtd}x)`,
+          valorPrevisto: qtd * 300,
+          valorReal: 0,
+          vencimento: `${mes}-10`,
+          origem: origens[0] || 'Itaú',
+          tipo: 'Variável',
+          parcAtual: 1, parcTotal: 1,
+          categoria: 'Operacional',
+          status: 'Pendente',
+          isAutoMkt: 'vendas'
+        });
+      }
+    }
+
+    // Gerar / Atualizar contas de Locações (R$ 50)
+    for (const mes in mktLocacaoPorMes) {
+      const qtd = mktLocacaoPorMes[mes];
+      let contaExistente = contas.find(c => c.isAutoMkt === 'locacao' && c.vencimento.startsWith(mes));
+      if (contaExistente) {
+        contaExistente.valorPrevisto = qtd * 50;
+        contaExistente.descricao = `Custos Mkt Locações (${qtd}x)`;
+      } else {
+        contas.push({
+          id: Date.now() + Math.random(),
+          descricao: `Custos Mkt Locações (${qtd}x)`,
+          valorPrevisto: qtd * 50,
+          valorReal: 0,
+          vencimento: `${mes}-10`,
+          origem: origens[0] || 'Itaú',
+          tipo: 'Variável',
+          parcAtual: 1, parcTotal: 1,
+          categoria: 'Operacional',
+          status: 'Pendente',
+          isAutoMkt: 'locacao'
+        });
+      }
+    }
+
+    // Limpar contas caso o utilizador tenha apagado todos os registos do mês
+    contas = contas.filter(c => {
+      if (c.isAutoMkt === 'vendas') return mktVendasPorMes[c.vencimento.substring(0, 7)] > 0;
+      if (c.isAutoMkt === 'locacao') return mktLocacaoPorMes[c.vencimento.substring(0, 7)] > 0;
+      return true;
+    });
+
+    localStorage.setItem('contas_db', JSON.stringify(contas));
+    if (document.getElementById('tab-contas').classList.contains('active')) renderContas();
+  }
+  // ========================================================
+
   function renderContas() {
     carregarSelectsFormulario();
     const anoSel = document.getElementById('filtroAnoContas').value;
@@ -785,8 +873,10 @@
 
       const tr = document.createElement('tr');
       const infoTipo = c.tipo === 'Parcelada' ? `Parcelada (${c.parcAtual}/${c.parcTotal})` : c.tipo;
+      const iconeAuto = c.isAutoMkt ? '🤖 ' : '';
+      
       tr.innerHTML = `
-        <td><b>${c.descricao}</b></td>
+        <td><b>${iconeAuto}${c.descricao}</b></td>
         <td><small>${infoTipo} • ${c.categoria}</small></td>
         <td>${c.origem}</td>
         <td>${c.vencimento.split('-').reverse().join('/')}</td>
@@ -832,7 +922,7 @@
     contasMesAtual.forEach(c => {
       const [a, m, d] = c.vencimento.split('-');
       const novaData = `${strProxAno}-${strProxMes}-${d}`;
-      if (c.tipo === 'Fixa') {
+      if (c.tipo === 'Fixa' && !c.isAutoMkt) {
         contas.push({ id: Date.now() + Math.random(), descricao: c.descricao, valorPrevisto: c.valorPrevisto, valorReal: 0, vencimento: novaData, origem: c.origem, tipo: 'Fixa', parcAtual: 1, parcTotal: 1, categoria: c.categoria, status: 'Pendente' });
         contGeradas++;
       } else if (c.tipo === 'Parcelada' && c.parcAtual < c.parcTotal) {
@@ -856,6 +946,9 @@
     const real = realInput !== '' ? parseFloat(realInput) : 0;
     const status = realInput !== '' && real > 0 ? 'Pago' : 'Pendente';
 
+    // Recupera isAutoMkt se for edição de conta do sistema
+    let contaAntiga = id ? contas.find(x => x.id === parseInt(id)) : null;
+
     const obj = {
       id: id ? parseInt(id) : Date.now(),
       descricao: document.getElementById('descricao').value,
@@ -866,7 +959,8 @@
       parcAtual: parseInt(document.getElementById('parcAtual').value) || 1,
       parcTotal: parseInt(document.getElementById('parcTotal').value) || 1,
       categoria: document.getElementById('categoria').value,
-      status: status
+      status: status,
+      isAutoMkt: contaAntiga ? contaAntiga.isAutoMkt : false
     };
 
     if (id) {
@@ -1128,6 +1222,7 @@
       comissoes.push(obj);
     }
     localStorage.setItem('comissoes_db', JSON.stringify(comissoes));
+    sincronizarCustosMarketing();
     limparFormComissao();
     renderComissoes();
   });
@@ -1163,6 +1258,7 @@
     if (confirm('Deseja excluir esta comissão?')) {
       comissoes = comissoes.filter(x => x.id !== id);
       localStorage.setItem('comissoes_db', JSON.stringify(comissoes));
+      sincronizarCustosMarketing();
       renderComissoes();
     }
   }
@@ -1225,10 +1321,10 @@
 
     filtrados.forEach(a => {
       totVal += a.valorAluguel || 0;
-      if (a.veiculoCapitacao && a.veiculoCapitacao.toLowerCase().includes('marketing')) countMkt++;
+      if (a.veiculoCapitacao && a.veiculoCapitacao === 'Marketing') countMkt++;
       const fechamentoTxt = a.dataFechamento ? a.dataFechamento.split('-').reverse().join('/') : 'N/I';
       const capBadge = `<span class="badge badge-capitacao">${a.veiculoCapitacao || 'N/I'}</span>`;
-      const eMkt = a.veiculoCapitacao && a.veiculoCapitacao.toLowerCase().includes('marketing');
+      const eMkt = a.veiculoCapitacao && a.veiculoCapitacao === 'Marketing';
       const custoMkt = eMkt ? '<b style="color:var(--danger)">R$ 50,00</b>' : 'R$ 0,00';
       const fotoUrl = obterFotoCorretor(a.corretor);
 
@@ -1269,6 +1365,7 @@
       alugueis.push(obj);
     }
     localStorage.setItem('alugueis_db', JSON.stringify(alugueis));
+    sincronizarCustosMarketing();
     limparFormAluguel();
     renderAlugueis();
   });
@@ -1290,6 +1387,7 @@
     if (confirm('Deseja excluir este aluguel?')) {
       alugueis = alugueis.filter(x => x.id !== id);
       localStorage.setItem('alugueis_db', JSON.stringify(alugueis));
+      sincronizarCustosMarketing();
       renderAlugueis();
     }
   }
@@ -1439,4 +1537,97 @@
     renderListaVeiculos();
   }
 
-  function abrirGerenciador
+  function abrirGerenciadorContas() { document.getElementById('modalOrigens').style.display = 'flex'; renderListaOrigens(); }
+  function fecharGerenciadorContas() { document.getElementById('modalOrigens').style.display = 'none'; renderContas(); }
+  function renderListaOrigens() {
+    const cont = document.getElementById('listaOrigens');
+    cont.innerHTML = '';
+    origens.forEach((o, index) => {
+      const div = document.createElement('div');
+      div.style.cssText = 'display:flex; gap:5px; margin-bottom:8px; align-items:center;';
+      div.innerHTML = `
+        <input type="text" value="${o}" id="origem_${index}" style="flex:1;">
+        <button class="btn btn-sm" onclick="renomearOrigem(${index})">Salvar</button>
+        <button class="btn btn-danger btn-sm" onclick="removerOrigem(${index})">X</button>
+      `;
+      cont.appendChild(div);
+    });
+  }
+  function adicionarOrigem() {
+    const val = document.getElementById('novaOrigemNome').value.trim();
+    if (val && !origens.includes(val)) {
+      origens.push(val);
+      localStorage.setItem('origens_db', JSON.stringify(origens));
+      document.getElementById('novaOrigemNome').value = '';
+      renderListaOrigens();
+    }
+  }
+  function renomearOrigem(index) {
+    const novoNome = document.getElementById(`origem_${index}`).value.trim();
+    if (novoNome) {
+      origens[index] = novoNome;
+      localStorage.setItem('origens_db', JSON.stringify(origens));
+      renderContas();
+      renderListaOrigens();
+    }
+  }
+  function removerOrigem(index) {
+    if (origens.length <= 1) return alert('Mantenha pelo menos uma conta.');
+    origens.splice(index, 1);
+    localStorage.setItem('origens_db', JSON.stringify(origens));
+    renderContas();
+    renderListaOrigens();
+  }
+
+  function abrirGerenciadorCategorias() { document.getElementById('modalCategorias').style.display = 'flex'; renderListaCategorias(); }
+  function fecharGerenciadorCategorias() { document.getElementById('modalCategorias').style.display = 'none'; renderContas(); }
+  function renderListaCategorias() {
+    const cont = document.getElementById('listaCategorias');
+    cont.innerHTML = '';
+    categorias.forEach((cat, index) => {
+      const div = document.createElement('div');
+      div.style.cssText = 'display:flex; gap:5px; margin-bottom:8px; align-items:center;';
+      div.innerHTML = `
+        <input type="text" value="${cat}" id="cat_${index}" style="flex:1;">
+        <button class="btn btn-sm" onclick="renomearCategoria(${index})">Salvar</button>
+        <button class="btn btn-danger btn-sm" onclick="removerCategoria(${index})">X</button>
+      `;
+      cont.appendChild(div);
+    });
+  }
+  function adicionarCategoria() {
+    const val = document.getElementById('novaCategoriaNome').value.trim();
+    if (val && !categorias.includes(val)) {
+      categorias.push(val);
+      localStorage.setItem('categorias_db', JSON.stringify(categorias));
+      document.getElementById('novaCategoriaNome').value = '';
+      renderListaCategorias();
+    }
+  }
+  function renomearCategoria(index) {
+    const novoNome = document.getElementById(`cat_${index}`).value.trim();
+    if (novoNome) {
+      categorias[index] = novoNome;
+      localStorage.setItem('categorias_db', JSON.stringify(categorias));
+      renderContas();
+      renderListaCategorias();
+    }
+  }
+  function removerCategoria(index) {
+    if (categorias.length <= 1) return alert('Mantenha pelo menos uma categoria.');
+    categorias.splice(index, 1);
+    localStorage.setItem('categorias_db', JSON.stringify(categorias));
+    renderContas();
+    renderListaCategorias();
+  }
+
+  function calcularProporcional() {
+    const v = parseFloat(document.getElementById('calcVal').value) || 0;
+    const u = parseFloat(document.getElementById('calcDiasUso').value) || 0;
+    const t = parseFloat(document.getElementById('calcDiasTotais').value) || 30;
+    const res = (v / t) * u;
+    document.getElementById('resCalc').innerText = `Valor Proporcional: R$ ${res.toFixed(2)}`;
+  }
+</script>
+</body>
+</html>
