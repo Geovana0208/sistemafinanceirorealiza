@@ -643,6 +643,11 @@
   ];
   let chartCorretor;
 
+  // Função auxiliar para formatação monetária (ex: 1.253.789,00)
+  function formatarMoeda(valor) {
+    return 'R$ ' + (valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
   document.getElementById('formLogin').addEventListener('submit', (e) => {
     e.preventDefault();
     const u = document.getElementById('loginUser').value.trim();
@@ -762,12 +767,10 @@
     document.getElementById('groupParcelas').style.display = tipo === 'Parcelada' ? 'flex' : 'none';
   }
 
-  // ==== SISTEMA DE AUTOMAÇÃO DE CONTAS DE MARKETING (AGORA 100% SEGURO) ====
   function sincronizarCustosMarketing() {
     let mktVendasPorMes = {};
     let mktLocacaoPorMes = {};
 
-    // Mapear Vendas
     comissoes.forEach(c => {
       if (c.veiculoCapitacao && c.veiculoCapitacao.toLowerCase().includes('marketing') && c.dataFechamento) {
         const partes = c.dataFechamento.split('-');
@@ -780,7 +783,6 @@
       }
     });
 
-    // Mapear Locações
     alugueis.forEach(a => {
       if (a.veiculoCapitacao && a.veiculoCapitacao.toLowerCase().includes('marketing') && a.dataFechamento) {
         const partes = a.dataFechamento.split('-');
@@ -793,7 +795,6 @@
       }
     });
 
-    // Gerar / Atualizar contas de Vendas (R$ 300)
     for (const mes in mktVendasPorMes) {
       const qtd = mktVendasPorMes[mes];
       let contaExistente = contas.find(c => c.isAutoMkt === 'vendas' && c.vencimento && c.vencimento.startsWith(mes));
@@ -817,7 +818,6 @@
       }
     }
 
-    // Gerar / Atualizar contas de Locações (R$ 50)
     for (const mes in mktLocacaoPorMes) {
       const qtd = mktLocacaoPorMes[mes];
       let contaExistente = contas.find(c => c.isAutoMkt === 'locacao' && c.vencimento && c.vencimento.startsWith(mes));
@@ -841,7 +841,6 @@
       }
     }
 
-    // Limpar contas caso o utilizador tenha apagado todos os registos do mês
     contas = contas.filter(c => {
       const cMes = (c.vencimento && c.vencimento.length >= 7) ? c.vencimento.substring(0, 7) : '';
       if (c.isAutoMkt === 'vendas') return (mktVendasPorMes[cMes] || 0) > 0;
@@ -852,7 +851,6 @@
     localStorage.setItem('contas_db', JSON.stringify(contas));
     if (document.getElementById('tab-contas').classList.contains('active')) renderContas();
   }
-  // ========================================================
 
   function renderContas() {
     carregarSelectsFormulario();
@@ -887,8 +885,8 @@
         <td><small>${infoTipo} • ${c.categoria}</small></td>
         <td>${c.origem}</td>
         <td>${c.vencimento.split('-').reverse().join('/')}</td>
-        <td>R$ ${(c.valorPrevisto || 0).toFixed(2)}</td>
-        <td>R$ ${(c.valorReal || 0).toFixed(2)}</td>
+        <td>${formatarMoeda(c.valorPrevisto)}</td>
+        <td>${formatarMoeda(c.valorReal)}</td>
         <td><span class="badge badge-${c.status.toLowerCase()}">${c.status}</span></td>
         <td>
           ${c.status !== 'Pago' ? `<button class="btn btn-success btn-sm" onclick="baixarConta(${c.id})">Baixar</button>` : ''}
@@ -900,11 +898,11 @@
     });
 
     const variacao = prevTotal - realTotal;
-    document.getElementById('totalPrevisto').innerText = `R$ ${prevTotal.toFixed(2)}`;
-    document.getElementById('totalReal').innerText = `R$ ${realTotal.toFixed(2)}`;
-    document.getElementById('totalPendente').innerText = `R$ ${pendenteTotal.toFixed(2)}`;
+    document.getElementById('totalPrevisto').innerText = formatarMoeda(prevTotal);
+    document.getElementById('totalReal').innerText = formatarMoeda(realTotal);
+    document.getElementById('totalPendente').innerText = formatarMoeda(pendenteTotal);
     const elVar = document.getElementById('totalVariacao');
-    elVar.innerText = `R$ ${Math.abs(variacao).toFixed(2)} ${variacao >= 0 ? '(Economia)' : '(Excesso)'}`;
+    elVar.innerText = `${formatarMoeda(Math.abs(variacao))} ${variacao >= 0 ? '(Economia)' : '(Excesso)'}`;
     elVar.style.color = variacao >= 0 ? 'var(--success)' : 'var(--danger)';
   }
 
@@ -1074,10 +1072,10 @@
       resumoMap[c.corretor].comissao += (c.valorComissao || 0);
     });
 
-    document.getElementById('dashTotalVendas').innerText = `R$ ${totVendas.toFixed(2)}`;
-    document.getElementById('dashTotalComissao').innerText = `R$ ${totComissao.toFixed(2)}`;
-    document.getElementById('dashComissaoAReceber').innerText = `R$ ${totAReceber.toFixed(2)}`;
-    document.getElementById('dashComissaoRecebida').innerText = `R$ ${totRecebido.toFixed(2)}`;
+    document.getElementById('dashTotalVendas').innerText = formatarMoeda(totVendas);
+    document.getElementById('dashTotalComissao').innerText = formatarMoeda(totComissao);
+    document.getElementById('dashComissaoAReceber').innerText = formatarMoeda(totAReceber);
+    document.getElementById('dashComissaoRecebida').innerText = formatarMoeda(totRecebido);
 
     const rankingArray = Object.values(resumoMap).sort((a, b) => b.volume - a.volume);
 
@@ -1109,8 +1107,8 @@
           </div>
         </div>
         <div style="text-align:right;">
-          <div style="font-weight:800; color:var(--primary); font-size:1.05rem;">R$ ${item.volume.toFixed(2)}</div>
-          <small style="color:var(--success); font-weight:600;">Comissão: R$ ${item.comissao.toFixed(2)}</small>
+          <div style="font-weight:800; color:var(--primary); font-size:1.05rem;">${formatarMoeda(item.volume)}</div>
+          <small style="color:var(--success); font-weight:600;">Comissão: ${formatarMoeda(item.comissao)}</small>
         </div>
       `;
       contRanking.appendChild(div);
@@ -1196,7 +1194,7 @@
       tr.innerHTML = `
         <td>${fechamentoTxt}</td><td><b>${c.comprador}</b></td><td>${capBadge}</td><td>${c.vendedor}</td>
         <td><div class="corretor-cell"><img src="${fotoUrl}" class="corretor-avatar"><span>${c.corretor}</span></div></td>
-        <td>R$ ${(c.valorVenda || 0).toFixed(2)}</td><td><b>R$ ${(c.valorComissao || 0).toFixed(2)}</b></td>
+        <td>${formatarMoeda(c.valorVenda)}</td><td><b>${formatarMoeda(c.valorComissao)}</b></td>
         <td>${prevTxt}</td><td>${statusBadge}</td>
         <td>
           ${c.status !== 'Recebido' ? `<button class="btn btn-success btn-sm" onclick="baixarComissao(${c.id})">Baixar</button>` : ''}
@@ -1207,10 +1205,10 @@
       tbody.appendChild(tr);
     });
 
-    document.getElementById('totalVendasComissao').innerText = `R$ ${totVendas.toFixed(2)}`;
-    document.getElementById('totalComissaoGeral').innerText = `R$ ${totComissao.toFixed(2)}`;
-    document.getElementById('totalComissaoAReceber').innerText = `R$ ${totAReceber.toFixed(2)}`;
-    document.getElementById('totalComissaoRecebida').innerText = `R$ ${totRecebido.toFixed(2)}`;
+    document.getElementById('totalVendasComissao').innerText = formatarMoeda(totVendas);
+    document.getElementById('totalComissaoGeral').innerText = formatarMoeda(totComissao);
+    document.getElementById('totalComissaoAReceber').innerText = formatarMoeda(totAReceber);
+    document.getElementById('totalComissaoRecebida').innerText = formatarMoeda(totRecebido);
   }
 
   document.getElementById('formComissao').addEventListener('submit', (e) => {
@@ -1244,7 +1242,7 @@
 
   function baixarComissao(id) {
     const c = comissoes.find(x => x.id === id);
-    if (c && confirm(`Confirmar recebimento da comissão de R$ ${c.valorComissao.toFixed(2)}?`)) {
+    if (c && confirm(`Confirmar recebimento da comissão de ${formatarMoeda(c.valorComissao)}?`)) {
       c.status = 'Recebido';
       localStorage.setItem('comissoes_db', JSON.stringify(comissoes));
       renderComissoes();
@@ -1343,14 +1341,14 @@
       const fechamentoTxt = a.dataFechamento ? a.dataFechamento.split('-').reverse().join('/') : 'N/I';
       const capBadge = `<span class="badge badge-capitacao">${a.veiculoCapitacao || 'N/I'}</span>`;
       const eMkt = a.veiculoCapitacao && a.veiculoCapitacao.toLowerCase().includes('marketing');
-      const custoMkt = eMkt ? '<b style="color:var(--danger)">R$ 50,00</b>' : 'R$ 0,00';
+      const custoMkt = eMkt ? `<b style="color:var(--danger)">${formatarMoeda(50)}</b>` : formatarMoeda(0);
       const fotoUrl = obterFotoCorretor(a.corretor);
 
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${fechamentoTxt}</td><td><b>${a.inquilino}</b></td><td>${capBadge}</td><td>${a.proprietario}</td>
         <td><div class="corretor-cell"><img src="${fotoUrl}" class="corretor-avatar"><span>${a.corretor}</span></div></td>
-        <td>R$ ${(a.valorAluguel || 0).toFixed(2)}</td><td>${custoMkt}</td>
+        <td>${formatarMoeda(a.valorAluguel)}</td><td>${custoMkt}</td>
         <td>
           <button class="btn btn-secondary btn-sm" onclick="editarAluguel(${a.id})">✏️</button>
           <button class="btn btn-danger btn-sm" onclick="excluirAluguel(${a.id})">🗑️</button>
@@ -1360,7 +1358,7 @@
     });
 
     document.getElementById('qtdAlugueisFechados').innerText = filtrados.length;
-    document.getElementById('totalValorAlugueis').innerText = `R$ ${totVal.toFixed(2)}`;
+    document.getElementById('totalValorAlugueis').innerText = formatarMoeda(totVal);
     document.getElementById('totalAluguelMarketing').innerText = countMkt;
   }
 
@@ -1645,7 +1643,7 @@
     const u = parseFloat(document.getElementById('calcDiasUso').value) || 0;
     const t = parseFloat(document.getElementById('calcDiasTotais').value) || 30;
     const res = (v / t) * u;
-    document.getElementById('resCalc').innerText = `Valor Proporcional: R$ ${res.toFixed(2)}`;
+    document.getElementById('resCalc').innerText = `Valor Proporcional: ${formatarMoeda(res)}`;
   }
 </script>
 </body>
