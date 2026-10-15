@@ -762,37 +762,41 @@
     document.getElementById('groupParcelas').style.display = tipo === 'Parcelada' ? 'flex' : 'none';
   }
 
-  // ==== SISTEMA DE AUTOMAÇÃO DE CONTAS DE MARKETING ====
+  // ==== SISTEMA DE AUTOMAÇÃO DE CONTAS DE MARKETING (AGORA 100% SEGURO) ====
   function sincronizarCustosMarketing() {
     let mktVendasPorMes = {};
     let mktLocacaoPorMes = {};
 
     // Mapear Vendas
     comissoes.forEach(c => {
-      if (c.veiculoCapitacao === 'Marketing' && c.dataFechamento) {
-        const [a, m] = c.dataFechamento.split('-');
-        let proxMes = parseInt(m) + 1; let proxAno = parseInt(a);
-        if (proxMes > 12) { proxMes = 1; proxAno++; }
-        const chaveMes = `${proxAno}-${String(proxMes).padStart(2, '0')}`;
-        mktVendasPorMes[chaveMes] = (mktVendasPorMes[chaveMes] || 0) + 1;
+      if (c.veiculoCapitacao && c.veiculoCapitacao.toLowerCase().includes('marketing') && c.dataFechamento) {
+        const partes = c.dataFechamento.split('-');
+        if (partes.length >= 2) {
+          let proxMes = parseInt(partes[1]) + 1; let proxAno = parseInt(partes[0]);
+          if (proxMes > 12) { proxMes = 1; proxAno++; }
+          const chaveMes = `${proxAno}-${String(proxMes).padStart(2, '0')}`;
+          mktVendasPorMes[chaveMes] = (mktVendasPorMes[chaveMes] || 0) + 1;
+        }
       }
     });
 
     // Mapear Locações
     alugueis.forEach(a => {
-      if (a.veiculoCapitacao === 'Marketing' && a.dataFechamento) {
-        const [a, m] = a.dataFechamento.split('-');
-        let proxMes = parseInt(m) + 1; let proxAno = parseInt(a);
-        if (proxMes > 12) { proxMes = 1; proxAno++; }
-        const chaveMes = `${proxAno}-${String(proxMes).padStart(2, '0')}`;
-        mktLocacaoPorMes[chaveMes] = (mktLocacaoPorMes[chaveMes] || 0) + 1;
+      if (a.veiculoCapitacao && a.veiculoCapitacao.toLowerCase().includes('marketing') && a.dataFechamento) {
+        const partes = a.dataFechamento.split('-');
+        if (partes.length >= 2) {
+          let proxMes = parseInt(partes[1]) + 1; let proxAno = parseInt(partes[0]);
+          if (proxMes > 12) { proxMes = 1; proxAno++; }
+          const chaveMes = `${proxAno}-${String(proxMes).padStart(2, '0')}`;
+          mktLocacaoPorMes[chaveMes] = (mktLocacaoPorMes[chaveMes] || 0) + 1;
+        }
       }
     });
 
     // Gerar / Atualizar contas de Vendas (R$ 300)
     for (const mes in mktVendasPorMes) {
       const qtd = mktVendasPorMes[mes];
-      let contaExistente = contas.find(c => c.isAutoMkt === 'vendas' && c.vencimento.startsWith(mes));
+      let contaExistente = contas.find(c => c.isAutoMkt === 'vendas' && c.vencimento && c.vencimento.startsWith(mes));
       if (contaExistente) {
         contaExistente.valorPrevisto = qtd * 300;
         contaExistente.descricao = `Custos Mkt Vendas (${qtd}x)`;
@@ -816,7 +820,7 @@
     // Gerar / Atualizar contas de Locações (R$ 50)
     for (const mes in mktLocacaoPorMes) {
       const qtd = mktLocacaoPorMes[mes];
-      let contaExistente = contas.find(c => c.isAutoMkt === 'locacao' && c.vencimento.startsWith(mes));
+      let contaExistente = contas.find(c => c.isAutoMkt === 'locacao' && c.vencimento && c.vencimento.startsWith(mes));
       if (contaExistente) {
         contaExistente.valorPrevisto = qtd * 50;
         contaExistente.descricao = `Custos Mkt Locações (${qtd}x)`;
@@ -839,8 +843,9 @@
 
     // Limpar contas caso o utilizador tenha apagado todos os registos do mês
     contas = contas.filter(c => {
-      if (c.isAutoMkt === 'vendas') return mktVendasPorMes[c.vencimento.substring(0, 7)] > 0;
-      if (c.isAutoMkt === 'locacao') return mktLocacaoPorMes[c.vencimento.substring(0, 7)] > 0;
+      const cMes = (c.vencimento && c.vencimento.length >= 7) ? c.vencimento.substring(0, 7) : '';
+      if (c.isAutoMkt === 'vendas') return (mktVendasPorMes[cMes] || 0) > 0;
+      if (c.isAutoMkt === 'locacao') return (mktLocacaoPorMes[cMes] || 0) > 0;
       return true;
     });
 
@@ -855,7 +860,9 @@
     const mesSel = document.getElementById('filtroMesContas').value;
     const contasFiltradas = contas.filter(c => {
       if (!c.vencimento) return false;
-      const [ano, mes] = c.vencimento.split('-');
+      const partes = c.vencimento.split('-');
+      if (partes.length < 2) return false;
+      const ano = partes[0], mes = partes[1];
       if (anoSel !== 'todos' && ano !== anoSel) return false;
       if (mesSel !== 'todos' && mes !== mesSel) return false;
       return true;
@@ -914,14 +921,17 @@
     const strProxAno = String(proxAnoNum);
 
     const contasMesAtual = contas.filter(c => {
-      const [a, m] = c.vencimento.split('-');
-      return a === anoAtual && m === mesAtual;
+      if (!c.vencimento) return false;
+      const p = c.vencimento.split('-');
+      if(p.length < 2) return false;
+      return p[0] === anoAtual && p[1] === mesAtual;
     });
 
     let contGeradas = 0;
     contasMesAtual.forEach(c => {
-      const [a, m, d] = c.vencimento.split('-');
-      const novaData = `${strProxAno}-${strProxMes}-${d}`;
+      const p = c.vencimento.split('-');
+      if (p.length < 3) return;
+      const novaData = `${strProxAno}-${strProxMes}-${p[2]}`;
       if (c.tipo === 'Fixa' && !c.isAutoMkt) {
         contas.push({ id: Date.now() + Math.random(), descricao: c.descricao, valorPrevisto: c.valorPrevisto, valorReal: 0, vencimento: novaData, origem: c.origem, tipo: 'Fixa', parcAtual: 1, parcTotal: 1, categoria: c.categoria, status: 'Pendente' });
         contGeradas++;
@@ -946,7 +956,6 @@
     const real = realInput !== '' ? parseFloat(realInput) : 0;
     const status = realInput !== '' && real > 0 ? 'Pago' : 'Pendente';
 
-    // Recupera isAutoMkt se for edição de conta do sistema
     let contaAntiga = id ? contas.find(x => x.id === parseInt(id)) : null;
 
     const obj = {
@@ -1037,9 +1046,12 @@
     const filtradas = comissoes.filter(c => {
       if (corretorSel !== 'todos' && c.corretor !== corretorSel) return false;
       if (c.dataFechamento) {
-        const [a, m] = c.dataFechamento.split('-');
-        if (anoSel !== 'todos' && a !== anoSel) return false;
-        if (mesSel !== 'todos' && m !== mesSel) return false;
+        const partes = c.dataFechamento.split('-');
+        if (partes.length >= 2) {
+          const a = partes[0], m = partes[1];
+          if (anoSel !== 'todos' && a !== anoSel) return false;
+          if (mesSel !== 'todos' && m !== mesSel) return false;
+        }
       }
       return true;
     });
@@ -1154,9 +1166,12 @@
       if (corretorSel !== 'todos' && c.corretor !== corretorSel) return false;
       if (capitacaoSel !== 'todos' && c.veiculoCapitacao !== capitacaoSel) return false;
       if (c.dataFechamento) {
-        const [a, m] = c.dataFechamento.split('-');
-        if (anoSel !== 'todos' && a !== anoSel) return false;
-        if (mesSel !== 'todos' && m !== mesSel) return false;
+        const partes = c.dataFechamento.split('-');
+        if (partes.length >= 2) {
+          const a = partes[0], m = partes[1];
+          if (anoSel !== 'todos' && a !== anoSel) return false;
+          if (mesSel !== 'todos' && m !== mesSel) return false;
+        }
       }
       return true;
     });
@@ -1308,9 +1323,12 @@
       if (corretorSel !== 'todos' && a.corretor !== corretorSel) return false;
       if (capitacaoSel !== 'todos' && a.veiculoCapitacao !== capitacaoSel) return false;
       if (a.dataFechamento) {
-        const [ano, mes] = a.dataFechamento.split('-');
-        if (anoSel !== 'todos' && ano !== anoSel) return false;
-        if (mesSel !== 'todos' && mes !== mesSel) return false;
+        const partes = a.dataFechamento.split('-');
+        if (partes.length >= 2) {
+          const ano = partes[0], mes = partes[1];
+          if (anoSel !== 'todos' && ano !== anoSel) return false;
+          if (mesSel !== 'todos' && mes !== mesSel) return false;
+        }
       }
       return true;
     });
@@ -1321,10 +1339,10 @@
 
     filtrados.forEach(a => {
       totVal += a.valorAluguel || 0;
-      if (a.veiculoCapitacao && a.veiculoCapitacao === 'Marketing') countMkt++;
+      if (a.veiculoCapitacao && a.veiculoCapitacao.toLowerCase().includes('marketing')) countMkt++;
       const fechamentoTxt = a.dataFechamento ? a.dataFechamento.split('-').reverse().join('/') : 'N/I';
       const capBadge = `<span class="badge badge-capitacao">${a.veiculoCapitacao || 'N/I'}</span>`;
-      const eMkt = a.veiculoCapitacao && a.veiculoCapitacao === 'Marketing';
+      const eMkt = a.veiculoCapitacao && a.veiculoCapitacao.toLowerCase().includes('marketing');
       const custoMkt = eMkt ? '<b style="color:var(--danger)">R$ 50,00</b>' : 'R$ 0,00';
       const fotoUrl = obterFotoCorretor(a.corretor);
 
@@ -1363,6 +1381,7 @@
       alugueis[idx] = obj;
     } else {
       alugueis.push(obj);
+      alert('Aluguel cadastrado! Se foi via Marketing, a conta a pagar foi gerada para o MÊS SEGUINTE (dia 10).');
     }
     localStorage.setItem('alugueis_db', JSON.stringify(alugueis));
     sincronizarCustosMarketing();
