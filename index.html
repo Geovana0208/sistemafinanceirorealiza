@@ -199,6 +199,9 @@
     }
     .ranking-item:hover { background: var(--primary-light); }
     .ranking-pos { font-weight: 800; font-size: 1.1rem; color: var(--primary); width: 35px; }
+
+    .modal-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 100; }
+    .modal-content { background: white; padding: 25px; border-radius: 12px; max-width: 500px; width: 90%; }
     .chart-box { height: 280px; position: relative; }
   </style>
 </head>
@@ -1371,7 +1374,6 @@
     const novoNome = document.getElementById(`corretor_nome_${index}`).value.trim();
     const novaFoto = document.getElementById(`corretor_foto_${index}`).value.trim();
     if (novoNome) {
-      const antigo = corretores[index].nome;
       corretores[index] = { nome: novoNome, foto: novaFoto };
       localStorage.setItem('corretores_objs_db', JSON.stringify(corretores));
       renderListaCorretores();
