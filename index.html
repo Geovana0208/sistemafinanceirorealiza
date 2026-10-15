@@ -23,7 +23,6 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
     body { background-color: var(--bg-color); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; }
 
-    /* Tela de Login */
     #loginScreen {
       position: fixed;
       top: 0; left: 0; width: 100%; height: 100%;
@@ -45,7 +44,6 @@
     .login-box h2 { color: var(--primary); margin-bottom: 8px; font-size: 1.6rem; }
     .login-box p { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 25px; }
 
-    /* Layout com Menu Lateral */
     .app-layout {
       display: none;
       width: 100%;
@@ -201,15 +199,11 @@
     }
     .ranking-item:hover { background: var(--primary-light); }
     .ranking-pos { font-weight: 800; font-size: 1.1rem; color: var(--primary); width: 35px; }
-
-    .modal-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 100; }
-    .modal-content { background: white; padding: 25px; border-radius: 12px; max-width: 500px; width: 90%; }
     .chart-box { height: 280px; position: relative; }
   </style>
 </head>
 <body>
 
-<!-- TELA DE LOGIN -->
 <div id="loginScreen">
   <div class="login-box">
     <h2>Realiza Imóveis</h2>
@@ -229,9 +223,7 @@
   </div>
 </div>
 
-<!-- LAYOUT PRINCIPAL COM MENU LATERAL -->
 <div class="app-layout" id="appLayout">
-  
   <aside class="sidebar">
     <div>
       <div class="sidebar-brand">
@@ -268,52 +260,27 @@
       <span style="font-size: 0.85rem; color: var(--text-muted);">Sistema Exclusivo Realiza Imóveis</span>
     </div>
 
-    <!-- ABA 1: CONTAS A PAGAR -->
+    <!-- CONTAS -->
     <div id="tab-contas" class="tab-content active">
       <div class="card" style="margin-bottom: 20px;">
         <div class="filter-bar">
           <label for="filtroAnoContas">Ano:</label>
           <select id="filtroAnoContas" onchange="renderContas()"></select>
-          
           <label for="filtroMesContas">Mês:</label>
           <select id="filtroMesContas" onchange="renderContas()">
             <option value="todos">Ano Todo (Consolidado)</option>
-            <option value="01">Janeiro</option>
-            <option value="02">Fevereiro</option>
-            <option value="03">Março</option>
-            <option value="04">Abril</option>
-            <option value="05">Maio</option>
-            <option value="06">Junho</option>
-            <option value="07">Julho</option>
-            <option value="08">Agosto</option>
-            <option value="09" selected>Setembro</option>
-            <option value="10">Outubro</option>
-            <option value="11">Novembro</option>
-            <option value="12">Dezembro</option>
+            <option value="01">Janeiro</option><option value="02">Fevereiro</option><option value="03">Março</option><option value="04">Abril</option><option value="05">Maio</option><option value="06">Junho</option><option value="07">Julho</option><option value="08">Agosto</option><option value="09" selected>Setembro</option><option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
           </select>
-
           <button class="btn btn-secondary btn-sm" onclick="abrirGerenciadorContas()">⚙️ Contas de Saída</button>
           <button class="btn btn-success btn-sm" onclick="gerarProximoMes()">🔄 Gerar Próximo Mês</button>
         </div>
       </div>
 
       <div class="grid-cards">
-        <div class="card">
-          <div class="card-title">Previsto Total</div>
-          <div class="card-val" id="totalPrevisto" style="color: var(--primary);">R$ 0,00</div>
-        </div>
-        <div class="card">
-          <div class="card-title">Realizado / Pago</div>
-          <div class="card-val" id="totalReal" style="color: var(--success);">R$ 0,00</div>
-        </div>
-        <div class="card">
-          <div class="card-title">Variação (Economia/Excesso)</div>
-          <div class="card-val" id="totalVariacao">R$ 0,00</div>
-        </div>
-        <div class="card">
-          <div class="card-title">Total Geral Devido</div>
-          <div class="card-val" id="totalPendente" style="color: var(--danger);">R$ 0,00</div>
-        </div>
+        <div class="card"><div class="card-title">Previsto Total</div><div class="card-val" id="totalPrevisto" style="color: var(--primary);">R$ 0,00</div></div>
+        <div class="card"><div class="card-title">Realizado / Pago</div><div class="card-val" id="totalReal" style="color: var(--success);">R$ 0,00</div></div>
+        <div class="card"><div class="card-title">Variação</div><div class="card-val" id="totalVariacao">R$ 0,00</div></div>
+        <div class="card"><div class="card-title">Total Geral Devido</div><div class="card-val" id="totalPendente" style="color: var(--danger);">R$ 0,00</div></div>
       </div>
 
       <div class="grid-main">
@@ -323,7 +290,7 @@
             <input type="hidden" id="contaId">
             <div class="form-group" style="grid-column: 1 / -1;">
               <label>Descrição / Fornecedor</label>
-              <input type="text" id="descricao" required placeholder="Ex: Aluguel, IPTU, Água, Custo Marketing">
+              <input type="text" id="descricao" required placeholder="Ex: Aluguel, IPTU, Água">
             </div>
             <div class="form-group">
               <label>Valor Previsto (R$)</label>
@@ -352,8 +319,8 @@
             <div class="form-group" id="groupParcelas" style="display:none;">
               <label>Parcela / Total</label>
               <div style="display:flex; gap:5px;">
-                <input type="number" id="parcAtual" value="1" placeholder="Ex: 1">
-                <input type="number" id="parcTotal" value="12" placeholder="Ex: 12">
+                <input type="number" id="parcAtual" value="1">
+                <input type="number" id="parcTotal" value="12">
               </div>
             </div>
             <div class="form-group">
@@ -380,7 +347,7 @@
             <input type="number" id="calcVal" placeholder="1000.00">
           </div>
           <div class="form-group" style="margin-bottom:8px;">
-            <label>Dias Utilizados / Total do Mês</label>
+            <label>Dias Utilizados / Total</label>
             <div style="display:flex; gap:5px;">
               <input type="number" id="calcDiasUso" placeholder="17">
               <input type="number" id="calcDiasTotais" value="30">
@@ -413,144 +380,80 @@
       </div>
     </div>
 
-    <!-- ABA 2: DASHBOARD -->
+    <!-- DASHBOARD -->
     <div id="tab-dashboard" class="tab-content">
       <div class="card" style="margin-bottom: 20px;">
         <div class="filter-bar">
-          <label for="filtroAnoDash">Ano Fechamento:</label>
+          <label for="filtroAnoDash">Ano:</label>
           <select id="filtroAnoDash" onchange="renderDashboard()"></select>
-          
-          <label for="filtroMesDash">Mês Fechamento:</label>
+          <label for="filtroMesDash">Mês:</label>
           <select id="filtroMesDash" onchange="renderDashboard()">
             <option value="todos">Todos os Meses</option>
-            <option value="01">Janeiro</option>
-            <option value="02">Fevereiro</option>
-            <option value="03">Março</option>
-            <option value="04">Abril</option>
-            <option value="05">Maio</option>
-            <option value="06">Junho</option>
-            <option value="07">Julho</option>
-            <option value="08">Agosto</option>
-            <option value="09">Setembro</option>
-            <option value="10">Outubro</option>
-            <option value="11">Novembro</option>
-            <option value="12">Dezembro</option>
+            <option value="01">Janeiro</option><option value="02">Fevereiro</option><option value="03">Março</option><option value="04">Abril</option><option value="05">Maio</option><option value="06">Junho</option><option value="07">Julho</option><option value="08">Agosto</option><option value="09">Setembro</option><option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
           </select>
-
-          <label for="filtroCorretorDash">Filtrar por Corretor:</label>
+          <label for="filtroCorretorDash">Corretor:</label>
           <select id="filtroCorretorDash" onchange="renderDashboard()">
             <option value="todos">Todos os Corretores</option>
           </select>
-
-          <button class="btn btn-secondary btn-sm" onclick="abrirGerenciadorCorretores()">📸 Gerenciar Corretores & Foto</button>
+          <button class="btn btn-secondary btn-sm" onclick="abrirGerenciadorCorretores()">📸 Gerenciar Corretores</button>
         </div>
       </div>
 
       <div class="grid-cards">
-        <div class="card">
-          <div class="card-title">Volume em Vendas</div>
-          <div class="card-val" id="dashTotalVendas" style="color: var(--primary);">R$ 0,00</div>
-        </div>
-        <div class="card">
-          <div class="card-title">Total Comissões</div>
-          <div class="card-val" id="dashTotalComissao" style="color: var(--primary);">R$ 0,00</div>
-        </div>
-        <div class="card">
-          <div class="card-title">Comissões A Receber</div>
-          <div class="card-val" id="dashComissaoAReceber" style="color: var(--warning);">R$ 0,00</div>
-        </div>
-        <div class="card">
-          <div class="card-title">Comissões Recebidas</div>
-          <div class="card-val" id="dashComissaoRecebida" style="color: var(--success);">R$ 0,00</div>
-        </div>
+        <div class="card"><div class="card-title">Volume Vendas</div><div class="card-val" id="dashTotalVendas" style="color: var(--primary);">R$ 0,00</div></div>
+        <div class="card"><div class="card-title">Total Comissões</div><div class="card-val" id="dashTotalComissao" style="color: var(--primary);">R$ 0,00</div></div>
+        <div class="card"><div class="card-title">A Receber</div><div class="card-val" id="dashComissaoAReceber" style="color: var(--warning);">R$ 0,00</div></div>
+        <div class="card"><div class="card-title">Recebidas</div><div class="card-val" id="dashComissaoRecebida" style="color: var(--success);">R$ 0,00</div></div>
       </div>
 
       <div class="grid-main" style="grid-template-columns: 2fr 1fr; margin-bottom: 20px;">
         <div class="card">
-          <h3 style="color: var(--primary); margin-bottom: 12px;">📊 Desempenho de Vendas por Corretor (R$)</h3>
+          <h3 style="color: var(--primary); margin-bottom: 12px;">📊 Desempenho de Vendas por Corretor</h3>
           <div class="chart-box"><canvas id="chartVendasCorretor"></canvas></div>
         </div>
-        
         <div class="card" style="display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center;">
           <div id="corretorDestaqueAvatar" style="margin-bottom:12px;"></div>
           <h3 id="corretorDestaqueNome" style="color: var(--primary);">Selecione um Corretor</h3>
-          <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:15px;">Resumo no Período Selecionado</p>
+          <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:15px;">Resumo no Período</p>
           <div style="width:100%; text-align:left; display:flex; flex-direction:column; gap:10px;">
-            <div style="display:flex; justify-content:space-between; border-bottom:1px solid #eee; padding-bottom:6px;">
-              <span>Vendas Fechadas:</span> <b id="dashCorretorQtd">0</b>
-            </div>
-            <div style="display:flex; justify-content:space-between; border-bottom:1px solid #eee; padding-bottom:6px;">
-              <span>Volume de Vendas:</span> <b id="dashCorretorVolume" style="color:var(--primary)">R$ 0,00</b>
-            </div>
-            <div style="display:flex; justify-content:space-between;">
-              <span>Comissão Gerada:</span> <b id="dashCorretorComissao" style="color:var(--success)">R$ 0,00</b>
-            </div>
+            <div style="display:flex; justify-content:space-between; border-bottom:1px solid #eee; padding-bottom:6px;"><span>Vendas:</span> <b id="dashCorretorQtd">0</b></div>
+            <div style="display:flex; justify-content:space-between; border-bottom:1px solid #eee; padding-bottom:6px;"><span>Volume:</span> <b id="dashCorretorVolume" style="color:var(--primary)">R$ 0,00</b></div>
+            <div style="display:flex; justify-content:space-between;"><span>Comissão:</span> <b id="dashCorretorComissao" style="color:var(--success)">R$ 0,00</b></div>
           </div>
         </div>
       </div>
 
       <div class="card">
-        <h3 style="color: var(--primary); margin-bottom: 15px;">🏆 Ranking de Vendas por Corretor (Ordem Decrescente)</h3>
+        <h3 style="color: var(--primary); margin-bottom: 15px;">🏆 Ranking de Vendas por Corretor</h3>
         <div id="listaRankingCorretores"></div>
       </div>
     </div>
 
-    <!-- ABA 3: COMISSÕES -->
+    <!-- COMISSÕES -->
     <div id="tab-comissoes" class="tab-content">
       <div class="card" style="margin-bottom: 20px;">
         <div class="filter-bar">
-          <label for="filtroAnoComissoes">Ano Fechamento:</label>
+          <label for="filtroAnoComissoes">Ano:</label>
           <select id="filtroAnoComissoes" onchange="renderComissoes()"></select>
-          
-          <label for="filtroMesComissoes">Mês Fechamento:</label>
+          <label for="filtroMesComissoes">Mês:</label>
           <select id="filtroMesComissoes" onchange="renderComissoes()">
             <option value="todos">Todos os Meses</option>
-            <option value="01">Janeiro</option>
-            <option value="02">Fevereiro</option>
-            <option value="03">Março</option>
-            <option value="04">Abril</option>
-            <option value="05">Maio</option>
-            <option value="06">Junho</option>
-            <option value="07">Julho</option>
-            <option value="08">Agosto</option>
-            <option value="09">Setembro</option>
-            <option value="10">Outubro</option>
-            <option value="11">Novembro</option>
-            <option value="12">Dezembro</option>
+            <option value="01">Janeiro</option><option value="02">Fevereiro</option><option value="03">Março</option><option value="04">Abril</option><option value="05">Maio</option><option value="06">Junho</option><option value="07">Julho</option><option value="08">Agosto</option><option value="09">Setembro</option><option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
           </select>
-
           <label for="filtroCorretorComissoes">Corretor:</label>
-          <select id="filtroCorretorComissoes" onchange="renderComissoes()">
-            <option value="todos">Todos os Corretores</option>
-          </select>
-
-          <label for="filtroCapitacaoComissoes">Veículo Captação:</label>
-          <select id="filtroCapitacaoComissoes" onchange="renderComissoes()">
-            <option value="todos">Todos os Veículos</option>
-          </select>
-
-          <button class="btn btn-secondary btn-sm" onclick="abrirGerenciadorCorretores()">📸 Cadastrar Corretores & Foto</button>
-          <button class="btn btn-secondary btn-sm" onclick="abrirGerenciadorVeiculos()">⚙️ Veículos Captação</button>
+          <select id="filtroCorretorComissoes" onchange="renderComissoes()"><option value="todos">Todos os Corretores</option></select>
+          <label for="filtroCapitacaoComissoes">Captação:</label>
+          <select id="filtroCapitacaoComissoes" onchange="renderComissoes()"><option value="todos">Todos os Veículos</option></select>
+          <button class="btn btn-secondary btn-sm" onclick="abrirGerenciadorCorretores()">📸 Corretores</button>
+          <button class="btn btn-secondary btn-sm" onclick="abrirGerenciadorVeiculos()">⚙️ Veículos</button>
         </div>
       </div>
 
       <div class="grid-cards">
-        <div class="card">
-          <div class="card-title">Volume Total em Vendas</div>
-          <div class="card-val" id="totalVendasComissao" style="color: var(--primary);">R$ 0,00</div>
-        </div>
-        <div class="card">
-          <div class="card-title">Somatória de Comissões</div>
-          <div class="card-val" id="totalComissaoGeral" style="color: var(--primary);">R$ 0,00</div>
-        </div>
-        <div class="card">
-          <div class="card-title">Comissões a Receber</div>
-          <div class="card-val" id="totalComissaoAReceber" style="color: var(--warning);">R$ 0,00</div>
-        </div>
-        <div class="card">
-          <div class="card-title">Comissões Já Recebidas</div>
-          <div class="card-val" id="totalComissaoRecebida" style="color: var(--success);">R$ 0,00</div>
-        </div>
+        <div class="card"><div class="card-title">Volume Vendas</div><div class="card-val" id="totalVendasComissao" style="color: var(--primary);">R$ 0,00</div></div>
+        <div class="card"><div class="card-title">Total Comissões</div><div class="card-val" id="totalComissaoGeral" style="color: var(--primary);">R$ 0,00</div></div>
+        <div class="card"><div class="card-title">A Receber</div><div class="card-val" id="totalComissaoAReceber" style="color: var(--warning);">R$ 0,00</div></div>
+        <div class="card"><div class="card-title">Recebidas</div><div class="card-val" id="totalComissaoRecebida" style="color: var(--success);">R$ 0,00</div></div>
       </div>
 
       <div class="grid-main" style="grid-template-columns: 1fr;">
@@ -558,34 +461,13 @@
           <h3 style="color: var(--primary); margin-bottom: 12px;">Lançar Nova Comissão / Venda</h3>
           <form id="formComissao">
             <input type="hidden" id="comissaoId">
-            <div class="form-group">
-              <label>Comprador</label>
-              <input type="text" id="comprador" required placeholder="Nome do Comprador">
-            </div>
-            <div class="form-group">
-              <label>Veículo de Captação (Comprador)</label>
-              <select id="veiculoCapitacao" required></select>
-            </div>
-            <div class="form-group">
-              <label>Vendedor / Proprietário</label>
-              <input type="text" id="vendedor" required placeholder="Nome do Vendedor">
-            </div>
-            <div class="form-group">
-              <label>Corretor Responsável</label>
-              <select id="corretor" required></select>
-            </div>
-            <div class="form-group">
-              <label>Data de Fechamento</label>
-              <input type="date" id="dataFechamentoComissao" required>
-            </div>
-            <div class="form-group">
-              <label>Valor da Venda (R$)</label>
-              <input type="number" step="0.01" id="valorVenda" required placeholder="0.00">
-            </div>
-            <div class="form-group">
-              <label>Valor da Comissão (R$)</label>
-              <input type="number" step="0.01" id="valorComissao" required placeholder="0.00">
-            </div>
+            <div class="form-group"><label>Comprador</label><input type="text" id="comprador" required placeholder="Nome do Comprador"></div>
+            <div class="form-group"><label>Veículo de Captação</label><select id="veiculoCapitacao" required></select></div>
+            <div class="form-group"><label>Vendedor / Proprietário</label><input type="text" id="vendedor" required placeholder="Nome do Vendedor"></div>
+            <div class="form-group"><label>Corretor Responsável</label><select id="corretor" required></select></div>
+            <div class="form-group"><label>Data de Fechamento</label><input type="date" id="dataFechamentoComissao" required></div>
+            <div class="form-group"><label>Valor da Venda (R$)</label><input type="number" step="0.01" id="valorVenda" required placeholder="0.00"></div>
+            <div class="form-group"><label>Valor da Comissão (R$)</label><input type="number" step="0.01" id="valorComissao" required placeholder="0.00"></div>
             <div class="form-group">
               <label>Previsão de Recebimento</label>
               <select id="tipoPrevisao" onchange="toggleDataPrevisao()">
@@ -593,17 +475,8 @@
                 <option value="sem_previsao">Sem Previsão</option>
               </select>
             </div>
-            <div class="form-group" id="groupDataPrevisao">
-              <label>Data de Previsão</label>
-              <input type="date" id="dataPrevisao">
-            </div>
-            <div class="form-group">
-              <label>Status</label>
-              <select id="statusComissao">
-                <option value="A Receber">A Receber</option>
-                <option value="Recebido">Recebido</option>
-              </select>
-            </div>
+            <div class="form-group" id="groupDataPrevisao"><label>Data de Previsão</label><input type="date" id="dataPrevisao"></div>
+            <div class="form-group"><label>Status</label><select id="statusComissao"><option value="A Receber">A Receber</option><option value="Recebido">Recebido</option></select></div>
             <div style="grid-column: 1 / -1; display:flex; gap:10px;">
               <button type="submit" class="btn" style="flex:1;">Salvar Comissão</button>
               <button type="button" class="btn btn-secondary" onclick="limparFormComissao()">Limpar</button>
@@ -618,16 +491,7 @@
           <table>
             <thead>
               <tr>
-                <th>Fechamento</th>
-                <th>Comprador</th>
-                <th>Captação</th>
-                <th>Vendedor</th>
-                <th>Corretor Responsável</th>
-                <th>Valor Venda</th>
-                <th>Comissão</th>
-                <th>Previsão Recebimento</th>
-                <th>Status</th>
-                <th>Ações</th>
+                <th>Fechamento</th><th>Comprador</th><th>Captação</th><th>Vendedor</th><th>Corretor</th><th>Valor Venda</th><th>Comissão</th><th>Previsão</th><th>Status</th><th>Ações</th>
               </tr>
             </thead>
             <tbody id="tabelaComissoes"></tbody>
@@ -636,55 +500,28 @@
       </div>
     </div>
 
-    <!-- ABA 4: ALUGUEL -->
+    <!-- ALUGUEL -->
     <div id="tab-aluguel" class="tab-content">
       <div class="card" style="margin-bottom: 20px;">
         <div class="filter-bar">
-          <label for="filtroAnoAluguel">Ano Fechamento:</label>
+          <label for="filtroAnoAluguel">Ano:</label>
           <select id="filtroAnoAluguel" onchange="renderAlugueis()"></select>
-          
-          <label for="filtroMesAluguel">Mês Fechamento:</label>
+          <label for="filtroMesAluguel">Mês:</label>
           <select id="filtroMesAluguel" onchange="renderAlugueis()">
             <option value="todos">Todos os Meses</option>
-            <option value="01">Janeiro</option>
-            <option value="02">Fevereiro</option>
-            <option value="03">Março</option>
-            <option value="04">Abril</option>
-            <option value="05">Maio</option>
-            <option value="06">Junho</option>
-            <option value="07">Julho</option>
-            <option value="08">Agosto</option>
-            <option value="09">Setembro</option>
-            <option value="10">Outubro</option>
-            <option value="11">Novembro</option>
-            <option value="12">Dezembro</option>
+            <option value="01">Janeiro</option><option value="02">Fevereiro</option><option value="03">Março</option><option value="04">Abril</option><option value="05">Maio</option><option value="06">Junho</option><option value="07">Julho</option><option value="08">Agosto</option><option value="09">Setembro</option><option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
           </select>
-
           <label for="filtroCorretorAluguel">Corretor:</label>
-          <select id="filtroCorretorAluguel" onchange="renderAlugueis()">
-            <option value="todos">Todos os Corretores</option>
-          </select>
-
-          <label for="filtroCapitacaoAluguel">Veículo Captação:</label>
-          <select id="filtroCapitacaoAluguel" onchange="renderAlugueis()">
-            <option value="todos">Todos os Veículos</option>
-          </select>
+          <select id="filtroCorretorAluguel" onchange="renderAlugueis()"><option value="todos">Todos os Corretores</option></select>
+          <label for="filtroCapitacaoAluguel">Captação:</label>
+          <select id="filtroCapitacaoAluguel" onchange="renderAlugueis()"><option value="todos">Todos os Veículos</option></select>
         </div>
       </div>
 
       <div class="grid-cards">
-        <div class="card">
-          <div class="card-title">Total de Locações Fechadas</div>
-          <div class="card-val" id="qtdAlugueisFechados" style="color: var(--primary);">0</div>
-        </div>
-        <div class="card">
-          <div class="card-title">Volume Total dos Alugueis</div>
-          <div class="card-val" id="totalValorAlugueis" style="color: var(--success);">R$ 0,00</div>
-        </div>
-        <div class="card">
-          <div class="card-title">Captações via Marketing</div>
-          <div class="card-val" id="totalAluguelMarketing" style="color: var(--warning);">0</div>
-        </div>
+        <div class="card"><div class="card-title">Total Locações</div><div class="card-val" id="qtdAlugueisFechados" style="color: var(--primary);">0</div></div>
+        <div class="card"><div class="card-title">Volume Alugueis</div><div class="card-val" id="totalValorAlugueis" style="color: var(--success);">R$ 0,00</div></div>
+        <div class="card"><div class="card-title">Captações Marketing</div><div class="card-val" id="totalAluguelMarketing" style="color: var(--warning);">0</div></div>
       </div>
 
       <div class="grid-main" style="grid-template-columns: 1fr;">
@@ -692,30 +529,12 @@
           <h3 style="color: var(--primary); margin-bottom: 12px;">Lançar Novo Aluguel Fechado</h3>
           <form id="formAluguel">
             <input type="hidden" id="aluguelId">
-            <div class="form-group">
-              <label>Inquilino</label>
-              <input type="text" id="inquilino" required placeholder="Nome do Inquilino">
-            </div>
-            <div class="form-group">
-              <label>Veículo de Captação</label>
-              <select id="veiculoCapitacaoAluguel" required></select>
-            </div>
-            <div class="form-group">
-              <label>Proprietário / Imóvel</label>
-              <input type="text" id="proprietarioAluguel" required placeholder="Nome do Proprietário / Endereço">
-            </div>
-            <div class="form-group">
-              <label>Valor do Aluguel (R$)</label>
-              <input type="number" step="0.01" id="valorAluguel" required placeholder="0.00">
-            </div>
-            <div class="form-group">
-              <label>Data de Fechamento da Locação</label>
-              <input type="date" id="dataFechamentoAluguel" required>
-            </div>
-            <div class="form-group">
-              <label>Corretor Responsável</label>
-              <select id="corretorAluguel" required></select>
-            </div>
+            <div class="form-group"><label>Inquilino</label><input type="text" id="inquilino" required placeholder="Nome do Inquilino"></div>
+            <div class="form-group"><label>Veículo de Captação</label><select id="veiculoCapitacaoAluguel" required></select></div>
+            <div class="form-group"><label>Proprietário / Imóvel</label><input type="text" id="proprietarioAluguel" required placeholder="Proprietário"></div>
+            <div class="form-group"><label>Valor do Aluguel (R$)</label><input type="number" step="0.01" id="valorAluguel" required placeholder="0.00"></div>
+            <div class="form-group"><label>Data de Fechamento</label><input type="date" id="dataFechamentoAluguel" required></div>
+            <div class="form-group"><label>Corretor Responsável</label><select id="corretorAluguel" required></select></div>
             <div style="grid-column: 1 / -1; display:flex; gap:10px;">
               <button type="submit" class="btn" style="flex:1;">Salvar Locação</button>
               <button type="button" class="btn btn-secondary" onclick="limparFormAluguel()">Limpar</button>
@@ -729,16 +548,7 @@
         <div class="table-container">
           <table>
             <thead>
-              <tr>
-                <th>Fechamento</th>
-                <th>Inquilino</th>
-                <th>Captação</th>
-                <th>Proprietário / Imóvel</th>
-                <th>Corretor</th>
-                <th>Valor Aluguel</th>
-                <th>Custo Mkt (Próx. Mês)</th>
-                <th>Ações</th>
-              </tr>
+              <tr><th>Fechamento</th><th>Inquilino</th><th>Captação</th><th>Proprietário</th><th>Corretor</th><th>Valor</th><th>Custo Mkt</th><th>Ações</th></tr>
             </thead>
             <tbody id="tabelaAlugueis"></tbody>
           </table>
@@ -746,22 +556,14 @@
       </div>
     </div>
 
-    <!-- ABA 5: GESTÃO DE UTILIZADORES -->
+    <!-- UTILIZADORES -->
     <div id="tab-usuarios" class="tab-content">
       <div class="card" style="margin-bottom: 20px;">
         <h3 style="color: var(--primary); margin-bottom: 12px;">Cadastrar Novo Utilizador</h3>
         <form id="formNovoUser" onsubmit="event.preventDefault(); adicionarUsuario();" style="grid-template-columns: 1fr 1fr auto;">
-          <div class="form-group">
-            <label>Nome de Utilizador</label>
-            <input type="text" id="novoUserNome" required placeholder="Ex: geovana">
-          </div>
-          <div class="form-group">
-            <label>Palavra-passe (Senha)</label>
-            <input type="password" id="novoUserPass" required placeholder="Ex: sua_senha">
-          </div>
-          <div style="display:flex; align-items:flex-end;">
-            <button type="submit" class="btn">Cadastrar Utilizador</button>
-          </div>
+          <div class="form-group"><label>Nome de Utilizador</label><input type="text" id="novoUserNome" required placeholder="Ex: geovana"></div>
+          <div class="form-group"><label>Palavra-passe</label><input type="password" id="novoUserPass" required placeholder="Senha"></div>
+          <div style="display:flex; align-items:flex-end;"><button type="submit" class="btn">Cadastrar Utilizador</button></div>
         </form>
       </div>
 
@@ -769,13 +571,7 @@
         <h3 style="color: var(--primary); margin-bottom: 15px;">Utilizadores com Acesso Autorizado</h3>
         <div class="table-container">
           <table>
-            <thead>
-              <tr>
-                <th>Nome de Utilizador</th>
-                <th>Palavra-passe</th>
-                <th>Ações</th>
-              </tr>
-            </thead>
+            <thead><tr><th>Utilizador</th><th>Palavra-passe</th><th>Ações</th></tr></thead>
             <tbody id="tabelaUsuarios"></tbody>
           </table>
         </div>
@@ -789,10 +585,7 @@
 <div class="modal-bg" id="modalOrigens">
   <div class="modal-content">
     <h3 style="color: var(--primary); margin-bottom: 10px;">Gerenciar Contas de Saída</h3>
-    <div style="display:flex; gap:8px; margin-bottom:15px;">
-      <input type="text" id="novaOrigemNome" placeholder="Nova Conta" style="flex:1;">
-      <button class="btn btn-sm" onclick="adicionarOrigem()">Adicionar</button>
-    </div>
+    <div style="display:flex; gap:8px; margin-bottom:15px;"><input type="text" id="novaOrigemNome" placeholder="Nova Conta" style="flex:1;"><button class="btn btn-sm" onclick="adicionarOrigem()">Adicionar</button></div>
     <div id="listaOrigens" style="max-height:200px; overflow-y:auto; margin-bottom:15px;"></div>
     <button class="btn btn-secondary" style="width:100%;" onclick="fecharGerenciadorContas()">Fechar</button>
   </div>
@@ -814,10 +607,7 @@
 <div class="modal-bg" id="modalVeiculos">
   <div class="modal-content">
     <h3 style="color: var(--primary); margin-bottom: 10px;">Gerenciar Veículos de Captação</h3>
-    <div style="display:flex; gap:8px; margin-bottom:15px;">
-      <input type="text" id="novoVeiculoNome" placeholder="Novo Veículo" style="flex:1;">
-      <button class="btn btn-sm" onclick="adicionarVeiculo()">Adicionar</button>
-    </div>
+    <div style="display:flex; gap:8px; margin-bottom:15px;"><input type="text" id="novoVeiculoNome" placeholder="Novo Veículo" style="flex:1;"><button class="btn btn-sm" onclick="adicionarVeiculo()">Adicionar</button></div>
     <div id="listaVeiculos" style="max-height:200px; overflow-y:auto; margin-bottom:15px;"></div>
     <button class="btn btn-secondary" style="width:100%;" onclick="fecharGerenciadorVeiculos()">Fechar</button>
   </div>
@@ -825,43 +615,30 @@
 
 <script>
   let origens = JSON.parse(localStorage.getItem('origens_db')) || ['Itaú', 'Bradesco', 'Caixa', 'Dinheiro / Caixinha'];
-  
   let corretoresDefault = [
     { nome: 'Vinícius Barbosa', foto: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png' },
     { nome: 'Geovana Castro', foto: 'https://cdn-icons-png.flaticon.com/512/3135/3135789.png' }
   ];
   let corretores = JSON.parse(localStorage.getItem('corretores_objs_db')) || corretoresDefault;
-
   let veiculosCapitacao = JSON.parse(localStorage.getItem('veiculos_db')) || ['Marketing', 'Instagram', 'Tráfego Pago', 'Indicação', 'Placa do Imóvel', 'Portal Imobiliário', 'Site', 'Passagem / Loja', 'WhatsApp'];
-
-  let usuariosDefault = [
-    { usuario: 'admin', senha: '123' },
-    { usuario: 'geovana', senha: '123' }
-  ];
+  let usuariosDefault = [{ usuario: 'admin', senha: '123' }, { usuario: 'geovana', senha: '123' }];
   let usuariosDB = JSON.parse(localStorage.getItem('usuarios_db')) || usuariosDefault;
 
-  let contasPlanilha = [
+  let contas = JSON.parse(localStorage.getItem('contas_db')) || [
     { id: 1, descricao: 'Aluguel Proporcional', valorPrevisto: 1000, valorReal: 1000, vencimento: '2026-09-30', origem: 'Itaú', tipo: 'Fixa', parcAtual: 1, parcTotal: 1, categoria: 'Imóvel/Aluguel', status: 'Pago' }
   ];
-
-  let comissoesExemplo = [
+  let comissoes = JSON.parse(localStorage.getItem('comissoes_db')) || [
     { id: 101, comprador: 'João Silva', veiculoCapitacao: 'Marketing', vendedor: 'Carlos Souza', corretor: 'Vinícius Barbosa', valorVenda: 350000, valorComissao: 17500, dataFechamento: '2026-09-15', tipoPrevisao: 'com_data', dataPrevisao: '2026-10-20', status: 'A Receber' }
   ];
-
-  let alugueisExemplo = [
+  let alugueis = JSON.parse(localStorage.getItem('alugueis_db')) || [
     { id: 201, inquilino: 'Lucas Mendes', veiculoCapitacao: 'Marketing', proprietario: 'Roberto Alves', valorAluguel: 2500, dataFechamento: '2026-09-10', corretor: 'Geovana Castro' }
   ];
-
-  let contas = JSON.parse(localStorage.getItem('contas_db')) || contasPlanilha;
-  let comissoes = JSON.parse(localStorage.getItem('comissoes_db')) || comissoesExemplo;
-  let alugueis = JSON.parse(localStorage.getItem('alugueis_db')) || alugueisExemplo;
   let chartCorretor;
 
   document.getElementById('formLogin').addEventListener('submit', (e) => {
     e.preventDefault();
     const u = document.getElementById('loginUser').value.trim();
     const p = document.getElementById('loginPass').value.trim();
-
     const valido = usuariosDB.find(x => x.usuario === u && x.senha === p);
     if (valido) {
       localStorage.setItem('sessao_ativa', u);
@@ -894,7 +671,6 @@
   function mudarAba(aba) {
     document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-    
     const titulos = {
       'contas': '💳 Contas a Pagar',
       'dashboard': '📊 Dashboard & Desempenho',
@@ -936,7 +712,6 @@
       optTodos.value = 'todos';
       optTodos.innerText = 'Todos os Anos';
       sel.appendChild(optTodos);
-
       for (let a = 2024; a <= 2028; a++) {
         const opt = document.createElement('option');
         opt.value = a;
@@ -948,13 +723,9 @@
   }
 
   function calcularDataMesSeguinte(dataISO) {
-    if (!dataISO) {
-      const hoje = new Date();
-      dataISO = hoje.toISOString().split('T')[0];
-    }
+    if (!dataISO) dataISO = new Date().toISOString().split('T')[0];
     const [ano, mes, dia] = dataISO.split('-').map(Number);
-    let proxMes = mes + 1;
-    let proxAno = ano;
+    let proxMes = mes + 1, proxAno = ano;
     if (proxMes > 12) { proxMes = 1; proxAno += 1; }
     return `${proxAno}-${String(proxMes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
   }
@@ -964,14 +735,13 @@
     return c && c.foto ? c.foto : 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
   }
 
-  /* --- CONTAS A PAGAR --- */
   function carregarOrigensSelect() {
     const select = document.getElementById('contaOrigem');
+    if (!select) return;
     select.innerHTML = '';
     origens.forEach(o => {
       const opt = document.createElement('option');
-      opt.value = o;
-      opt.innerText = o;
+      opt.value = o; opt.innerText = o;
       select.appendChild(opt);
     });
   }
@@ -985,7 +755,6 @@
     carregarOrigensSelect();
     const anoSel = document.getElementById('filtroAnoContas').value;
     const mesSel = document.getElementById('filtroMesContas').value;
-
     const contasFiltradas = contas.filter(c => {
       if (!c.vencimento) return false;
       const [ano, mes] = c.vencimento.split('-');
@@ -1027,7 +796,6 @@
     document.getElementById('totalPrevisto').innerText = `R$ ${prevTotal.toFixed(2)}`;
     document.getElementById('totalReal').innerText = `R$ ${realTotal.toFixed(2)}`;
     document.getElementById('totalPendente').innerText = `R$ ${pendenteTotal.toFixed(2)}`;
-    
     const elVar = document.getElementById('totalVariacao');
     elVar.innerText = `R$ ${Math.abs(variacao).toFixed(2)} ${variacao >= 0 ? '(Economia)' : '(Excesso)'}`;
     elVar.style.color = variacao >= 0 ? 'var(--success)' : 'var(--danger)';
@@ -1037,14 +805,11 @@
     const mesAtual = document.getElementById('filtroMesContas').value;
     const anoAtual = document.getElementById('filtroAnoContas').value;
     if (mesAtual === 'todos' || anoAtual === 'todos') {
-      alert('Selecione um ano e mês específicos no filtro para gerar o mês seguinte.');
+      alert('Selecione um ano e mês específicos no filtro.');
       return;
     }
-
-    let proxMesNum = parseInt(mesAtual) + 1;
-    let proxAnoNum = parseInt(anoAtual);
+    let proxMesNum = parseInt(mesAtual) + 1, proxAnoNum = parseInt(anoAtual);
     if (proxMesNum > 12) { proxMesNum = 1; proxAnoNum += 1; }
-
     const strProxMes = String(proxMesNum).padStart(2, '0');
     const strProxAno = String(proxAnoNum);
 
@@ -1057,7 +822,6 @@
     contasMesAtual.forEach(c => {
       const [a, m, d] = c.vencimento.split('-');
       const novaData = `${strProxAno}-${strProxMes}-${d}`;
-
       if (c.tipo === 'Fixa') {
         contas.push({ id: Date.now() + Math.random(), descricao: c.descricao, valorPrevisto: c.valorPrevisto, valorReal: 0, vencimento: novaData, origem: c.origem, tipo: 'Fixa', parcAtual: 1, parcTotal: 1, categoria: c.categoria, status: 'Pendente' });
         contGeradas++;
@@ -1071,7 +835,7 @@
     document.getElementById('filtroAnoContas').value = strProxAno;
     document.getElementById('filtroMesContas').value = strProxMes;
     renderContas();
-    alert(`Sucesso! ${contGeradas} contas geradas para o mês ${strProxMes}/${strProxAno}.`);
+    alert(`Sucesso! ${contGeradas} contas geradas para ${strProxMes}/${strProxAno}.`);
   }
 
   document.getElementById('formConta').addEventListener('submit', (e) => {
@@ -1085,8 +849,7 @@
     const obj = {
       id: id ? parseInt(id) : Date.now(),
       descricao: document.getElementById('descricao').value,
-      valorPrevisto: prev,
-      valorReal: real,
+      valorPrevisto: prev, valorReal: real,
       vencimento: document.getElementById('vencimento').value,
       origem: document.getElementById('contaOrigem').value,
       tipo: document.getElementById('tipoConta').value,
@@ -1102,7 +865,6 @@
     } else {
       contas.push(obj);
     }
-
     localStorage.setItem('contas_db', JSON.stringify(contas));
     limparFormConta();
     renderContas();
@@ -1111,7 +873,7 @@
   function baixarConta(id) {
     const c = contas.find(x => x.id === id);
     if (c) {
-      const v = prompt(`Confirmar baixa para "${c.descricao}". Digite o valor REAL pago:`, c.valorPrevisto);
+      const v = prompt(`Confirmar baixa para "${c.descricao}". Digite o valor pago:`, c.valorPrevisto);
       if (v !== null) {
         c.valorReal = parseFloat(v) || c.valorPrevisto;
         c.status = 'Pago';
@@ -1139,7 +901,7 @@
   }
 
   function excluirConta(id) {
-    if (confirm('Deseja realmente excluir esta conta?')) {
+    if (confirm('Deseja excluir esta conta?')) {
       contas = contas.filter(x => x.id !== id);
       localStorage.setItem('contas_db', JSON.stringify(contas));
       renderContas();
@@ -1152,15 +914,14 @@
     toggleParcelas();
   }
 
-  /* --- DASHBOARD --- */
   function renderDashboard() {
     const selCorr = document.getElementById('filtroCorretorDash');
+    if (!selCorr) return;
     const valCorr = selCorr.value;
     selCorr.innerHTML = '<option value="todos">Todos os Corretores</option>';
     corretores.forEach(c => {
       const opt = document.createElement('option');
-      opt.value = c.nome;
-      opt.innerText = c.nome;
+      opt.value = c.nome; opt.innerText = c.nome;
       selCorr.appendChild(opt);
     });
     if (valCorr) selCorr.value = valCorr;
@@ -1180,11 +941,8 @@
     });
 
     let totVendas = 0, totComissao = 0, totAReceber = 0, totRecebido = 0;
-    let resumoCorretoresMap = {};
-
-    corretores.forEach(c => {
-      resumoCorretoresMap[c.nome] = { nome: c.nome, foto: c.foto, volume: 0, qtd: 0, comissao: 0 };
-    });
+    let resumoMap = {};
+    corretores.forEach(c => { resumoMap[c.nome] = { nome: c.nome, foto: c.foto, volume: 0, qtd: 0, comissao: 0 }; });
 
     filtradas.forEach(c => {
       totVendas += c.valorVenda || 0;
@@ -1192,12 +950,12 @@
       if (c.status === 'Recebido') totRecebido += c.valorComissao || 0;
       else totAReceber += c.valorComissao || 0;
 
-      if (!resumoCorretoresMap[c.corretor]) {
-        resumoCorretoresMap[c.corretor] = { nome: c.corretor, foto: obterFotoCorretor(c.corretor), volume: 0, qtd: 0, comissao: 0 };
+      if (!resumoMap[c.corretor]) {
+        resumoMap[c.corretor] = { nome: c.corretor, foto: obterFotoCorretor(c.corretor), volume: 0, qtd: 0, comissao: 0 };
       }
-      resumoCorretoresMap[c.corretor].volume += (c.valorVenda || 0);
-      resumoCorretoresMap[c.corretor].qtd += 1;
-      resumoCorretoresMap[c.corretor].comissao += (c.valorComissao || 0);
+      resumoMap[c.corretor].volume += (c.valorVenda || 0);
+      resumoMap[c.corretor].qtd += 1;
+      resumoMap[c.corretor].comissao += (c.valorComissao || 0);
     });
 
     document.getElementById('dashTotalVendas').innerText = `R$ ${totVendas.toFixed(2)}`;
@@ -1205,39 +963,33 @@
     document.getElementById('dashComissaoAReceber').innerText = `R$ ${totAReceber.toFixed(2)}`;
     document.getElementById('dashComissaoRecebida').innerText = `R$ ${totRecebido.toFixed(2)}`;
 
-    const rankingArray = Object.values(resumoCorretoresMap).sort((a, b) => b.volume - a.volume);
+    const rankingArray = Object.values(resumoMap).sort((a, b) => b.volume - a.volume);
 
     if (typeof Chart !== 'undefined') {
       if (chartCorretor) chartCorretor.destroy();
       const labels = rankingArray.map(x => x.nome);
       const data = rankingArray.map(x => x.volume);
-
       chartCorretor = new Chart(document.getElementById('chartVendasCorretor'), {
         type: 'bar',
-        data: {
-          labels: labels.length > 0 ? labels : ['Sem Registos'],
-          datasets: [{ label: 'Volume em Vendas (R$)', data: data.length > 0 ? data : [0], backgroundColor: '#2a5045', borderRadius: 6 }]
-        },
+        data: { labels: labels.length ? labels : ['Sem Registros'], datasets: [{ label: 'Volume Vendas (R$)', data: data.length ? data : [0], backgroundColor: '#2a5045', borderRadius: 6 }] },
         options: { responsive: true, maintainAspectRatio: false }
       });
     }
 
     const contRanking = document.getElementById('listaRankingCorretores');
     contRanking.innerHTML = '';
-
     rankingArray.forEach((item, index) => {
       const div = document.createElement('div');
       div.className = 'ranking-item';
       const foto = item.foto || obterFotoCorretor(item.nome);
       const medalha = index === 0 ? '🥇' : (index === 1 ? '🥈' : (index === 2 ? '🥉' : `${index + 1}º`));
-
       div.innerHTML = `
         <div style="display:flex; align-items:center; gap:12px;">
           <div class="ranking-pos">${medalha}</div>
           <img src="${foto}" class="corretor-avatar" style="width:42px; height:42px;" alt="${item.nome}">
           <div>
             <div style="font-weight:700; color:var(--text-main); font-size:0.95rem;">${item.nome}</div>
-            <small style="color:var(--text-muted);">${item.qtd} venda(s) fechada(s)</small>
+            <small style="color:var(--text-muted);">${item.qtd} venda(s)</small>
           </div>
         </div>
         <div style="text-align:right;">
@@ -1247,31 +999,8 @@
       `;
       contRanking.appendChild(div);
     });
-
-    const containerAvatar = document.getElementById('corretorDestaqueAvatar');
-    const elNome = document.getElementById('corretorDestaqueNome');
-    const elQtd = document.getElementById('dashCorretorQtd');
-    const elVol = document.getElementById('dashCorretorVolume');
-    const elCom = document.getElementById('dashCorretorComissao');
-
-    if (corretorSel !== 'todos') {
-      const foto = obterFotoCorretor(corretorSel);
-      containerAvatar.innerHTML = `<img src="${foto}" style="width:75px; height:75px; border-radius:50%; object-fit:cover; border:3px solid var(--primary);">`;
-      elNome.innerText = corretorSel;
-      const vCorretor = filtradas.filter(x => x.corretor === corretorSel);
-      elQtd.innerText = vCorretor.length;
-      elVol.innerText = `R$ ${vCorretor.reduce((acc, x) => acc + (x.valorVenda || 0), 0).toFixed(2)}`;
-      elCom.innerText = `R$ ${vCorretor.reduce((acc, x) => acc + (x.valorComissao || 0), 0).toFixed(2)}`;
-    } else {
-      containerAvatar.innerHTML = `<div style="width:75px; height:75px; border-radius:50%; background:#e8f0ed; display:flex; align-items:center; justify-content:center; font-size:2rem; color:var(--primary);">🏆</div>`;
-      elNome.innerText = 'Desempenho Geral';
-      elQtd.innerText = filtradas.length;
-      elVol.innerText = `R$ ${totVendas.toFixed(2)}`;
-      elCom.innerText = `R$ ${totComissao.toFixed(2)}`;
-    }
   }
 
-  /* --- COMISSÕES --- */
   function toggleDataPrevisao() {
     const tipo = document.getElementById('tipoPrevisao').value;
     document.getElementById('groupDataPrevisao').style.display = tipo === 'com_data' ? 'flex' : 'none';
@@ -1285,8 +1014,7 @@
       sel.innerHTML = isFilter ? '<option value="todos">Todos os Corretores</option>' : '';
       corretores.forEach(c => {
         const opt = document.createElement('option');
-        opt.value = c.nome;
-        opt.innerText = c.nome;
+        opt.value = c.nome; opt.innerText = c.nome;
         sel.appendChild(opt);
       });
       if (val) sel.value = val;
@@ -1299,8 +1027,7 @@
       sel.innerHTML = isFilter ? '<option value="todos">Todos os Veículos</option>' : '';
       veiculosCapitacao.forEach(v => {
         const opt = document.createElement('option');
-        opt.value = v;
-        opt.innerText = v;
+        opt.value = v; opt.innerText = v;
         sel.appendChild(opt);
       });
       if (val) sel.value = val;
@@ -1343,20 +1070,10 @@
 
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td>${fechamentoTxt}</td>
-        <td><b>${c.comprador}</b></td>
-        <td>${capBadge}</td>
-        <td>${c.vendedor}</td>
-        <td>
-          <div class="corretor-cell">
-            <img src="${fotoUrl}" class="corretor-avatar" alt="Foto">
-            <span>${c.corretor}</span>
-          </div>
-        </td>
-        <td>R$ ${(c.valorVenda || 0).toFixed(2)}</td>
-        <td><b>R$ ${(c.valorComissao || 0).toFixed(2)}</b></td>
-        <td>${prevTxt}</td>
-        <td>${statusBadge}</td>
+        <td>${fechamentoTxt}</td><td><b>${c.comprador}</b></td><td>${capBadge}</td><td>${c.vendedor}</td>
+        <td><div class="corretor-cell"><img src="${fotoUrl}" class="corretor-avatar"><span>${c.corretor}</span></div></td>
+        <td>R$ ${(c.valorVenda || 0).toFixed(2)}</td><td><b>R$ ${(c.valorComissao || 0).toFixed(2)}</b></td>
+        <td>${prevTxt}</td><td>${statusBadge}</td>
         <td>
           ${c.status !== 'Recebido' ? `<button class="btn btn-success btn-sm" onclick="baixarComissao(${c.id})">Baixar</button>` : ''}
           <button class="btn btn-secondary btn-sm" onclick="editarComissao(${c.id})">✏️</button>
@@ -1372,24 +1089,10 @@
     document.getElementById('totalComissaoRecebida').innerText = `R$ ${totRecebido.toFixed(2)}`;
   }
 
-  function checarEGerarContaMarketingComissao(comissaoObj) {
-    if (comissaoObj.veiculoCapitacao && comissaoObj.veiculoCapitacao.toLowerCase().includes('marketing')) {
-      const dataVencimentoProximoMes = calcularDataMesSeguinte(comissaoObj.dataFechamento);
-      const tagDescricao = `Marketing Venda - Cliente: ${comissaoObj.comprador}`;
-      const existeConta = contas.some(c => c.descricao.includes(tagDescricao));
-      if (!existeConta) {
-        contas.push({ id: Date.now() + Math.random(), descricao: tagDescricao, valorPrevisto: 300.00, valorReal: 0, vencimento: dataVencimentoProximoMes, origem: origens[0] || 'Itaú', tipo: 'Variável', parcAtual: 1, parcTotal: 1, categoria: 'Operacional', status: 'Pendente' });
-        localStorage.setItem('contas_db', JSON.stringify(contas));
-        alert(`Automação Ativada: Conta de R$ 300,00 gerada para o mês seguinte (${dataVencimentoProximoMes.split('-').reverse().join('/')}).`);
-      }
-    }
-  }
-
   document.getElementById('formComissao').addEventListener('submit', (e) => {
     e.preventDefault();
     const id = document.getElementById('comissaoId').value;
     const tipoPrev = document.getElementById('tipoPrevisao').value;
-
     const obj = {
       id: id ? parseInt(id) : Date.now(),
       comprador: document.getElementById('comprador').value,
@@ -1403,15 +1106,12 @@
       dataPrevisao: tipoPrev === 'com_data' ? document.getElementById('dataPrevisao').value : '',
       status: document.getElementById('statusComissao').value
     };
-
     if (id) {
-      const index = comissoes.findIndex(x => x.id === parseInt(id));
-      comissoes[index] = obj;
+      const idx = comissoes.findIndex(x => x.id === parseInt(id));
+      comissoes[idx] = obj;
     } else {
       comissoes.push(obj);
     }
-
-    checarEGerarContaMarketingComissao(obj);
     localStorage.setItem('comissoes_db', JSON.stringify(comissoes));
     limparFormComissao();
     renderComissoes();
@@ -1419,7 +1119,7 @@
 
   function baixarComissao(id) {
     const c = comissoes.find(x => x.id === id);
-    if (c && confirm(`Confirmar o recebimento da comissão de R$ ${c.valorComissao.toFixed(2)}?`)) {
+    if (c && confirm(`Confirmar recebimento da comissão de R$ ${c.valorComissao.toFixed(2)}?`)) {
       c.status = 'Recebido';
       localStorage.setItem('comissoes_db', JSON.stringify(comissoes));
       renderComissoes();
@@ -1445,7 +1145,7 @@
   }
 
   function excluirComissao(id) {
-    if (confirm('Deseja realmente excluir este registo de comissão?')) {
+    if (confirm('Deseja excluir esta comissão?')) {
       comissoes = comissoes.filter(x => x.id !== id);
       localStorage.setItem('comissoes_db', JSON.stringify(comissoes));
       renderComissoes();
@@ -1458,7 +1158,6 @@
     toggleDataPrevisao();
   }
 
-  /* --- ALUGUEL --- */
   function carregarSelectsAluguel() {
     ['corretorAluguel', 'filtroCorretorAluguel'].forEach((id, isFilter) => {
       const sel = document.getElementById(id);
@@ -1467,8 +1166,7 @@
       sel.innerHTML = isFilter ? '<option value="todos">Todos os Corretores</option>' : '';
       corretores.forEach(c => {
         const opt = document.createElement('option');
-        opt.value = c.nome;
-        opt.innerText = c.nome;
+        opt.value = c.nome; opt.innerText = c.nome;
         sel.appendChild(opt);
       });
       if (val) sel.value = val;
@@ -1481,8 +1179,7 @@
       sel.innerHTML = isFilter ? '<option value="todos">Todos os Veículos</option>' : '';
       veiculosCapitacao.forEach(v => {
         const opt = document.createElement('option');
-        opt.value = v;
-        opt.innerText = v;
+        opt.value = v; opt.innerText = v;
         sel.appendChild(opt);
       });
       if (val) sel.value = val;
@@ -1509,32 +1206,22 @@
 
     const tbody = document.getElementById('tabelaAlugueis');
     tbody.innerHTML = '';
-    let totAlugueisVal = 0, countMkt = 0;
+    let totVal = 0, countMkt = 0;
 
     filtrados.forEach(a => {
-      totAlugueisVal += a.valorAluguel || 0;
+      totVal += a.valorAluguel || 0;
       if (a.veiculoCapitacao && a.veiculoCapitacao.toLowerCase().includes('marketing')) countMkt++;
-
       const fechamentoTxt = a.dataFechamento ? a.dataFechamento.split('-').reverse().join('/') : 'N/I';
       const capBadge = `<span class="badge badge-capitacao">${a.veiculoCapitacao || 'N/I'}</span>`;
-      const eMarketing = a.veiculoCapitacao && a.veiculoCapitacao.toLowerCase().includes('marketing');
-      const custoMktTxt = eMarketing ? '<b style="color:var(--danger)">R$ 50,00 (Fatura Mês Seg.)</b>' : 'R$ 0,00';
+      const eMkt = a.veiculoCapitacao && a.veiculoCapitacao.toLowerCase().includes('marketing');
+      const custoMkt = eMkt ? '<b style="color:var(--danger)">R$ 50,00</b>' : 'R$ 0,00';
       const fotoUrl = obterFotoCorretor(a.corretor);
 
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td>${fechamentoTxt}</td>
-        <td><b>${a.inquilino}</b></td>
-        <td>${capBadge}</td>
-        <td>${a.proprietario}</td>
-        <td>
-          <div class="corretor-cell">
-            <img src="${fotoUrl}" class="corretor-avatar" alt="Foto">
-            <span>${a.corretor}</span>
-          </div>
-        </td>
-        <td>R$ ${(a.valorAluguel || 0).toFixed(2)}</td>
-        <td>${custoMktTxt}</td>
+        <td>${fechamentoTxt}</td><td><b>${a.inquilino}</b></td><td>${capBadge}</td><td>${a.proprietario}</td>
+        <td><div class="corretor-cell"><img src="${fotoUrl}" class="corretor-avatar"><span>${a.corretor}</span></div></td>
+        <td>R$ ${(a.valorAluguel || 0).toFixed(2)}</td><td>${custoMkt}</td>
         <td>
           <button class="btn btn-secondary btn-sm" onclick="editarAluguel(${a.id})">✏️</button>
           <button class="btn btn-danger btn-sm" onclick="excluirAluguel(${a.id})">🗑️</button>
@@ -1544,21 +1231,8 @@
     });
 
     document.getElementById('qtdAlugueisFechados').innerText = filtrados.length;
-    document.getElementById('totalValorAlugueis').innerText = `R$ ${totAlugueisVal.toFixed(2)}`;
+    document.getElementById('totalValorAlugueis').innerText = `R$ ${totVal.toFixed(2)}`;
     document.getElementById('totalAluguelMarketing').innerText = countMkt;
-  }
-
-  function checarEGerarContaMarketingAluguel(aluguelObj) {
-    if (aluguelObj.veiculoCapitacao && aluguelObj.veiculoCapitacao.toLowerCase().includes('marketing')) {
-      const dataVencimentoProximoMes = calcularDataMesSeguinte(aluguelObj.dataFechamento);
-      const tagDescricao = `Marketing Aluguel - Inquilino: ${aluguelObj.inquilino}`;
-      const existeConta = contas.some(c => c.descricao.includes(tagDescricao));
-      if (!existeConta) {
-        contas.push({ id: Date.now() + Math.random(), descricao: tagDescricao, valorPrevisto: 50.00, valorReal: 0, vencimento: dataVencimentoProximoMes, origem: origens[0] || 'Itaú', tipo: 'Variável', parcAtual: 1, parcTotal: 1, categoria: 'Operacional', status: 'Pendente' });
-        localStorage.setItem('contas_db', JSON.stringify(contas));
-        alert(`Automação Ativada: Conta de R$ 50,00 gerada para o mês seguinte (${dataVencimentoProximoMes.split('-').reverse().join('/')}).`);
-      }
-    }
   }
 
   document.getElementById('formAluguel').addEventListener('submit', (e) => {
@@ -1573,15 +1247,12 @@
       dataFechamento: document.getElementById('dataFechamentoAluguel').value,
       corretor: document.getElementById('corretorAluguel').value
     };
-
     if (id) {
-      const index = alugueis.findIndex(x => x.id === parseInt(id));
-      alugueis[index] = obj;
+      const idx = alugueis.findIndex(x => x.id === parseInt(id));
+      alugueis[idx] = obj;
     } else {
       alugueis.push(obj);
     }
-
-    checarEGerarContaMarketingAluguel(obj);
     localStorage.setItem('alugueis_db', JSON.stringify(alugueis));
     limparFormAluguel();
     renderAlugueis();
@@ -1601,7 +1272,7 @@
   }
 
   function excluirAluguel(id) {
-    if (confirm('Deseja realmente excluir este registo de aluguel?')) {
+    if (confirm('Deseja excluir este aluguel?')) {
       alugueis = alugueis.filter(x => x.id !== id);
       localStorage.setItem('alugueis_db', JSON.stringify(alugueis));
       renderAlugueis();
@@ -1613,7 +1284,6 @@
     document.getElementById('aluguelId').value = '';
   }
 
-  /* --- GESTÃO DE UTILIZADORES --- */
   function renderTabelaUsuarios() {
     const tbody = document.getElementById('tabelaUsuarios');
     tbody.innerHTML = '';
@@ -1654,19 +1324,18 @@
     if (u && p) {
       usuariosDB[index] = { usuario: u, senha: p };
       localStorage.setItem('usuarios_db', JSON.stringify(usuariosDB));
-      alert('Utilizador atualizado com sucesso!');
+      alert('Utilizador atualizado!');
       renderTabelaUsuarios();
     }
   }
 
   function removerUsuario(index) {
-    if (usuariosDB.length <= 1) return alert('Você precisa manter pelo menos um utilizador de acesso.');
+    if (usuariosDB.length <= 1) return alert('Mantenha pelo menos um utilizador.');
     usuariosDB.splice(index, 1);
     localStorage.setItem('usuarios_db', JSON.stringify(usuariosDB));
     renderTabelaUsuarios();
   }
 
-  /* --- MODAIS DE SUPORTE --- */
   function abrirGerenciadorCorretores() { document.getElementById('modalCorretores').style.display = 'flex'; renderListaCorretores(); }
   function fecharGerenciadorCorretores() { document.getElementById('modalCorretores').style.display = 'none'; renderComissoes(); renderAlugueis(); if (document.getElementById('tab-dashboard').classList.contains('active')) renderDashboard(); }
   function renderListaCorretores() {
@@ -1676,10 +1345,10 @@
       const div = document.createElement('div');
       div.style.cssText = 'display:flex; gap:8px; margin-bottom:10px; align-items:center; background:#f8fafc; padding:8px; border-radius:8px; border:1px solid #e2e8f0;';
       div.innerHTML = `
-        <img src="${c.foto || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'}" style="width:36px; height:36px; border-radius:50%; object-fit:cover;">
+        <img src="${c.foto || ''}" style="width:36px; height:36px; border-radius:50%; object-fit:cover;">
         <div style="flex:1; display:flex; flex-direction:column; gap:4px;">
           <input type="text" value="${c.nome}" id="corretor_nome_${index}" style="font-weight:600;">
-          <input type="text" value="${c.foto || ''}" id="corretor_foto_${index}" placeholder="URL da Foto" style="font-size:0.75rem;">
+          <input type="text" value="${c.foto || ''}" id="corretor_foto_${index}" placeholder="URL Foto" style="font-size:0.75rem;">
         </div>
         <button class="btn btn-sm" onclick="renomearCorretor(${index})">Salvar</button>
         <button class="btn btn-danger btn-sm" onclick="removerCorretor(${index})">X</button>
@@ -1704,16 +1373,12 @@
     if (novoNome) {
       const antigo = corretores[index].nome;
       corretores[index] = { nome: novoNome, foto: novaFoto };
-      comissoes.forEach(c => { if (c.corretor === antigo) c.corretor = novoNome; });
-      alugueis.forEach(a => { if (a.corretor === antigo) a.corretor = novoNome; });
       localStorage.setItem('corretores_objs_db', JSON.stringify(corretores));
-      localStorage.setItem('comissoes_db', JSON.stringify(comissoes));
-      localStorage.setItem('alugueis_db', JSON.stringify(alugueis));
       renderListaCorretores();
     }
   }
   function removerCorretor(index) {
-    if (corretores.length <= 1) return alert('Você precisa ter pelo menos um corretor.');
+    if (corretores.length <= 1) return alert('Mantenha pelo menos um corretor.');
     corretores.splice(index, 1);
     localStorage.setItem('corretores_objs_db', JSON.stringify(corretores));
     renderListaCorretores();
@@ -1730,7 +1395,7 @@
       const isMkt = v === 'Marketing';
       div.innerHTML = `
         <input type="text" value="${v}" id="veiculo_${index}" style="flex:1;" ${isMkt ? 'readonly' : ''}>
-        ${!isMkt ? `<button class="btn btn-sm" onclick="renomearVeiculo(${index})">Salvar</button>` : '<span style="font-size:0.75rem; color:var(--text-muted); padding:0 5px;">(Padrão)</span>'}
+        ${!isMkt ? `<button class="btn btn-sm" onclick="renomearVeiculo(${index})">Salvar</button>` : ''}
         ${!isMkt ? `<button class="btn btn-danger btn-sm" onclick="removerVeiculo(${index})">X</button>` : ''}
       `;
       cont.appendChild(div);
@@ -1748,19 +1413,13 @@
   function renomearVeiculo(index) {
     const novoNome = document.getElementById(`veiculo_${index}`).value.trim();
     if (novoNome) {
-      const antigo = veiculosCapitacao[index];
       veiculosCapitacao[index] = novoNome;
-      comissoes.forEach(c => { if (c.veiculoCapitacao === antigo) c.veiculoCapitacao = novoNome; });
-      alugueis.forEach(a => { if (a.veiculoCapitacao === antigo) a.veiculoCapitacao = novoNome; });
       localStorage.setItem('veiculos_db', JSON.stringify(veiculosCapitacao));
-      localStorage.setItem('comissoes_db', JSON.stringify(comissoes));
-      localStorage.setItem('alugueis_db', JSON.stringify(alugueis));
       renderListaVeiculos();
     }
   }
   function removerVeiculo(index) {
-    if (veiculosCapitacao[index] === 'Marketing') return alert('O veículo Marketing é padrão.');
-    if (veiculosCapitacao.length <= 1) return alert('Precisa de pelo menos um veículo.');
+    if (veiculosCapitacao[index] === 'Marketing') return alert('Marketing é padrão.');
     veiculosCapitacao.splice(index, 1);
     localStorage.setItem('veiculos_db', JSON.stringify(veiculosCapitacao));
     renderListaVeiculos();
@@ -1794,18 +1453,17 @@
   function renomearOrigem(index) {
     const novoNome = document.getElementById(`origem_${index}`).value.trim();
     if (novoNome) {
-      const antigo = origens[index];
       origens[index] = novoNome;
-      contas.forEach(c => { if (c.origem === antigo) c.origem = novoNome; });
       localStorage.setItem('origens_db', JSON.stringify(origens));
-      localStorage.setItem('contas_db', JSON.stringify(contas));
+      renderContas();
       renderListaOrigens();
     }
   }
   function removerOrigem(index) {
-    if (origens.length <= 1) return alert('Precisa de pelo menos uma conta de saída.');
+    if (origens.length <= 1) return alert('Mantenha pelo menos uma conta.');
     origens.splice(index, 1);
     localStorage.setItem('origens_db', JSON.stringify(origens));
+    renderContas();
     renderListaOrigens();
   }
 
