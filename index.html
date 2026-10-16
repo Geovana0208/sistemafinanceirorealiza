@@ -428,7 +428,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 
   $('formConta').onsubmit = (e) => {
     e.preventDefault();
-    let id = $('contaId').value, p = parseFloat($('valorPrevisto').value)\vert{}\vert{}0, r = parseFloat($('valorReal').value)||0;
+    let id = $('contaId').value, p = parseFloat($('valorPrevisto').value) \vert{}\vert{} 0, r = parseFloat($('valorReal').value) || 0;
     let obj = { id: id ? parseInt(id) : Date.now(), descricao: $('descricao').value, valorPrevisto: p, valorReal: r, vencimento: $('vencimento').value, origem:$('contaOrigem').value, tipo: $('tipoConta').value, parcAtual: parseInt($('parcAtual').value)||1, parcTotal: parseInt($('parcTotal').value)\vert{}\vert{}1, categoria:$('categoria').value, status: r>0?'Pago':'Pendente', isAutoMkt: id ? contas.find(x=>x.id==id).isAutoMkt : false };
     if(id) contas[contas.findIndex(x=>x.id==id)] = obj; else contas.push(obj);
     localStorage.setItem('contas_db', JSON.stringify(contas)); limparFormConta(); renderContas();
