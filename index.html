@@ -324,8 +324,12 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   let categorias = JSON.parse(localStorage.getItem('categorias_db')) || ['Imóvel/Aluguel', 'Serviços públicos', 'Impostos', 'Atrasos/Multas', 'Operacional'];
   let corretores = JSON.parse(localStorage.getItem('corretores_objs_db')) || [{ nome: 'Vinícius Barbosa', foto: '' }, { nome: 'Geovana Castro', foto: '' }];
   let veiculosCapitacao = JSON.parse(localStorage.getItem('veiculos_db')) || ['Marketing', 'Instagram', 'Tráfego Pago', 'Indicação', 'Placa do Imóvel', 'WhatsApp'];
+  
+  // Garantia de compatibilidade com qualquer formato de utilizador anterior no navegador
   let usuariosDB = JSON.parse(localStorage.getItem('usuarios_db')) || [{ usuario: 'admin', senha: '123' }];
-  if(usuariosDB.length===0) usuariosDB = [{ usuario: 'admin', senha: '123' }];
+  if(!Array.isArray(usuariosDB) || usuariosDB.length === 0) {
+    usuariosDB = [{ usuario: 'admin', senha: '123' }];
+  }
   
   let contas = JSON.parse(localStorage.getItem('contas_db')) || [];
   let comissoes = JSON.parse(localStorage.getItem('comissoes_db')) || [];
@@ -334,11 +338,20 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 
   $('formLogin').onsubmit = (e) => {
     e.preventDefault();
-    const u = $('loginUser').value.trim(); const p = $('loginPass').value.trim();
-    if (usuariosDB.find(x => x.usuario === u && x.senha === p)) {
+    const u = $('loginUser').value.trim(); 
+    const p = $('loginPass').value.trim();
+    
+    // Compatibilidade robusta com formatos antigos (u/p) e novos (usuario/senha)
+    const valido = usuariosDB.find(x => 
+      (String(x.usuario || x.u || '').trim() === u) && (String(x.senha || x.p || '').trim() === p)
+    );
+
+    if (valido) {
       localStorage.setItem('sessao_ativa', u);
       entrarSistema(u);
-    } else { $('loginError').innerText = 'Inválido!'; }
+    } else { 
+      $('loginError').innerText = 'Utilizador ou palavra-passe incorretos!'; 
+    }
   };
 
   window.onload = () => { if(localStorage.getItem('sessao_ativa')) entrarSistema(localStorage.getItem('sessao_ativa')); };
@@ -588,9 +601,9 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 
   // USUARIOS
   function renderTabelaUsuarios() {
-    $('tabelaUsuarios').innerHTML = usuariosDB.map((u,i) => `<tr><td><input type="text" value="${u.usuario}" id="u_n_${i}"></td><td><input type="text" value="${u.senha}" id="u_p_${i}"></td><td style="display:flex;gap:6px;"><button class="btn btn-sm" onclick="salvarUser(${i})">Salvar</button><button class="btn btn-danger btn-sm" onclick="if(usuariosDB.length>1){usuariosDB.splice(${i},1);localStorage.setItem('usuarios_db',JSON.stringify(usuariosDB));renderTabelaUsuarios()}">X</button></td></tr>`).join('');
+    $('tabelaUsuarios').innerHTML = usuariosDB.map((u,i) => `<tr><td><input type="text" value="${u.usuario || u.u || ''}" id="u_n_${i}"></td><td><input type="text" value="${u.senha || u.p || ''}" id="u_p_${i}"></td><td style="display:flex;gap:6px;"><button class="btn btn-sm" onclick="salvarUser(${i})">Salvar</button><button class="btn btn-danger btn-sm" onclick="if(usuariosDB.length>1){usuariosDB.splice(${i},1);localStorage.setItem('usuarios_db',JSON.stringify(usuariosDB));renderTabelaUsuarios()}">X</button></td></tr>`).join('');
   }
-  function adicionarUsuario() { let u=$('novoUserNome').value, p=$('novoUserPass').value; if(u&&p&&!usuariosDB.some(x=>x.usuario===u)){ usuariosDB.push({usuario:u, senha:p}); localStorage.setItem('usuarios_db',JSON.stringify(usuariosDB)); $('novoUserNome').value='';$('novoUserPass').value=''; renderTabelaUsuarios(); alert('Cadastrado!'); } }
+  function adicionarUsuario() { let u=$('novoUserNome').value, p=$('novoUserPass').value; if(u&&p&&!usuariosDB.some(x=>(x.usuario||x.u)===u)){ usuariosDB.push({usuario:u, senha:p}); localStorage.setItem('usuarios_db',JSON.stringify(usuariosDB)); $('novoUserNome').value='';$('novoUserPass').value=''; renderTabelaUsuarios(); alert('Cadastrado!'); } }
   function salvarUser(i) { let u=$(`u_n_${i}`).value, p=$(`u_p_${i}`).value; if(u&&p){ usuariosDB[i]={usuario:u,senha:p}; localStorage.setItem('usuarios_db',JSON.stringify(usuariosDB)); renderTabelaUsuarios(); alert('Atualizado!'); } }
 </script>
 </body>
