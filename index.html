@@ -656,28 +656,18 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   }
 
   function carregarSelectsComissoes() {
-    var selCorr = $('filtroCorretorComissoes');
-    var valCorr = selCorr ? selCorr.value : 'todos';
     var htmlC = '<option value="todos">Todos</option>';
     for (var i = 0; i < corretores.length; i++) {
       htmlC += '<option value="' + corretores[i].nome + '">' + corretores[i].nome + '</option>';
     }
-    if (selCorr) {
-      selCorr.innerHTML = htmlC;
-      selCorr.value = valCorr;
-    }
+    if ($('filtroCorretorComissoes')) $('filtroCorretorComissoes').innerHTML = htmlC;
     if ($('corretor')) $('corretor').innerHTML = htmlC.replace('<option value="todos">Todos</option>', '');
 
-    var selCap = $('filtroCapitacaoComissoes');
-    var valCap = selCap ? selCap.value : 'todos';
     var htmlV = '<option value="todos">Todos</option>';
     for (var j = 0; j < veiculosCapitacao.length; j++) {
       htmlV += '<option value="' + veiculosCapitacao[j] + '">' + veiculosCapitacao[j] + '</option>';
     }
-    if (selCap) {
-      selCap.innerHTML = htmlV;
-      selCap.value = valCap;
-    }
+    if ($('filtroCapitacaoComissoes')) $('filtroCapitacaoComissoes').innerHTML = htmlV;
     if ($('veiculoCapitacao')) $('veiculoCapitacao').innerHTML = htmlV.replace('<option value="todos">Todos</option>', '');
   }
 
@@ -689,21 +679,12 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       var c = comissoes[i];
       if (cS !== 'todos' && c.corretor !== cS) continue;
       if (vS !== 'todos' && c.veiculoCapitacao !== vS) continue;
-      
-      var dt = c.dataFechamento || '2026-01-01';
-      var p = dt.split('-');
+      if (!c.dataFechamento) { filt.push(c); continue; }
+      var p = c.dataFechamento.split('-');
       if ((aS === 'todos' || p[0] === aS) && (mS === 'todos' || p[1] === mS)) {
         filt.push(c);
       }
     }
-    
-    // ORDENAÇÃO CRONOLÓGICA SEGURA (DATA DE FECHAMENTO)
-    filt.sort(function(a, b) {
-      var tA = a.dataFechamento ? new Date(a.dataFechamento).getTime() : 0;
-      var tB = b.dataFechamento ? new Date(b.dataFechamento).getTime() : 0;
-      return tA - tB;
-    });
-
     var tv = 0, tc = 0, tr = 0, tP = 0;
     var htmlC = '';
     for (var j = 0; j < filt.length; j++) {
@@ -841,28 +822,18 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 
   // ALUGUEL
   function carregarSelectsAluguel() {
-    var selCorr = $('filtroCorretorAluguel');
-    var valCorr = selCorr ? selCorr.value : 'todos';
     var htmlC = '<option value="todos">Todos</option>';
     for (var i = 0; i < corretores.length; i++) {
       htmlC += '<option value="' + corretores[i].nome + '">' + corretores[i].nome + '</option>';
     }
-    if (selCorr) {
-      selCorr.innerHTML = htmlC;
-      selCorr.value = valCorr;
-    }
+    if ($('filtroCorretorAluguel')) $('filtroCorretorAluguel').innerHTML = htmlC;
     if ($('corretorAluguel')) $('corretorAluguel').innerHTML = htmlC.replace('<option value="todos">Todos</option>', '');
 
-    var selCap = $('filtroCapitacaoAluguel');
-    var valCap = selCap ? selCap.value : 'todos';
     var htmlV = '<option value="todos">Todos</option>';
     for (var j = 0; j < veiculosCapitacao.length; j++) {
       htmlV += '<option value="' + veiculosCapitacao[j] + '">' + veiculosCapitacao[j] + '</option>';
     }
-    if (selCap) {
-      selCap.innerHTML = htmlV;
-      selCap.value = valCap;
-    }
+    if ($('filtroCapitacaoAluguel')) $('filtroCapitacaoAluguel').innerHTML = htmlV;
     if ($('veiculoCapitacaoAluguel')) $('veiculoCapitacaoAluguel').innerHTML = htmlV.replace('<option value="todos">Todos</option>', '');
   }
 
@@ -874,21 +845,12 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       var a = alugueis[i];
       if (cS !== 'todos' && a.corretor !== cS) continue;
       if (vS !== 'todos' && a.veiculoCapitacao !== vS) continue;
-      
-      var dt = a.dataFechamento || '2026-01-01';
-      var p = dt.split('-');
+      if (!a.dataFechamento) { filt.push(a); continue; }
+      var p = a.dataFechamento.split('-');
       if ((aS === 'todos' || p[0] === aS) && (mS === 'todos' || p[1] === mS)) {
         filt.push(a);
       }
     }
-
-    // ORDENAÇÃO CRONOLÓGICA SEGURA (DATA DE FECHAMENTO)
-    filt.sort(function(a, b) {
-      var tA = a.dataFechamento ? new Date(a.dataFechamento).getTime() : 0;
-      var tB = b.dataFechamento ? new Date(b.dataFechamento).getTime() : 0;
-      return tA - tB;
-    });
-
     var totVal = 0, mkt = 0;
     var htmlA = '';
     for (var j = 0; j < filt.length; j++) {
@@ -973,25 +935,13 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 
   // DASHBOARD
   function renderDashboard() {
-    var selCorr = $('filtroCorretorDash');
-    var valCorr = selCorr ? selCorr.value : 'todos';
-    var htmlC = '<option value="todos">Todos</option>';
-    for (var i = 0; i < corretores.length; i++) {
-      htmlC += '<option value="' + corretores[i].nome + '">' + corretores[i].nome + '</option>';
-    }
-    if (selCorr) {
-      selCorr.innerHTML = htmlC;
-      selCorr.value = valCorr;
-    }
-
     var aS = $('filtroAnoDash').value, mS = $('filtroMesDash').value, cS = $('filtroCorretorDash') ? $('filtroCorretorDash').value : 'todos';
     var f = [];
     for (var j = 0; j < comissoes.length; j++) {
       var c = comissoes[j];
       if (cS !== 'todos' && c.corretor !== cS) continue;
-      
-      var dt = c.dataFechamento || '2026-01-01';
-      var p = dt.split('-');
+      if (!c.dataFechamento) { f.push(c); continue; }
+      var p = c.dataFechamento.split('-');
       if ((aS === 'todos' || p[0] === aS) && (mS === 'todos' || p[1] === mS)) {
         f.push(c);
       }
@@ -1228,7 +1178,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       html += '<div style="display:flex;gap:5px;margin-bottom:8px;"><input type="text" value="' + v + '" id="vei_' + i + '" style="flex:1;" ' + (v === 'Marketing' ? 'readonly' : '') + '>';
       html += '<button class="btn btn-sm" onclick="if($(\'vei_' + i + '\').value){veiculosCapitacao[' + i + ']=\$(\'vei_' + i + '\').value;localStorage.setItem(\'veiculos_db\',JSON.stringify(veiculosCapitacao));renderListaVeiculos();}">Salvar</button>';
       if (v !== 'Marketing') {
-        html += '<button class="btn btn-danger btn-sm" onclick="veiculosCapitacao.splice(' + i + ',1);localStorage.setItem(\'veiculos_db\',JSON.stringify(veiculosCapitacao));renderListaVeiculos();}">X</button>';
+        html += '<button class="btn btn-danger btn-sm" onclick="veiculosCapitacao.splice(' + i + ',1);localStorage.setItem(\'veiculos_db\',JSON.stringify(veiculosCapitacao));renderListaVeiculos();">X</button>';
       }
       html += '</div>';
     }
