@@ -441,7 +441,20 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 
   $('formConta').onsubmit = (e) => {
     e.preventDefault();
-    let id = $('contaId').value, p = parseFloat($('valorPrevisto').value) \vert{}\vert{} 0, r = parseFloat($('valorReal').value) // 0;
+    function renderTabelaUsuarios() {
+  let html = '';
+  for (let i = 0; i < usuariosDB.length; i++) {
+    let u = usuariosDB[i];
+    let nome = u.usuario || u.u || '';
+    let senha = u.senha || u.p || '';
+    html += '<tr><td><input type="text" value="' + nome + '" id="u_n_' + i + '"></td><td><input type="text" value="' + senha + '" id="u_p_' + i + '"></td><td style="display:flex;gap:6px;"><button class="btn btn-sm" onclick="salvarUser(' + i + ')">Salvar</button>';
+    if (usuariosDB.length > 1) {
+      html += '<button class="btn btn-danger btn-sm" onclick="usuariosDB.splice(' + i + ',1);localStorage.setItem(\'usuarios_db\',JSON.stringify(usuariosDB));renderTabelaUsuarios()">X</button>';
+    }
+    html += '</td></tr>';
+  }
+  $('tabelaUsuarios').innerHTML = html;
+}
     let obj = { id: id ? parseInt(id) : Date.now(), descricao: $('descricao').value, valorPrevisto: p, valorReal: r, vencimento: $('vencimento').value, origem:$('contaOrigem').value, tipo: $('tipoConta').value, parcAtual: parseInt($('parcAtual').value)||1, parcTotal: parseInt($('parcTotal').value)\vert{}\vert{}1, categoria:$('categoria').value, status: r>0?'Pago':'Pendente', isAutoMkt: id ? contas.find(x=>x.id==id).isAutoMkt : false };
     if(id) contas[contas.findIndex(x=>x.id==id)] = obj; else contas.push(obj);
     localStorage.setItem('contas_db', JSON.stringify(contas)); limparFormConta(); renderContas();
