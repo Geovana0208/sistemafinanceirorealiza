@@ -242,4 +242,537 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       <div class="card" style="margin-bottom: 20px;">
         <div class="filter-bar">
           <label>Ano:</label><select id="filtroAnoAluguel" onchange="renderAlugueis()"></select>
-          <label>Mês:</label><select id="filtroMesAluguel" onchange="renderAlugueis()"><option value="todos">Todos</option><option value="01">Jan</option><option value="02">Fev</option><option value="03">Mar</option><option value="04">Abr</option><option value="05">Mai</option><option value="06">Jun</option><option value="07">Jul</option><option value="08">Ago</option><option value="09">Set</option><option value="
+          <label>Mês:</label><select id="filtroMesAluguel" onchange="renderAlugueis()"><option value="todos">Todos</option><option value="01">Jan</option><option value="02">Fev</option><option value="03">Mar</option><option value="04">Abr</option><option value="05">Mai</option><option value="06">Jun</option><option value="07">Jul</option><option value="08">Ago</option><option value="09">Set</option><option value="10">Out</option><option value="11">Nov</option><option value="12">Dez</option></select>
+          <label>Corretor:</label><select id="filtroCorretorAluguel" onchange="renderAlugueis()"></select>
+          <label>Captação:</label><select id="filtroCapitacaoAluguel" onchange="renderAlugueis()"></select>
+        </div>
+      </div>
+      <div class="grid-cards">
+        <div class="card"><div class="card-title">Total Locações</div><div class="card-val" id="qtdAlugueisFechados" style="color: var(--primary);">0</div></div>
+        <div class="card"><div class="card-title">Volume Alugueis</div><div class="card-val" id="totalValorAlugueis" style="color: var(--success);">R$ 0,00</div></div>
+        <div class="card"><div class="card-title">Captações Marketing</div><div class="card-val" id="totalAluguelMarketing" style="color: var(--warning);">0</div></div>
+      </div>
+      <div class="card" style="margin-bottom:20px;">
+        <h3 style="color: var(--primary); margin-bottom: 12px;">Lançar Novo Aluguel Fechado</h3>
+        <form id="formAluguel">
+          <input type="hidden" id="aluguelId">
+          <div class="form-group"><label>Inquilino</label><input type="text" id="inquilino" required></div>
+          <div class="form-group"><label>Veículo Captação</label><select id="veiculoCapitacaoAluguel" required></select></div>
+          <div class="form-group"><label>Proprietário</label><input type="text" id="proprietarioAluguel" required></div>
+          <div class="form-group"><label>Valor do Aluguel (R$)</label><input type="number" step="0.01" id="valorAluguel" required></div>
+          <div class="form-group"><label>Data de Fechamento</label><input type="date" id="dataFechamentoAluguel" required></div>
+          <div class="form-group"><label>Corretor</label><select id="corretorAluguel" required></select></div>
+          <div style="grid-column: 1 / -1; display:flex; gap:10px;"><button type="submit" class="btn" style="flex:1;">Salvar Locação</button><button type="button" class="btn btn-secondary" onclick="limparFormAluguel()">Limpar</button></div>
+        </form>
+      </div>
+      <div class="card">
+        <div class="table-container">
+          <table>
+            <thead><tr><th>Fechamento</th><th>Inquilino</th><th>Captação</th><th>Proprietário</th><th>Corretor</th><th>Valor</th><th>Custo Mkt</th><th>Ações</th></tr></thead>
+            <tbody id="tabelaAlugueis"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- UTILIZADORES -->
+    <div id="tab-usuarios" class="tab-content">
+      <div class="card" style="margin-bottom: 20px;">
+        <h3 style="color: var(--primary); margin-bottom: 12px;">Cadastrar Novo Utilizador</h3>
+        <form id="formNovoUser" onsubmit="event.preventDefault(); adicionarUsuario();" style="grid-template-columns: 1fr 1fr auto;">
+          <div class="form-group"><label>Utilizador</label><input type="text" id="novoUserNome" required></div>
+          <div class="form-group"><label>Palavra-passe</label><input type="password" id="novoUserPass" required></div>
+          <div style="display:flex; align-items:flex-end;"><button type="submit" class="btn">Cadastrar</button></div>
+        </form>
+      </div>
+      <div class="card">
+        <div class="table-container">
+          <table>
+            <thead><tr><th>Utilizador</th><th>Palavra-passe</th><th>Ações</th></tr></thead>
+            <tbody id="tabelaUsuarios"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Modais -->
+<div class="modal-bg" id="modalOrigens"><div class="modal-content"><h3 style="color: var(--primary); margin-bottom: 10px;">Gerenciar Contas de Saída</h3><div style="display:flex; gap:8px; margin-bottom:15px;"><input type="text" id="novaOrigemNome" placeholder="Nova Conta" style="flex:1;"><button class="btn btn-sm" onclick="adicionarOrigem()">Add</button></div><div id="listaOrigens" style="max-height:200px; overflow-y:auto; margin-bottom:15px;"></div><button class="btn btn-secondary" style="width:100%;" onclick="$('modalOrigens').style.display='none';renderContas()">Fechar</button></div></div>
+<div class="modal-bg" id="modalCategorias"><div class="modal-content"><h3 style="color: var(--primary); margin-bottom: 10px;">Gerenciar Categorias</h3><div style="display:flex; gap:8px; margin-bottom:15px;"><input type="text" id="novaCategoriaNome" placeholder="Nova Categoria" style="flex:1;"><button class="btn btn-sm" onclick="adicionarCategoria()">Add</button></div><div id="listaCategorias" style="max-height:200px; overflow-y:auto; margin-bottom:15px;"></div><button class="btn btn-secondary" style="width:100%;" onclick="$('modalCategorias').style.display='none';renderContas()">Fechar</button></div></div>
+<div class="modal-bg" id="modalVeiculos"><div class="modal-content"><h3 style="color: var(--primary); margin-bottom: 10px;">Gerenciar Veículos</h3><div style="display:flex; gap:8px; margin-bottom:15px;"><input type="text" id="novoVeiculoNome" placeholder="Novo Veículo" style="flex:1;"><button class="btn btn-sm" onclick="adicionarVeiculo()">Add</button></div><div id="listaVeiculos" style="max-height:200px; overflow-y:auto; margin-bottom:15px;"></div><button class="btn btn-secondary" style="width:100%;" onclick="$('modalVeiculos').style.display='none';renderComissoes();renderAlugueis()">Fechar</button></div></div>
+
+<!-- MODAL CORRETORES COM UPLOAD -->
+<div class="modal-bg" id="modalCorretores">
+  <div class="modal-content">
+    <h3 style="color: var(--primary); margin-bottom: 10px;">Cadastrar Corretor & Foto</h3>
+    <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:15px; border-bottom:1px solid #ccc; padding-bottom:15px;">
+      <input type="text" id="novoCorretorNome" placeholder="Nome do Corretor">
+      <label style="font-size:0.8rem;">Anexar Foto (Será comprimida automaticamente):</label>
+      <input type="file" id="novoCorretorFoto" accept="image/*" style="background:#fff; padding:6px;">
+      <button class="btn btn-sm" onclick="adicionarCorretor()">Cadastrar Corretor</button>
+    </div>
+    <div id="listaCorretores" style="max-height:220px; overflow-y:auto; margin-bottom:15px;"></div>
+    <button class="btn btn-secondary" style="width:100%;" onclick="$('modalCorretores').style.display='none'; carregarSelectsComissoes(); carregarSelectsAluguel(); renderComissoes(); renderAlugueis();">Fechar</button>
+  </div>
+</div>
+
+<script>
+  var $ = function(id) { return document.getElementById(id); };
+  function formatarMoeda(v) { return 'R$ ' + (v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+
+  var origens = JSON.parse(localStorage.getItem('origens_db')) || ['Itaú', 'Bradesco', 'Caixa', 'Dinheiro / Caixinha'];
+  var categorias = JSON.parse(localStorage.getItem('categorias_db')) || ['Imóvel/Aluguel', 'Serviços públicos', 'Impostos', 'Atrasos/Multas', 'Operacional'];
+  var corretores = JSON.parse(localStorage.getItem('corretores_objs_db')) || [{ nome: 'Vinícius Barbosa', foto: '' }, { nome: 'Geovana Castro', foto: '' }];
+  var veiculosCapitacao = JSON.parse(localStorage.getItem('veiculos_db')) || ['Marketing', 'Instagram', 'Tráfego Pago', 'Indicação', 'Placa do Imóvel', 'WhatsApp'];
+  
+  var usuariosDB = JSON.parse(localStorage.getItem('usuarios_db')) || [{ usuario: 'admin', senha: '123' }];
+  if (!Array.isArray(usuariosDB) || usuariosDB.length === 0) {
+    usuariosDB = [{ usuario: 'admin', senha: '123' }];
+  }
+  
+  var contas = JSON.parse(localStorage.getItem('contas_db')) || [];
+  var comissoes = JSON.parse(localStorage.getItem('comissoes_db')) || [];
+  var alugueis = JSON.parse(localStorage.getItem('alugueis_db')) || [];
+  var chartCorretor;
+
+  $('formLogin').onsubmit = function(e) {
+    e.preventDefault();
+    var u = $('loginUser').value.trim(); 
+    var p = $('loginPass').value.trim();
+    
+    var valido = false;
+    for (var i = 0; i < usuariosDB.length; i++) {
+      var item = usuariosDB[i];
+      if (!item) continue;
+      var usr = String(item.usuario || item.u || item.nome || '').trim();
+      var pwd = String(item.senha || item.p || item.pass || '').trim();
+      if (usr === u && pwd === p) {
+        valido = true;
+        break;
+      }
+    }
+
+    if (valido) {
+      localStorage.setItem('sessao_ativa', u);
+      entrarSistema(u);
+    } else { 
+      $('loginError').innerText = 'Utilizador ou palavra-passe incorretos!'; 
+    }
+  };
+
+  window.onload = function() {
+    var sessao = localStorage.getItem('sessao_ativa');
+    if (sessao) {
+      entrarSistema(sessao);
+    }
+  };
+
+  function entrarSistema(user) {
+    $('loginScreen').style.display = 'none';
+    $('appLayout').classList.add('authenticated');
+    $('userLogadoTxt').innerText = 'Logado como: ' + user;
+    initAnoSelectors(); 
+    sincronizarCustosMarketing(); 
+    renderContas();
+  }
+
+  function sairSistema() {
+    localStorage.removeItem('sessao_ativa');
+    location.reload();
+  }
+
+  function mudarAba(aba) {
+    var btns = document.querySelectorAll('.nav-btn');
+    for (var i = 0; i < btns.length; i++) btns[i].classList.remove('active');
+    var tabs = document.querySelectorAll('.tab-content');
+    for (var j = 0; j < tabs.length; j++) tabs[j].classList.remove('active');
+    
+    $('tituloAbaAtual').innerText = aba.toUpperCase();
+    if (aba === 'contas') {
+      btns[0].classList.add('active'); $('tab-contas').classList.add('active'); renderContas();
+    } else if (aba === 'dashboard') {
+      btns[1].classList.add('active'); $('tab-dashboard').classList.add('active'); renderDashboard();
+    } else if (aba === 'comissoes') {
+      btns[2].classList.add('active'); $('tab-comissoes').classList.add('active'); renderComissoes();
+    } else if (aba === 'aluguel') {
+      btns[3].classList.add('active'); $('tab-aluguel').classList.add('active'); renderAlugueis();
+    } else if (aba === 'usuarios') {
+      btns[4].classList.add('active'); $('tab-usuarios').classList.add('active'); renderTabelaUsuarios();
+    }
+  }
+
+  function initAnoSelectors() {
+    var ids = ['filtroAnoContas', 'filtroAnoDash', 'filtroAnoComissoes', 'filtroAnoAluguel'];
+    for (var i = 0; i < ids.length; i++) {
+      var sel = $(ids[i]);
+      if (!sel) continue;
+      sel.innerHTML = '<option value="todos" selected>Todos Anos</option>';
+      for (var a = 2024; a <= 2028; a++) {
+        sel.innerHTML += '<option value="' + a + '">' + a + '</option>';
+      }
+    }
+  }
+
+  // CONTAS
+  function carregarSelectsFormulario() {
+    var ori = $('contaOrigem'), cat = $('categoria');
+    if (ori) {
+      var htmlO = '';
+      for (var i = 0; i < origens.length; i++) htmlO += '<option value="' + origens[i] + '">' + origens[i] + '</option>';
+      ori.innerHTML = htmlO;
+    }
+    if (cat) {
+      var htmlC = '';
+      for (var j = 0; j < categorias.length; j++) htmlC += '<option value="' + categorias[j] + '">' + categorias[j] + '</option>';
+      cat.innerHTML = htmlC;
+    }
+  }
+
+  function toggleParcelas() {
+    $('groupParcelas').style.display = $('tipoConta').value === 'Parcelada' ? 'flex' : 'none';
+  }
+
+  function sincronizarCustosMarketing() {
+    var mktVendas = {}, mktLoc = {};
+    for (var i = 0; i < comissoes.length; i++) {
+      var c = comissoes[i];
+      if (c.veiculoCapitacao && c.veiculoCapitacao.toLowerCase().indexOf('marketing') !== -1 && c.dataFechamento) {
+        var p = c.dataFechamento.split('-');
+        var m = parseInt(p[1]) + 1, a = parseInt(p[0]);
+        if (m > 12) { m = 1; a++; }
+        var key = a + '-' + (m < 10 ? '0' + m : m);
+        mktVendas[key] = (mktVendas[key] || 0) + 1;
+      }
+    }
+    for (var j = 0; j < alugueis.length; j++) {
+      var al = alugueis[j];
+      if (al.veiculoCapitacao && al.veiculoCapitacao.toLowerCase().indexOf('marketing') !== -1 && al.dataFechamento) {
+        var p2 = al.dataFechamento.split('-');
+        var m2 = parseInt(p2[1]) + 1, a2 = parseInt(p2[0]);
+        if (m2 > 12) { m2 = 1; a2++; }
+        var key2 = a2 + '-' + (m2 < 10 ? '0' + m2 : m2);
+        mktLoc[key2] = (mktLoc[key2] || 0) + 1;
+      }
+    }
+    for (var mes in mktVendas) {
+      var q = mktVendas[mes], ex = null;
+      for (var k = 0; k < contas.length; k++) {
+        if (contas[k].isAutoMkt === 'vendas' && contas[k].vencimento.indexOf(mes) === 0) { ex = contas[k]; break; }
+      }
+      if (ex) {
+        ex.valorPrevisto = q * 300;
+        ex.descricao = 'Custos Mkt Vendas (' + q + 'x)';
+      } else {
+        contas.push({
+          id: Date.now() + Math.random(),
+          descricao: 'Custos Mkt Vendas (' + q + 'x)',
+          valorPrevisto: q * 300,
+          valorReal: 0,
+          vencimento: mes + '-10',
+          origem: origens[0],
+          tipo: 'Variável',
+          parcAtual: 1,
+          parcTotal: 1,
+          categoria: 'Operacional',
+          status: 'Pendente',
+          isAutoMkt: 'vendas'
+        });
+      }
+    }
+    for (var mes2 in mktLoc) {
+      var q2 = mktLoc[mes2], ex2 = null;
+      for (var k2 = 0; k2 < contas.length; k2++) {
+        if (contas[k2].isAutoMkt === 'locacao' && contas[k2].vencimento.indexOf(mes2) === 0) { ex2 = contas[k2]; break; }
+      }
+      if (ex2) {
+        ex2.valorPrevisto = q2 * 50;
+        ex2.descricao = 'Custos Mkt Locações (' + q2 + 'x)';
+      } else {
+        contas.push({
+          id: Date.now() + Math.random(),
+          descricao: 'Custos Mkt Locações (' + q2 + 'x)',
+          valorPrevisto: q2 * 50,
+          valorReal: 0,
+          vencimento: mes2 + '-10',
+          origem: origens[0],
+          tipo: 'Variável',
+          parcAtual: 1,
+          parcTotal: 1,
+          categoria: 'Operacional',
+          status: 'Pendente',
+          isAutoMkt: 'locacao'
+        });
+      }
+    }
+    var novasContas = [];
+    for (var n = 0; n < contas.length; n++) {
+      var ct = contas[n];
+      var mStr = ct.vencimento ? ct.vencimento.substring(0, 7) : '';
+      if (ct.isAutoMkt === 'vendas') {
+        if ((mktVendas[mStr] || 0) > 0) novasContas.push(ct);
+      } else if (ct.isAutoMkt === 'locacao') {
+        if ((mktLoc[mStr] || 0) > 0) novasContas.push(ct);
+      } else {
+        novasContas.push(ct);
+      }
+    }
+    contas = novasContas;
+    localStorage.setItem('contas_db', JSON.stringify(contas));
+  }
+
+  function renderContas() {
+    carregarSelectsFormulario();
+    var aS = $('filtroAnoContas').value, mS = $('filtroMesContas').value;
+    var filt = [];
+    for (var i = 0; i < contas.length; i++) {
+      var c = contas[i];
+      if (!c.vencimento) continue;
+      var p = c.vencimento.split('-');
+      if ((aS === 'todos' || p[0] === aS) && (mS === 'todos' || p[1] === mS)) {
+        filt.push(c);
+      }
+    }
+    var prev = 0, real = 0, pend = 0;
+    var htmlT = '';
+    for (var j = 0; j < filt.length; j++) {
+      var c = filt[j];
+      prev += c.valorPrevisto || 0;
+      var r = c.valorReal || 0;
+      if (c.status === 'Pago') real += r; else pend += c.valorPrevisto || 0;
+      
+      htmlT += '<tr><td><b>' + (c.isAutoMkt ? '🤖' : '') + c.descricao + '</b></td><td><small>' + c.tipo + ' • ' + c.categoria + '</small></td><td>' + c.origem + '</td><td>' + c.vencimento.split('-').reverse().join('/') + '</td>';
+      htmlT += '<td>' + formatarMoeda(c.valorPrevisto) + '</td><td>' + formatarMoeda(c.valorReal) + '</td><td><span class="badge badge-' + c.status.toLowerCase() + '">' + c.status + '</span></td><td>';
+      if (c.status !== 'Pago') {
+        htmlT += '<button class="btn btn-success btn-sm" onclick="baixarConta(' + c.id + ')">Baixar</button> ';
+      }
+      htmlT += '<button class="btn btn-secondary btn-sm" onclick="editarConta(' + c.id + ')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirConta(' + c.id + ')">X</button></td></tr>';
+    }
+    $('tabelaContas').innerHTML = htmlT;
+    $('totalPrevisto').innerText = formatarMoeda(prev);
+    $('totalReal').innerText = formatarMoeda(real);
+    $('totalPendente').innerText = formatarMoeda(pend);
+    var v = prev - real;
+    $('totalVariacao').innerText = formatarMoeda(Math.abs(v)) + ' ' + (v >= 0 ? '(Economia)' : '(Excesso)');
+    $('totalVariacao').style.color = v >= 0 ? 'var(--success)' : 'var(--danger)';
+  }
+
+  $('formConta').onsubmit = function(e) {
+    e.preventDefault();
+    var id = $('contaId').value, p = parseFloat($('valorPrevisto').value) || 0, r = parseFloat($('valorReal').value) || 0;
+    var isAuto = false;
+    if (id) {
+      for (var i = 0; i < contas.length; i++) {
+        if (contas[i].id == id) { isAuto = contas[i].isAutoMkt; break; }
+      }
+    }
+    var obj = {
+      id: id ? parseInt(id) : Date.now(),
+      descricao: $('descricao').value,
+      valorPrevisto: p,
+      valorReal: r,
+      vencimento: $('vencimento').value,
+      origem: $('contaOrigem').value,
+      tipo: $('tipoConta').value,
+      parcAtual: parseInt($('parcAtual').value) || 1,
+      parcTotal: parseInt($('parcTotal').value) || 1,
+      categoria: $('categoria').value,
+      status: r > 0 ? 'Pago' : 'Pendente',
+      isAutoMkt: isAuto
+    };
+    if (id) {
+      for (var j = 0; j < contas.length; j++) {
+        if (contas[j].id == id) { contas[j] = obj; break; }
+      }
+    } else {
+      contas.push(obj);
+    }
+    localStorage.setItem('contas_db', JSON.stringify(contas));
+    limparFormConta();
+    renderContas();
+  };
+
+  function baixarConta(id) {
+    var c = null;
+    for (var i = 0; i < contas.length; i++) { if (contas[i].id === id) { c = contas[i]; break; } }
+    if (c) {
+      var v = prompt('Valor Pago:', c.valorPrevisto);
+      if (v !== null) {
+        c.valorReal = parseFloat(v) || c.valorPrevisto;
+        c.status = 'Pago';
+        localStorage.setItem('contas_db', JSON.stringify(contas));
+        renderContas();
+      }
+    }
+  }
+
+  function editarConta(id) {
+    var c = null;
+    for (var i = 0; i < contas.length; i++) { if (contas[i].id === id) { c = contas[i]; break; } }
+    if (c) {
+      $('contaId').value = c.id;
+      $('descricao').value = c.descricao;
+      $('valorPrevisto').value = c.valorPrevisto;
+      $('valorReal').value = c.valorReal || '';
+      $('vencimento').value = c.vencimento;
+      $('contaOrigem').value = c.origem;
+      $('tipoConta').value = c.tipo;
+      $('parcAtual').value = c.parcAtual || 1;
+      $('parcTotal').value = c.parcTotal || 1;
+      $('categoria').value = c.categoria;
+      toggleParcelas();
+    }
+  }
+
+  function excluirConta(id) {
+    if (confirm('Excluir?')) {
+      var novas = [];
+      for (var i = 0; i < contas.length; i++) { if (contas[i].id !== id) novas.push(contas[i]); }
+      contas = novas;
+      localStorage.setItem('contas_db', JSON.stringify(contas));
+      renderContas();
+    }
+  }
+
+  function limparFormConta() {
+    $('formConta').reset();
+    $('contaId').value = '';
+    toggleParcelas();
+  }
+
+  function calcularProporcional() {
+    var val = parseFloat($('calcVal').value || 0);
+    var tot = parseFloat($('calcDiasTotais').value || 30);
+    var uso = parseFloat($('calcDiasUso').value || 0);
+    var res = (val / tot) * uso;
+    $('resCalc').innerText = 'Proporcional: ' + formatarMoeda(res);
+  }
+
+  function gerarProximoMes() {
+    alert('Função auto gerar ativa!');
+  }
+
+  // COMISSÕES
+  function toggleDataPrevisao() {
+    $('groupDataPrevisao').style.display = $('tipoPrevisao').value === 'com_data' ? 'flex' : 'none';
+  }
+
+  function carregarSelectsComissoes() {
+    var htmlC = '<option value="todos">Todos</option>';
+    for (var i = 0; i < corretores.length; i++) {
+      htmlC += '<option value="' + corretores[i].nome + '">' + corretores[i].nome + '</option>';
+    }
+    if ($('filtroCorretorComissoes')) $('filtroCorretorComissoes').innerHTML = htmlC;
+    if ($('corretor')) $('corretor').innerHTML = htmlC.replace('<option value="todos">Todos</option>', '');
+
+    var htmlV = '<option value="todos">Todos</option>';
+    for (var j = 0; j < veiculosCapitacao.length; j++) {
+      htmlV += '<option value="' + veiculosCapitacao[j] + '">' + veiculosCapitacao[j] + '</option>';
+    }
+    if ($('filtroCapitacaoComissoes')) $('filtroCapitacaoComissoes').innerHTML = htmlV;
+    if ($('veiculoCapitacao')) $('veiculoCapitacao').innerHTML = htmlV.replace('<option value="todos">Todos</option>', '');
+  }
+
+  function renderComissoes() {
+    carregarSelectsComissoes();
+    var aS = $('filtroAnoComissoes').value, mS = $('filtroMesComissoes').value, cS = $('filtroCorretorComissoes').value, vS = $('filtroCapitacaoComissoes').value;
+    var filt = [];
+    for (var i = 0; i < comissoes.length; i++) {
+      var c = comissoes[i];
+      if (cS !== 'todos' && c.corretor !== cS) continue;
+      if (vS !== 'todos' && c.veiculoCapitacao !== vS) continue;
+      if (!c.dataFechamento) { filt.push(c); continue; }
+      var p = c.dataFechamento.split('-');
+      if ((aS === 'todos' || p[0] === aS) && (mS === 'todos' || p[1] === mS)) {
+        filt.push(c);
+      }
+    }
+
+    // ORDENAÇÃO CRONOLÓGICA SEGURA (DATA DE FECHAMENTO)
+    filt.sort(function(a, b) {
+      var tA = (a.dataFechamento && !isNaN(new Date(a.dataFechamento).getTime())) ? new Date(a.dataFechamento).getTime() : 0;
+      var tB = (b.dataFechamento && !isNaN(new Date(b.dataFechamento).getTime())) ? new Date(b.dataFechamento).getTime() : 0;
+      return tA - tB;
+    });
+
+    var tv = 0, tc = 0, tr = 0, tP = 0;
+    var htmlC = '';
+    for (var j = 0; j < filt.length; j++) {
+      var c = filt[j];
+      var cTotal = c.valorComissao || 0, cRec = c.valorRecebido || 0, falta = cTotal - cRec;
+      tv += c.valorVenda || 0; tc += cTotal; tr += cRec; if (falta > 0) tP += falta;
+      
+      var badge = '<span class="badge badge-areceber">A Receber</span>';
+      if (c.status === 'Recebido') badge = '<span class="badge badge-recebido">Recebido</span>';
+      else if (c.status === 'Parcial') badge = '<span class="badge badge-parcial">Parcial</span>';
+
+      var fot = 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
+      for (var k = 0; k < corretores.length; k++) {
+        if (corretores[k].nome === c.corretor && corretores[k].foto) { fot = corretores[k].foto; break; }
+      }
+
+      var dataFmt = c.dataFechamento ? c.dataFechamento.split('-').reverse().join('/') : '-';
+
+      htmlC += '<tr><td>' + dataFmt + '</td>';
+      htmlC += '<td><small>C: <b>' + c.comprador + '</b><br>V: ' + c.vendedor + '</small></td>';
+      htmlC += '<td><span class="badge badge-capitacao">' + c.veiculoCapitacao + '</span></td>';
+      htmlC += '<td><div class="corretor-cell"><img src="' + fot + '" class="corretor-avatar"><span>' + c.corretor + '</span></div></td>';
+      htmlC += '<td>' + formatarMoeda(c.valorVenda) + '</td><td><b>' + formatarMoeda(cTotal) + '</b></td>';
+      htmlC += '<td style="color:var(--success)">' + formatarMoeda(cRec) + '</td>';
+      htmlC += '<td style="color:var(--danger)"><b>' + formatarMoeda(falta > 0 ? falta : 0) + '</b></td>';
+      htmlC += '<td><small>' + (c.retidoPor && c.retidoPor !== 'Nenhum' ? c.retidoPor : '-') + '</small></td>';
+      htmlC += '<td><small>' + (c.observacoes || '-') + '</small></td><td>' + badge + '</td>';
+      htmlC += '<td>';
+      if (c.status !== 'Recebido') {
+        htmlC += '<button class="btn btn-success btn-sm" onclick="baixarComissao(' + c.id + ')">Baixar</button> ';
+      }
+      htmlC += '<button class="btn btn-secondary btn-sm" onclick="editarComissao(' + c.id + ')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirComissao(' + c.id + ')">X</button></td></tr>';
+    }
+    $('tabelaComissoes').innerHTML = htmlC;
+    $('totalVendasComissao').innerText = formatarMoeda(tv);
+    $('totalComissaoGeral').innerText = formatarMoeda(tc);
+    $('totalComissaoAReceber').innerText = formatarMoeda(tP);
+    $('totalComissaoRecebida').innerText = formatarMoeda(tr);
+  }
+
+  $('formComissao').onsubmit = function(e) {
+    e.preventDefault();
+    var id = $('comissaoId').value, vt = parseFloat($('valorComissao').value) || 0, vr = parseFloat($('valorRecebido').value) || 0;
+    var st = 'A Receber';
+    if (vr >= vt && vt > 0) st = 'Recebido';
+    else if (vr > 0) st = 'Parcial';
+
+    var obj = {
+      id: id ? parseInt(id) : Date.now(),
+      comprador: $('comprador').value,
+      veiculoCapitacao: $('veiculoCapitacao').value,
+      vendedor: $('vendedor').value,
+      corretor: $('corretor').value,
+      dataFechamento: $('dataFechamentoComissao').value,
+      valorVenda: parseFloat($('valorVenda').value) || 0,
+      valorComissao: vt,
+      valorRecebido: vr,
+      retidoPor: $('retidoPor').value,
+      tipoPrevisao: $('tipoPrevisao').value,
+      dataPrevisao: $('tipoPrevisao').value === 'com_data' ? $('dataPrevisao').value : '',
+      observacoes: $('observacoesComissao').value.trim(),
+      status: st
+    };
+    if (id) {
+      for (var i = 0; i < comissoes.length; i++) {
+        if (comissoes[i].id == id) { comissoes[i] = obj; break; }
+      }
+    } else {
+      comissoes.push(obj);
+    }
+    localStorage.setItem('comissoes_db', JSON.stringify(comissoes));
+    sincronizarCustosMarketing();
+    limparFormComissao();
+    renderComissoes();
+  };
+
+  function baixarComissao(id) {
+    var c = null;
+    for (var i = 0; i < comissoes.length; i++) { if (comissoes[i].id === id) { c = comissoes[i]; break; } }
+    if (c && c.status !== 'Recebido') {
+      var falta = (c.valorComissao ||
