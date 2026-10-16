@@ -75,6 +75,9 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       <button type="submit" class="btn" style="width:100%; justify-content:center;">Entrar no Sistema</button>
     </form>
     <div id="loginError" style="color:var(--danger); font-size:0.8rem; margin-top:12px; font-weight:600;"></div>
+    <div style="margin-top:15px; border-top:1px solid #eee; padding-top:10px;">
+      <a href="#" onclick="if(confirm('Deseja limpar o cache e reiniciar o sistema?')) { localStorage.clear(); location.reload(); } return false;" style="color:var(--text-muted); font-size:0.75rem; text-decoration:underline;">⚠️ Limpar cache e reiniciar sistema</a>
+    </div>
   </div>
 </div>
 
@@ -321,19 +324,46 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   var $ = function(id) { return document.getElementById(id); };
   function formatarMoeda(v) { return 'R$ ' + (v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
-  var origens = JSON.parse(localStorage.getItem('origens_db')) || ['Itaú', 'Bradesco', 'Caixa', 'Dinheiro / Caixinha'];
-  var categorias = JSON.parse(localStorage.getItem('categorias_db')) || ['Imóvel/Aluguel', 'Serviços públicos', 'Impostos', 'Atrasos/Multas', 'Operacional'];
-  var corretores = JSON.parse(localStorage.getItem('corretores_objs_db')) || [{ nome: 'Vinícius Barbosa', foto: '' }, { nome: 'Geovana Castro', foto: '' }];
-  var veiculosCapitacao = JSON.parse(localStorage.getItem('veiculos_db')) || ['Marketing', 'Instagram', 'Tráfego Pago', 'Indicação', 'Placa do Imóvel', 'WhatsApp'];
+  // Carregamento seguro dos dados com fallback para arrays limpos
+  var origens = ['Itaú', 'Bradesco', 'Caixa', 'Dinheiro / Caixinha'];
+  try {
+    var storedOrigens = JSON.parse(localStorage.getItem('origens_db'));
+    if (Array.isArray(storedOrigens) && storedOrigens.length > 0) origens = storedOrigens;
+  } catch(e) {}
+
+  var categorias = ['Imóvel/Aluguel', 'Serviços públicos', 'Impostos', 'Atrasos/Multas', 'Operacional'];
+  try {
+    var storedCat = JSON.parse(localStorage.getItem('categorias_db'));
+    if (Array.isArray(storedCat) && storedCat.length > 0) categorias = storedCat;
+  } catch(e) {}
+
+  var corretores = [{ nome: 'Vinícius Barbosa', foto: '' }, { nome: 'Geovana Castro', foto: '' }];
+  try {
+    var storedCorr = JSON.parse(localStorage.getItem('corretores_objs_db'));
+    if (Array.isArray(storedCorr) && storedCorr.length > 0) corretores = storedCorr;
+  } catch(e) {}
+
+  var veiculosCapitacao = ['Marketing', 'Instagram', 'Tráfego Pago', 'Indicação', 'Placa do Imóvel', 'WhatsApp'];
+  try {
+    var storedVeic = JSON.parse(localStorage.getItem('veiculos_db'));
+    if (Array.isArray(storedVeic) && storedVeic.length > 0) veiculosCapitacao = storedVeic;
+  } catch(e) {}
   
-  var usuariosDB = JSON.parse(localStorage.getItem('usuarios_db')) || [{ usuario: 'admin', senha: '123' }];
-  if (!Array.isArray(usuariosDB) || usuariosDB.length === 0) {
-    usuariosDB = [{ usuario: 'admin', senha: '123' }];
-  }
+  var usuariosDB = [{ usuario: 'admin', senha: '123' }];
+  try {
+    var storedUsers = JSON.parse(localStorage.getItem('usuarios_db'));
+    if (Array.isArray(storedUsers) && storedUsers.length > 0) usuariosDB = storedUsers;
+  } catch(e) {}
   
-  var contas = JSON.parse(localStorage.getItem('contas_db')) || [];
-  var comissoes = JSON.parse(localStorage.getItem('comissoes_db')) || [];
-  var alugueis = JSON.parse(localStorage.getItem('alugueis_db')) || [];
+  var contas = [];
+  try { var sc = JSON.parse(localStorage.getItem('contas_db')); if (Array.isArray(sc)) contas = sc; } catch(e) { contas = []; }
+
+  var comissoes = [];
+  try { var scom = JSON.parse(localStorage.getItem('comissoes_db')); if (Array.isArray(scom)) comissoes = scom; } catch(e) { comissoes = []; }
+
+  var alugueis = [];
+  try { var salu = JSON.parse(localStorage.getItem('alugueis_db')); if (Array.isArray(salu)) alugueis = salu; } catch(e) { alugueis = []; }
+
   var chartCorretor;
 
   $('formLogin').onsubmit = function(e) {
@@ -362,9 +392,13 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   };
 
   window.onload = function() {
-    var sessao = localStorage.getItem('sessao_ativa');
-    if (sessao) {
-      entrarSistema(sessao);
+    try {
+      var sessao = localStorage.getItem('sessao_ativa');
+      if (sessao) {
+        entrarSistema(sessao);
+      }
+    } catch(err) {
+      console.error("Erro ao carregar sessão:", err);
     }
   };
 
@@ -434,91 +468,100 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   }
 
   function sincronizarCustosMarketing() {
-    var mktVendas = {}, mktLoc = {};
-    for (var i = 0; i < comissoes.length; i++) {
-      var c = comissoes[i];
-      if (c.veiculoCapitacao && c.veiculoCapitacao.toLowerCase().indexOf('marketing') !== -1 && c.dataFechamento) {
-        var p = c.dataFechamento.split('-');
-        var m = parseInt(p[1]) + 1, a = parseInt(p[0]);
-        if (m > 12) { m = 1; a++; }
-        var key = a + '-' + (m < 10 ? '0' + m : m);
-        mktVendas[key] = (mktVendas[key] || 0) + 1;
+    try {
+      var mktVendas = {}, mktLoc = {};
+      for (var i = 0; i < comissoes.length; i++) {
+        var c = comissoes[i];
+        if (!c) continue;
+        var cap = String(c.veiculoCapitacao || '').toLowerCase();
+        if (cap.indexOf('marketing') !== -1 && c.dataFechamento) {
+          var p = String(c.dataFechamento).split('-');
+          var m = parseInt(p[1]) + 1, a = parseInt(p[0]);
+          if (m > 12) { m = 1; a++; }
+          var key = a + '-' + (m < 10 ? '0' + m : m);
+          mktVendas[key] = (mktVendas[key] || 0) + 1;
+        }
       }
+      for (var j = 0; j < alugueis.length; j++) {
+        var al = alugueis[j];
+        if (!al) continue;
+        var capAl = String(al.veiculoCapitacao || '').toLowerCase();
+        if (capAl.indexOf('marketing') !== -1 && al.dataFechamento) {
+          var p2 = String(al.dataFechamento).split('-');
+          var m2 = parseInt(p2[1]) + 1, a2 = parseInt(p2[0]);
+          if (m2 > 12) { m2 = 1; a2++; }
+          var key2 = a2 + '-' + (m2 < 10 ? '0' + m2 : m2);
+          mktLoc[key2] = (mktLoc[key2] || 0) + 1;
+        }
+      }
+      for (var mes in mktVendas) {
+        var q = mktVendas[mes], ex = null;
+        for (var k = 0; k < contas.length; k++) {
+          if (contas[k] && contas[k].isAutoMkt === 'vendas' && contas[k].vencimento && contas[k].vencimento.indexOf(mes) === 0) { ex = contas[k]; break; }
+        }
+        if (ex) {
+          ex.valorPrevisto = q * 300;
+          ex.descricao = 'Custos Mkt Vendas (' + q + 'x)';
+        } else {
+          contas.push({
+            id: Date.now() + Math.random(),
+            descricao: 'Custos Mkt Vendas (' + q + 'x)',
+            valorPrevisto: q * 300,
+            valorReal: 0,
+            vencimento: mes + '-10',
+            origem: origens[0],
+            tipo: 'Variável',
+            parcAtual: 1,
+            parcTotal: 1,
+            categoria: 'Operacional',
+            status: 'Pendente',
+            isAutoMkt: 'vendas'
+          });
+        }
+      }
+      for (var mes2 in mktLoc) {
+        var q2 = mktLoc[mes2], ex2 = null;
+        for (var k2 = 0; k2 < contas.length; k2++) {
+          if (contas[k2] && contas[k2].isAutoMkt === 'locacao' && contas[k2].vencimento && contas[k2].vencimento.indexOf(mes2) === 0) { ex2 = contas[k2]; break; }
+        }
+        if (ex2) {
+          ex2.valorPrevisto = q2 * 50;
+          ex2.descricao = 'Custos Mkt Locações (' + q2 + 'x)';
+        } else {
+          contas.push({
+            id: Date.now() + Math.random(),
+            descricao: 'Custos Mkt Locações (' + q2 + 'x)',
+            valorPrevisto: q2 * 50,
+            valorReal: 0,
+            vencimento: mes2 + '-10',
+            origem: origens[0],
+            tipo: 'Variável',
+            parcAtual: 1,
+            parcTotal: 1,
+            categoria: 'Operacional',
+            status: 'Pendente',
+            isAutoMkt: 'locacao'
+          });
+        }
+      }
+      var novasContas = [];
+      for (var n = 0; n < contas.length; n++) {
+        var ct = contas[n];
+        if (!ct) continue;
+        var mStr = ct.vencimento ? ct.vencimento.substring(0, 7) : '';
+        if (ct.isAutoMkt === 'vendas') {
+          if ((mktVendas[mStr] || 0) > 0) novasContas.push(ct);
+        } else if (ct.isAutoMkt === 'locacao') {
+          if ((mktLoc[mStr] || 0) > 0) novasContas.push(ct);
+        } else {
+          novasContas.push(ct);
+        }
+      }
+      contas = novasContas;
+      localStorage.setItem('contas_db', JSON.stringify(contas));
+    } catch(err) {
+      console.error("Erro na sincronização de marketing:", err);
     }
-    for (var j = 0; j < alugueis.length; j++) {
-      var al = alugueis[j];
-      if (al.veiculoCapitacao && al.veiculoCapitacao.toLowerCase().indexOf('marketing') !== -1 && al.dataFechamento) {
-        var p2 = al.dataFechamento.split('-');
-        var m2 = parseInt(p2[1]) + 1, a2 = parseInt(p2[0]);
-        if (m2 > 12) { m2 = 1; a2++; }
-        var key2 = a2 + '-' + (m2 < 10 ? '0' + m2 : m2);
-        mktLoc[key2] = (mktLoc[key2] || 0) + 1;
-      }
-    }
-    for (var mes in mktVendas) {
-      var q = mktVendas[mes], ex = null;
-      for (var k = 0; k < contas.length; k++) {
-        if (contas[k].isAutoMkt === 'vendas' && contas[k].vencimento.indexOf(mes) === 0) { ex = contas[k]; break; }
-      }
-      if (ex) {
-        ex.valorPrevisto = q * 300;
-        ex.descricao = 'Custos Mkt Vendas (' + q + 'x)';
-      } else {
-        contas.push({
-          id: Date.now() + Math.random(),
-          descricao: 'Custos Mkt Vendas (' + q + 'x)',
-          valorPrevisto: q * 300,
-          valorReal: 0,
-          vencimento: mes + '-10',
-          origem: origens[0],
-          tipo: 'Variável',
-          parcAtual: 1,
-          parcTotal: 1,
-          categoria: 'Operacional',
-          status: 'Pendente',
-          isAutoMkt: 'vendas'
-        });
-      }
-    }
-    for (var mes2 in mktLoc) {
-      var q2 = mktLoc[mes2], ex2 = null;
-      for (var k2 = 0; k2 < contas.length; k2++) {
-        if (contas[k2].isAutoMkt === 'locacao' && contas[k2].vencimento.indexOf(mes2) === 0) { ex2 = contas[k2]; break; }
-      }
-      if (ex2) {
-        ex2.valorPrevisto = q2 * 50;
-        ex2.descricao = 'Custos Mkt Locações (' + q2 + 'x)';
-      } else {
-        contas.push({
-          id: Date.now() + Math.random(),
-          descricao: 'Custos Mkt Locações (' + q2 + 'x)',
-          valorPrevisto: q2 * 50,
-          valorReal: 0,
-          vencimento: mes2 + '-10',
-          origem: origens[0],
-          tipo: 'Variável',
-          parcAtual: 1,
-          parcTotal: 1,
-          categoria: 'Operacional',
-          status: 'Pendente',
-          isAutoMkt: 'locacao'
-        });
-      }
-    }
-    var novasContas = [];
-    for (var n = 0; n < contas.length; n++) {
-      var ct = contas[n];
-      var mStr = ct.vencimento ? ct.vencimento.substring(0, 7) : '';
-      if (ct.isAutoMkt === 'vendas') {
-        if ((mktVendas[mStr] || 0) > 0) novasContas.push(ct);
-      } else if (ct.isAutoMkt === 'locacao') {
-        if ((mktLoc[mStr] || 0) > 0) novasContas.push(ct);
-      } else {
-        novasContas.push(ct);
-      }
-    }
-    contas = novasContas;
-    localStorage.setItem('contas_db', JSON.stringify(contas));
   }
 
   function renderContas() {
@@ -527,8 +570,8 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     var filt = [];
     for (var i = 0; i < contas.length; i++) {
       var c = contas[i];
-      if (!c.vencimento) continue;
-      var p = c.vencimento.split('-');
+      if (!c || !c.vencimento) continue;
+      var p = String(c.vencimento).split('-');
       if ((aS === 'todos' || p[0] === aS) && (mS === 'todos' || p[1] === mS)) {
         filt.push(c);
       }
@@ -541,8 +584,8 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       var r = c.valorReal || 0;
       if (c.status === 'Pago') real += r; else pend += c.valorPrevisto || 0;
       
-      htmlT += '<tr><td><b>' + (c.isAutoMkt ? '🤖' : '') + c.descricao + '</b></td><td><small>' + c.tipo + ' • ' + c.categoria + '</small></td><td>' + c.origem + '</td><td>' + c.vencimento.split('-').reverse().join('/') + '</td>';
-      htmlT += '<td>' + formatarMoeda(c.valorPrevisto) + '</td><td>' + formatarMoeda(c.valorReal) + '</td><td><span class="badge badge-' + c.status.toLowerCase() + '">' + c.status + '</span></td><td>';
+      htmlT += '<tr><td><b>' + (c.isAutoMkt ? '🤖' : '') + (c.descricao || '-') + '</b></td><td><small>' + (c.tipo || '-') + ' • ' + (c.categoria || '-') + '</small></td><td>' + (c.origem || '-') + '</td><td>' + (c.vencimento ? c.vencimento.split('-').reverse().join('/') : '-') + '</td>';
+      htmlT += '<td>' + formatarMoeda(c.valorPrevisto) + '</td><td>' + formatarMoeda(c.valorReal) + '</td><td><span class="badge badge-' + String(c.status || 'Pendente').toLowerCase() + '">' + (c.status || 'Pendente') + '</span></td><td>';
       if (c.status !== 'Pago') {
         htmlT += '<button class="btn btn-success btn-sm" onclick="baixarConta(' + c.id + ')">Baixar</button> ';
       }
@@ -563,7 +606,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     var isAuto = false;
     if (id) {
       for (var i = 0; i < contas.length; i++) {
-        if (contas[i].id == id) { isAuto = contas[i].isAutoMkt; break; }
+        if (contas[i] && contas[i].id == id) { isAuto = contas[i].isAutoMkt; break; }
       }
     }
     var obj = {
@@ -582,7 +625,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     };
     if (id) {
       for (var j = 0; j < contas.length; j++) {
-        if (contas[j].id == id) { contas[j] = obj; break; }
+        if (contas[j] && contas[j].id == id) { contas[j] = obj; break; }
       }
     } else {
       contas.push(obj);
@@ -594,11 +637,11 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 
   function baixarConta(id) {
     var c = null;
-    for (var i = 0; i < contas.length; i++) { if (contas[i].id === id) { c = contas[i]; break; } }
+    for (var i = 0; i < contas.length; i++) { if (contas[i] && contas[i].id === id) { c = contas[i]; break; } }
     if (c) {
       var v = prompt('Valor Pago:', c.valorPrevisto);
       if (v !== null) {
-        c.valorReal = parseFloat(v) || c.valorPrevisto;
+        c.valorReal = parseFloat(v.replace(',', '.')) || c.valorPrevisto;
         c.status = 'Pago';
         localStorage.setItem('contas_db', JSON.stringify(contas));
         renderContas();
@@ -608,7 +651,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 
   function editarConta(id) {
     var c = null;
-    for (var i = 0; i < contas.length; i++) { if (contas[i].id === id) { c = contas[i]; break; } }
+    for (var i = 0; i < contas.length; i++) { if (contas[i] && contas[i].id === id) { c = contas[i]; break; } }
     if (c) {
       $('contaId').value = c.id;
       $('descricao').value = c.descricao;
@@ -627,7 +670,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   function excluirConta(id) {
     if (confirm('Excluir?')) {
       var novas = [];
-      for (var i = 0; i < contas.length; i++) { if (contas[i].id !== id) novas.push(contas[i]); }
+      for (var i = 0; i < contas.length; i++) { if (contas[i] && contas[i].id !== id) novas.push(contas[i]); }
       contas = novas;
       localStorage.setItem('contas_db', JSON.stringify(contas));
       renderContas();
@@ -660,7 +703,9 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   function carregarSelectsComissoes() {
     var htmlC = '<option value="todos">Todos</option>';
     for (var i = 0; i < corretores.length; i++) {
-      htmlC += '<option value="' + corretores[i].nome + '">' + corretores[i].nome + '</option>';
+      if (corretores[i] && corretores[i].nome) {
+        htmlC += '<option value="' + corretores[i].nome + '">' + corretores[i].nome + '</option>';
+      }
     }
     if ($('filtroCorretorComissoes')) $('filtroCorretorComissoes').innerHTML = htmlC;
     if ($('corretor')) $('corretor').innerHTML = htmlC.replace('<option value="todos">Todos</option>', '');
@@ -679,19 +724,19 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     var filt = [];
     for (var i = 0; i < comissoes.length; i++) {
       var c = comissoes[i];
+      if (!c) continue;
       if (cS !== 'todos' && c.corretor !== cS) continue;
       if (vS !== 'todos' && c.veiculoCapitacao !== vS) continue;
       if (!c.dataFechamento) { filt.push(c); continue; }
-      var p = c.dataFechamento.split('-');
+      var p = String(c.dataFechamento).split('-');
       if ((aS === 'todos' || p[0] === aS) && (mS === 'todos' || p[1] === mS)) {
         filt.push(c);
       }
     }
 
-    // ORDENAÇÃO CRONOLÓGICA SEGURA (DATA DE FECHAMENTO)
     filt.sort(function(a, b) {
-      var tA = (a.dataFechamento && !isNaN(new Date(a.dataFechamento).getTime())) ? new Date(a.dataFechamento).getTime() : 0;
-      var tB = (b.dataFechamento && !isNaN(new Date(b.dataFechamento).getTime())) ? new Date(b.dataFechamento).getTime() : 0;
+      var tA = (a && a.dataFechamento && !isNaN(new Date(a.dataFechamento).getTime())) ? new Date(a.dataFechamento).getTime() : 0;
+      var tB = (b && b.dataFechamento && !isNaN(new Date(b.dataFechamento).getTime())) ? new Date(b.dataFechamento).getTime() : 0;
       return tA - tB;
     });
 
@@ -699,6 +744,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     var htmlC = '';
     for (var j = 0; j < filt.length; j++) {
       var c = filt[j];
+      if (!c) continue;
       var cTotal = c.valorComissao || 0, cRec = c.valorRecebido || 0, falta = cTotal - cRec;
       tv += c.valorVenda || 0; tc += cTotal; tr += cRec; if (falta > 0) tP += falta;
       
@@ -708,15 +754,15 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 
       var fot = 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
       for (var k = 0; k < corretores.length; k++) {
-        if (corretores[k].nome === c.corretor && corretores[k].foto) { fot = corretores[k].foto; break; }
+        if (corretores[k] && corretores[k].nome === c.corretor && corretores[k].foto) { fot = corretores[k].foto; break; }
       }
 
-      var dataFmt = c.dataFechamento ? c.dataFechamento.split('-').reverse().join('/') : '-';
+      var dataFmt = c.dataFechamento ? String(c.dataFechamento).split('-').reverse().join('/') : '-';
 
       htmlC += '<tr><td>' + dataFmt + '</td>';
-      htmlC += '<td><small>C: <b>' + c.comprador + '</b><br>V: ' + c.vendedor + '</small></td>';
-      htmlC += '<td><span class="badge badge-capitacao">' + c.veiculoCapitacao + '</span></td>';
-      htmlC += '<td><div class="corretor-cell"><img src="' + fot + '" class="corretor-avatar"><span>' + c.corretor + '</span></div></td>';
+      htmlC += '<td><small>C: <b>' + (c.comprador || '-') + '</b><br>V: ' + (c.vendedor || '-') + '</small></td>';
+      htmlC += '<td><span class="badge badge-capitacao">' + (c.veiculoCapitacao || 'Sem veículo') + '</span></td>';
+      htmlC += '<td><div class="corretor-cell"><img src="' + fot + '" class="corretor-avatar"><span>' + (c.corretor || '-') + '</span></div></td>';
       htmlC += '<td>' + formatarMoeda(c.valorVenda) + '</td><td><b>' + formatarMoeda(cTotal) + '</b></td>';
       htmlC += '<td style="color:var(--success)">' + formatarMoeda(cRec) + '</td>';
       htmlC += '<td style="color:var(--danger)"><b>' + formatarMoeda(falta > 0 ? falta : 0) + '</b></td>';
@@ -760,7 +806,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     };
     if (id) {
       for (var i = 0; i < comissoes.length; i++) {
-        if (comissoes[i].id == id) { comissoes[i] = obj; break; }
+        if (comissoes[i] && comissoes[i].id == id) { comissoes[i] = obj; break; }
       }
     } else {
       comissoes.push(obj);
@@ -773,6 +819,503 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 
   function baixarComissao(id) {
     var c = null;
-    for (var i = 0; i < comissoes.length; i++) { if (comissoes[i].id === id) { c = comissoes[i]; break; } }
+    for (var i = 0; i < comissoes.length; i++) { if (comissoes[i] && comissoes[i].id === id) { c = comissoes[i]; break; } }
     if (c && c.status !== 'Recebido') {
-      var falta = (c.valorComissao ||
+      var falta = (c.valorComissao || 0) - (c.valorRecebido || 0);
+      var v = prompt('Quanto está recebendo agora? (Falta: R$ ' + falta.toFixed(2) + ')', falta);
+      if (v !== null) {
+        var val = parseFloat(v.replace(',', '.'));
+        if (!isNaN(val) && val > 0) {
+          c.valorRecebido = (c.valorRecebido || 0) + val;
+          c.status = c.valorRecebido >= c.valorComissao ? 'Recebido' : 'Parcial';
+          var q = prompt('Quem reteve? [1] Imobiliária, [2] Corretor (Deixe em branco se nenhum)');
+          if (q === '1') c.retidoPor = 'Imobiliária';
+          else if (q === '2') c.retidoPor = 'Corretor';
+          localStorage.setItem('comissoes_db', JSON.stringify(comissoes));
+          renderComissoes();
+        }
+      }
+    }
+  }
+
+  function editarComissao(id) {
+    var c = null;
+    for (var i = 0; i < comissoes.length; i++) { if (comissoes[i] && comissoes[i].id === id) { c = comissoes[i]; break; } }
+    if (c) {
+      $('comissaoId').value = c.id;
+      $('comprador').value = c.comprador;
+      $('veiculoCapitacao').value = c.veiculoCapitacao;
+      $('vendedor').value = c.vendedor;
+      $('corretor').value = c.corretor;
+      $('dataFechamentoComissao').value = c.dataFechamento;
+      $('valorVenda').value = c.valorVenda;
+      $('valorComissao').value = c.valorComissao;
+      $('valorRecebido').value = c.valorRecebido || '';
+      $('retidoPor').value = c.retidoPor || 'Nenhum';
+      $('tipoPrevisao').value = c.tipoPrevisao;
+      $('dataPrevisao').value = c.dataPrevisao || '';
+      $('observacoesComissao').value = c.observacoes || '';
+      toggleDataPrevisao();
+    }
+  }
+
+  function excluirComissao(id) {
+    if (confirm('Excluir?')) {
+      var novas = [];
+      for (var i = 0; i < comissoes.length; i++) { if (comissoes[i] && comissoes[i].id !== id) novas.push(comissoes[i]); }
+      comissoes = novas;
+      localStorage.setItem('comissoes_db', JSON.stringify(comissoes));
+      sincronizarCustosMarketing();
+      renderComissoes();
+    }
+  }
+
+  function limparFormComissao() {
+    $('formComissao').reset();
+    $('comissaoId').value = '';
+    toggleDataPrevisao();
+  }
+
+  // ALUGUEL
+  function carregarSelectsAluguel() {
+    var htmlC = '<option value="todos">Todos</option>';
+    for (var i = 0; i < corretores.length; i++) {
+      if (corretores[i] && corretores[i].nome) {
+        htmlC += '<option value="' + corretores[i].nome + '">' + corretores[i].nome + '</option>';
+      }
+    }
+    if ($('filtroCorretorAluguel')) $('filtroCorretorAluguel').innerHTML = htmlC;
+    if ($('corretorAluguel')) $('corretorAluguel').innerHTML = htmlC.replace('<option value="todos">Todos</option>', '');
+
+    var htmlV = '<option value="todos">Todos</option>';
+    for (var j = 0; j < veiculosCapitacao.length; j++) {
+      htmlV += '<option value="' + veiculosCapitacao[j] + '">' + veiculosCapitacao[j] + '</option>';
+    }
+    if ($('filtroCapitacaoAluguel')) $('filtroCapitacaoAluguel').innerHTML = htmlV;
+    if ($('veiculoCapitacaoAluguel')) $('veiculoCapitacaoAluguel').innerHTML = htmlV.replace('<option value="todos">Todos</option>', '');
+  }
+
+  function renderAlugueis() {
+    carregarSelectsAluguel();
+    var aS = $('filtroAnoAluguel').value, mS = $('filtroMesAluguel').value, cS = $('filtroCorretorAluguel').value, vS = $('filtroCapitacaoAluguel').value;
+    var filt = [];
+    for (var i = 0; i < alugueis.length; i++) {
+      var a = alugueis[i];
+      if (!a) continue;
+      if (cS !== 'todos' && a.corretor !== cS) continue;
+      if (vS !== 'todos' && a.veiculoCapitacao !== vS) continue;
+      if (!a.dataFechamento) { filt.push(a); continue; }
+      var p = String(a.dataFechamento).split('-');
+      if ((aS === 'todos' || p[0] === aS) && (mS === 'todos' || p[1] === mS)) {
+        filt.push(a);
+      }
+    }
+
+    filt.sort(function(a, b) {
+      var tA = (a && a.dataFechamento && !isNaN(new Date(a.dataFechamento).getTime())) ? new Date(a.dataFechamento).getTime() : 0;
+      var tB = (b && b.dataFechamento && !isNaN(new Date(b.dataFechamento).getTime())) ? new Date(b.dataFechamento).getTime() : 0;
+      return tA - tB;
+    });
+
+    var totVal = 0, mkt = 0;
+    var htmlA = '';
+    for (var j = 0; j < filt.length; j++) {
+      var a = filt[j];
+      if (!a) continue;
+      totVal += a.valorAluguel || 0;
+      var capAluguel = String(a.veiculoCapitacao || '').toLowerCase();
+      if (capAluguel.indexOf('marketing') !== -1) mkt++;
+      
+      var f = 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
+      for (var k = 0; k < corretores.length; k++) {
+        if (corretores[k] && corretores[k].nome === a.corretor && corretores[k].foto) { f = corretores[k].foto; break; }
+      }
+
+      var dataFmt = a.dataFechamento ? String(a.dataFechamento).split('-').reverse().join('/') : '-';
+
+      htmlA += '<tr><td>' + dataFmt + '</td><td><b>' + (a.inquilino || '-') + '</b></td>';
+      htmlA += '<td><span class="badge badge-capitacao">' + (a.veiculoCapitacao || 'Sem veículo') + '</span></td><td>' + (a.proprietario || '-') + '</td>';
+      htmlA += '<td><div class="corretor-cell"><img src="' + f + '" class="corretor-avatar"><span>' + (a.corretor || '-') + '</span></div></td>';
+      htmlA += '<td>' + formatarMoeda(a.valorAluguel) + '</td><td>' + (capAluguel.indexOf('marketing') !== -1 ? '<b style="color:var(--danger)">R$ 50,00</b>' : '-') + '</td>';
+      htmlA += '<td><button class="btn btn-secondary btn-sm" onclick="editarAluguel(' + a.id + ')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirAluguel(' + a.id + ')">X</button></td></tr>';
+    }
+    $('tabelaAlugueis').innerHTML = htmlA;
+    $('qtdAlugueisFechados').innerText = filt.length;
+    $('totalValorAlugueis').innerText = formatarMoeda(totVal);
+    $('totalAluguelMarketing').innerText = mkt;
+  }
+
+  $('formAluguel').onsubmit = function(e) {
+    e.preventDefault();
+    var id = $('aluguelId').value;
+    var obj = {
+      id: id ? parseInt(id) : Date.now(),
+      inquilino: $('inquilino').value,
+      veiculoCapitacao: $('veiculoCapitacaoAluguel').value,
+      proprietario: $('proprietarioAluguel').value,
+      valorAluguel: parseFloat($('valorAluguel').value) || 0,
+      dataFechamento: $('dataFechamentoAluguel').value,
+      corretor: $('corretorAluguel').value
+    };
+    if (id) {
+      for (var i = 0; i < alugueis.length; i++) {
+        if (alugueis[i] && alugueis[i].id == id) { alugueis[i] = obj; break; }
+      }
+    } else {
+      alugueis.push(obj);
+    }
+    localStorage.setItem('alugueis_db', JSON.stringify(alugueis));
+    sincronizarCustosMarketing();
+    limparFormAluguel();
+    renderAlugueis();
+  };
+
+  function editarAluguel(id) {
+    var a = null;
+    for (var i = 0; i < alugueis.length; i++) { if (alugueis[i] && alugueis[i].id === id) { a = alugueis[i]; break; } }
+    if (a) {
+      $('aluguelId').value = a.id;
+      $('inquilino').value = a.inquilino;
+      $('veiculoCapitacaoAluguel').value = a.veiculoCapitacao;
+      $('proprietarioAluguel').value = a.proprietario;
+      $('valorAluguel').value = a.valorAluguel;
+      $('dataFechamentoAluguel').value = a.dataFechamento;
+      $('corretorAluguel').value = a.corretor;
+    }
+  }
+
+  function excluirAluguel(id) {
+    if (confirm('Excluir?')) {
+      var novas = [];
+      for (var i = 0; i < alugueis.length; i++) { if (alugueis[i] && alugueis[i].id !== id) novas.push(alugueis[i]); }
+      alugueis = novas;
+      localStorage.setItem('alugueis_db', JSON.stringify(alugueis));
+      sincronizarCustosMarketing();
+      renderAlugueis();
+    }
+  }
+
+  function limparFormAluguel() {
+    $('formAluguel').reset();
+    $('aluguelId').value = '';
+  }
+
+  // DASHBOARD
+  function renderDashboard() {
+    var aS = $('filtroAnoDash').value, mS = $('filtroMesDash').value, cS = $('filtroCorretorDash') ? $('filtroCorretorDash').value : 'todos';
+    var f = [];
+    for (var j = 0; j < comissoes.length; j++) {
+      var c = comissoes[j];
+      if (!c) continue;
+      if (cS !== 'todos' && c.corretor !== cS) continue;
+      if (!c.dataFechamento) { f.push(c); continue; }
+      var p = String(c.dataFechamento).split('-');
+      if ((aS === 'todos' || p[0] === aS) && (mS === 'todos' || p[1] === mS)) {
+        f.push(c);
+      }
+    }
+
+    var tV = 0, tC = 0, tR = 0, tP = 0, mapa = {};
+    for (var k = 0; k < corretores.length; k++) {
+      if (corretores[k] && corretores[k].nome) {
+        mapa[corretores[k].nome] = {
+          nome: corretores[k].nome,
+          vol: 0,
+          qtd: 0,
+          com: 0,
+          foto: corretores[k].foto || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'
+        };
+      }
+    }
+
+    for (var l = 0; l < f.length; l++) {
+      var c = f[l];
+      if (!c) continue;
+      tV += c.valorVenda || 0;
+      tC += c.valorComissao || 0;
+      tR += c.valorRecebido || 0;
+      var falta = (c.valorComissao || 0) - (c.valorRecebido || 0);
+      if (falta > 0) tP += falta;
+      if (mapa[c.corretor]) {
+        mapa[c.corretor].vol += c.valorVenda || 0;
+        mapa[c.corretor].qtd++;
+        mapa[c.corretor].com += c.valorComissao || 0;
+      }
+    }
+
+    $('dashTotalVendas').innerText = formatarMoeda(tV);
+    $('dashTotalComissao').innerText = formatarMoeda(tC);
+    $('dashComissaoAReceber').innerText = formatarMoeda(tP);
+    $('dashComissaoRecebida').innerText = formatarMoeda(tR);
+
+    var rank = [];
+    for (var key in mapa) rank.push(mapa[key]);
+    rank.sort(function(a, b) { return b.vol - a.vol; });
+
+    if (chartCorretor) chartCorretor.destroy();
+    var labels = [], dataVals = [];
+    for (var r = 0; r < rank.length; r++) {
+      labels.push(rank[r].nome);
+      dataVals.push(rank[r].vol);
+    }
+
+    chartCorretor = new Chart($('chartVendasCorretor'), {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{ label: 'Volume Vendas (R$)', data: dataVals, backgroundColor: '#2a5045', borderRadius: 6 }]
+      },
+      options: { responsive: true, maintainAspectRatio: false }
+    });
+
+    var htmlRank = '';
+    for (var m = 0; m < rank.length; m++) {
+      var item = rank[m];
+      var pos = m === 0 ? '🥇' : m === 1 ? '🥈' : m === 2 ? '🥉' : (m + 1) + 'º';
+      htmlRank += '<div class="ranking-item"><div style="display:flex;align-items:center;gap:12px;"><div class="ranking-pos">' + pos + '</div>';
+      htmlRank += '<img src="' + item.foto + '" class="corretor-avatar"><div><div style="font-weight:700;">' + item.nome + '</div><small>' + item.qtd + ' venda(s)</small></div></div>';
+      htmlRank += '<div style="text-align:right;"><div style="font-weight:800;color:var(--primary);">' + formatarMoeda(item.vol) + '</div><small style="color:var(--success);">Comissão: ' + formatarMoeda(item.com) + '</small></div></div>';
+    }
+    $('listaRankingCorretores').innerHTML = htmlRank;
+  }
+
+  // CONFIGURAÇÕES CORRETORES
+  function abrirGerenciadorCorretores() {
+    $('modalCorretores').style.display = 'flex';
+    renderListaCorretores();
+  }
+
+  function renderListaCorretores() {
+    var html = '';
+    for (var i = 0; i < corretores.length; i++) {
+      var c = corretores[i];
+      if (!c) continue;
+      html += '<div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;background:#f8fafc;padding:8px;border-radius:8px;border:1px solid #e2e8f0;flex-wrap:wrap;">';
+      html += '<img src="' + (c.foto || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png') + '" class="corretor-avatar">';
+      html += '<input type="text" value="' + c.nome + '" id="corr_n_' + i + '" style="flex:1;min-width:120px;">';
+      html += '<input type="file" accept="image/*" id="corr_f_' + i + '" style="font-size:0.75rem;width:140px;">';
+      html += '<button class="btn btn-sm" onclick="salvarCorretor(' + i + ')">Salvar</button>';
+      html += '<button class="btn btn-danger btn-sm" onclick="removerCorretor(' + i + ')">X</button></div>';
+    }
+    $('listaCorretores').innerHTML = html;
+  }
+
+  function salvarCorretor(i) {
+    var n = $('corr_n_' + i).value.trim();
+    var fileInput = $('corr_f_' + i);
+    var file = fileInput.files[0];
+    
+    if (!n) { alert('Insira um nome válido.'); return; }
+
+    if (file) {
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        var img = new Image();
+        img.onload = function() {
+          var canvas = document.createElement('canvas');
+          var scale = 150 / img.width;
+          canvas.width = 150;
+          canvas.height = img.height * scale;
+          var ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          var dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+          
+          corretores[i].nome = n;
+          corretores[i].foto = dataUrl;
+          localStorage.setItem('corretores_objs_db', JSON.stringify(corretores));
+          renderListaCorretores();
+          alert('Corretor e foto atualizados com sucesso!');
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    } else {
+      corretores[i].nome = n;
+      localStorage.setItem('corretores_objs_db', JSON.stringify(corretores));
+      renderListaCorretores();
+      alert('Nome do corretor atualizado!');
+    }
+  }
+
+  function removerCorretor(i) {
+    if (corretores.length > 1) {
+      corretores.splice(i, 1);
+      localStorage.setItem('corretores_objs_db', JSON.stringify(corretores));
+      renderListaCorretores();
+    } else {
+      alert('Mantenha pelo menos 1 corretor.');
+    }
+  }
+
+  function adicionarCorretor() {
+    var nome = $('novoCorretorNome').value.trim();
+    var fileInput = $('novoCorretorFoto');
+    var file = fileInput.files[0];
+    
+    if (!nome) { alert('Insira um nome válido.'); return; }
+    
+    for (var i = 0; i < corretores.length; i++) {
+      if (corretores[i] && corretores[i].nome === nome) { alert('Já existe um corretor com este nome.'); return; }
+    }
+
+    if (file) {
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        var img = new Image();
+        img.onload = function() {
+          var canvas = document.createElement('canvas');
+          var scale = 150 / img.width;
+          canvas.width = 150;
+          canvas.height = img.height * scale;
+          var ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          var dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+          
+          corretores.push({ nome: nome, foto: dataUrl });
+          localStorage.setItem('corretores_objs_db', JSON.stringify(corretores));
+          $('novoCorretorNome').value = '';
+          fileInput.value = '';
+          renderListaCorretores();
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    } else {
+      corretores.push({ nome: nome, foto: '' });
+      localStorage.setItem('corretores_objs_db', JSON.stringify(corretores));
+      $('novoCorretorNome').value = '';
+      renderListaCorretores();
+    }
+  }
+
+  function abrirGerenciadorContas() {
+    $('modalOrigens').style.display = 'flex';
+    renderListaOrigens();
+  }
+
+  function renderListaOrigens() {
+    var html = '';
+    for (var i = 0; i < origens.length; i++) {
+      html += '<div style="display:flex;gap:5px;margin-bottom:8px;"><input type="text" value="' + origens[i] + '" id="ori_' + i + '" style="flex:1;">';
+      html += '<button class="btn btn-sm" onclick="if($(\'ori_' + i + '\').value){origens[' + i + ']=\$(\'ori_' + i + '\').value;localStorage.setItem(\'origens_db\',JSON.stringify(origens));renderListaOrigens();}">Salvar</button>';
+      html += '<button class="btn btn-danger btn-sm" onclick="if(origens.length>1){origens.splice(' + i + ',1);localStorage.setItem(\'origens_db\',JSON.stringify(origens));renderListaOrigens();}">X</button></div>';
+    }
+    $('listaOrigens').innerHTML = html;
+  }
+
+  function adicionarOrigem() {
+    var v = $('novaOrigemNome').value.trim();
+    if (v && origens.indexOf(v) === -1) {
+      origens.push(v);
+      localStorage.setItem('origens_db', JSON.stringify(origens));
+      $('novaOrigemNome').value = '';
+      renderListaOrigens();
+    }
+  }
+
+  function abrirGerenciadorCategorias() {
+    $('modalCategorias').style.display = 'flex';
+    renderListaCategorias();
+  }
+
+  function renderListaCategorias() {
+    var html = '';
+    for (var i = 0; i < categorias.length; i++) {
+      html += '<div style="display:flex;gap:5px;margin-bottom:8px;"><input type="text" value="' + categorias[i] + '" id="cat_' + i + '" style="flex:1;">';
+      html += '<button class="btn btn-sm" onclick="if($(\'cat_' + i + '\').value){categorias[' + i + ']=\$(\'cat_' + i + '\').value;localStorage.setItem(\'categorias_db\',JSON.stringify(categorias));renderListaCategorias();}">Salvar</button>';
+      html += '<button class="btn btn-danger btn-sm" onclick="if(categorias.length>1){categorias.splice(' + i + ',1);localStorage.setItem(\'categorias_db\',JSON.stringify(categorias));renderListaCategorias();}">X</button></div>';
+    }
+    $('listaCategorias').innerHTML = html;
+  }
+
+  function adicionarCategoria() {
+    var v = $('novaCategoriaNome').value.trim();
+    if (v && categorias.indexOf(v) === -1) {
+      categorias.push(v);
+      localStorage.setItem('categorias_db', JSON.stringify(categorias));
+      $('novaCategoriaNome').value = '';
+      renderListaCategorias();
+    }
+  }
+
+  function abrirGerenciadorVeiculos() {
+    $('modalVeiculos').style.display = 'flex';
+    renderListaVeiculos();
+  }
+
+  function renderListaVeiculos() {
+    var html = '';
+    for (var i = 0; i < veiculosCapitacao.length; i++) {
+      var v = veiculosCapitacao[i];
+      html += '<div style="display:flex;gap:5px;margin-bottom:8px;"><input type="text" value="' + v + '" id="vei_' + i + '" style="flex:1;" ' + (v === 'Marketing' ? 'readonly' : '') + '>';
+      html += '<button class="btn btn-sm" onclick="if($(\'vei_' + i + '\').value){veiculosCapitacao[' + i + ']=\$(\'vei_' + i + '\').value;localStorage.setItem(\'veiculos_db\',JSON.stringify(veiculosCapitacao));renderListaVeiculos();}">Salvar</button>';
+      if (v !== 'Marketing') {
+        html += '<button class="btn btn-danger btn-sm" onclick="veiculosCapitacao.splice(' + i + ',1);localStorage.setItem(\'veiculos_db\',JSON.stringify(veiculosCapitacao));renderListaVeiculos();}">X</button>';
+      }
+      html += '</div>';
+    }
+    $('listaVeiculos').innerHTML = html;
+  }
+
+  function adicionarVeiculo() {
+    var v = $('novoVeiculoNome').value.trim();
+    if (v && veiculosCapitacao.indexOf(v) === -1) {
+      veiculosCapitacao.push(v);
+      localStorage.setItem('veiculos_db', JSON.stringify(veiculosCapitacao));
+      $('novoVeiculoNome').value = '';
+      renderListaVeiculos();
+    }
+  }
+
+  // UTILIZADORES
+  function renderTabelaUsuarios() {
+    var html = '';
+    for (var i = 0; i < usuariosDB.length; i++) {
+      var u = usuariosDB[i];
+      if (!u) continue;
+      var nome = u.usuario || u.u || u.nome || '';
+      var senha = u.senha || u.p || u.pass || '';
+      html += '<tr><td><input type="text" value="' + nome + '" id="u_n_' + i + '"></td>';
+      html += '<td><input type="text" value="' + senha + '" id="u_p_' + i + '"></td>';
+      html += '<td style="display:flex;gap:6px;"><button class="btn btn-sm" onclick="salvarUser(' + i + ')">Salvar</button>';
+      if (usuariosDB.length > 1) {
+        html += '<button class="btn btn-danger btn-sm" onclick="usuariosDB.splice(' + i + ',1);localStorage.setItem(\'usuarios_db\',JSON.stringify(usuariosDB));renderTabelaUsuarios()">X</button>';
+      }
+      html += '</td></tr>';
+    }
+    $('tabelaUsuarios').innerHTML = html;
+  }
+
+  function adicionarUsuario() {
+    var u = $('novoUserNome').value.trim();
+    var p = $('novoUserPass').value.trim();
+    var existe = false;
+    for (var i = 0; i < usuariosDB.length; i++) {
+      if (!usuariosDB[i]) continue;
+      if ((usuariosDB[i].usuario || usuariosDB[i].u || usuariosDB[i].nome) === u) { existe = true; break; }
+    }
+    if (u && p && !existe) {
+      usuariosDB.push({ usuario: u, senha: p });
+      localStorage.setItem('usuarios_db', JSON.stringify(usuariosDB));
+      $('novoUserNome').value = '';
+      $('novoUserPass').value = '';
+      renderTabelaUsuarios();
+      alert('Utilizador cadastrado com sucesso!');
+    } else {
+      alert('Utilizador inválido ou já existente.');
+    }
+  }
+
+  function salvarUser(i) {
+    var u = $('u_n_' + i).value.trim();
+    var p = $('u_p_' + i).value.trim();
+    if (u && p) {
+      usuariosDB[i] = { usuario: u, senha: p };
+      localStorage.setItem('usuarios_db', JSON.stringify(usuariosDB));
+      renderTabelaUsuarios();
+      alert('Utilizador atualizado!');
+    }
+  }
+</script>
+</body>
+</html>
