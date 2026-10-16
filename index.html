@@ -37,8 +37,8 @@ body{background-color:var(--bg-color);color:var(--text-main);display:flex;height
 form{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
 .form-group{display:flex;flex-direction:column;gap:5px;text-align:left}
 label{font-size:.8rem;font-weight:600;color:var(--text-muted)}
-input,select{padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:.9rem;outline:0;background:#fafcfb;width:100%}
-input:focus,select:focus{border-color:var(--primary);background:#fff}
+input,select,textarea{padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:.9rem;outline:0;background:#fafcfb;width:100%}
+input:focus,select:focus,textarea:focus{border-color:var(--primary);background:#fff}
 .btn{background:var(--primary);color:#fff;border:none;padding:10px 16px;border-radius:8px;cursor:pointer;font-weight:600;transition:.2s;display:inline-flex;align-items:center;justify-content:center;gap:6px}
 .btn:hover{background:var(--primary-hover)}
 .btn-success{background:var(--success)} .btn-success:hover{background:#059669}
@@ -223,13 +223,14 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
           </div>
           <div class="form-group"><label>Previsão</label><select id="tipoPrevisao" onchange="toggleDataPrevisao()"><option value="com_data">Com Data</option><option value="sem_previsao">Sem Previsão</option></select></div>
           <div class="form-group" id="groupDataPrevisao"><label>Data Previsão</label><input type="date" id="dataPrevisao"></div>
+          <div class="form-group" style="grid-column: 1 / -1;"><label>Observações (Opcional)</label><textarea id="observacoesComissao" rows="2" placeholder="Detalhes adicionais, notas..."></textarea></div>
           <div style="grid-column: 1 / -1; display:flex; gap:10px;"><button type="submit" class="btn" style="flex:1;">Salvar Comissão</button><button type="button" class="btn btn-secondary" onclick="limparFormComissao()">Limpar</button></div>
         </form>
       </div>
       <div class="card">
         <div class="table-container">
           <table>
-            <thead><tr><th>Data</th><th>Clientes</th><th>Captação</th><th>Corretor</th><th>Venda</th><th>Comissão Total</th><th>Já Recebido</th><th>Falta</th><th>Retenção</th><th>Status</th><th>Ações</th></tr></thead>
+            <thead><tr><th>Data</th><th>Clientes</th><th>Captação</th><th>Corretor</th><th>Venda</th><th>Comissão Total</th><th>Já Recebido</th><th>Falta</th><th>Retenção</th><th>Observações</th><th>Status</th><th>Ações</th></tr></thead>
             <tbody id="tabelaComissoes"></tbody>
           </table>
         </div>
@@ -707,7 +708,8 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       htmlC += '<td>' + formatarMoeda(c.valorVenda) + '</td><td><b>' + formatarMoeda(cTotal) + '</b></td>';
       htmlC += '<td style="color:var(--success)">' + formatarMoeda(cRec) + '</td>';
       htmlC += '<td style="color:var(--danger)"><b>' + formatarMoeda(falta > 0 ? falta : 0) + '</b></td>';
-      htmlC += '<td><small>' + (c.retidoPor && c.retidoPor !== 'Nenhum' ? c.retidoPor : '-') + '</small></td><td>' + badge + '</td>';
+      htmlC += '<td><small>' + (c.retidoPor && c.retidoPor !== 'Nenhum' ? c.retidoPor : '-') + '</small></td>';
+      htmlC += '<td><small>' + (c.observacoes || '-') + '</small></td><td>' + badge + '</td>';
       htmlC += '<td>';
       if (c.status !== 'Recebido') {
         htmlC += '<button class="btn btn-success btn-sm" onclick="baixarComissao(' + c.id + ')">Baixar</button> ';
@@ -741,6 +743,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       retidoPor: $('retidoPor').value,
       tipoPrevisao: $('tipoPrevisao').value,
       dataPrevisao: $('tipoPrevisao').value === 'com_data' ? $('dataPrevisao').value : '',
+      observacoes: $('observacoesComissao').value.trim(),
       status: st
     };
     if (id) {
@@ -793,6 +796,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       $('retidoPor').value = c.retidoPor || 'Nenhum';
       $('tipoPrevisao').value = c.tipoPrevisao;
       $('dataPrevisao').value = c.dataPrevisao || '';
+      $('observacoesComissao').value = c.observacoes || '';
       toggleDataPrevisao();
     }
   }
