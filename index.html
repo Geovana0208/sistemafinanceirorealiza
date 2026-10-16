@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-PT">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sistema de Gestão Financeira - Realiza Imóveis</title>
@@ -317,34 +317,39 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 </div>
 
 <script>
-  const $ = id => document.getElementById(id);
+  var $ = function(id) { return document.getElementById(id); };
   function formatarMoeda(v) { return 'R$ ' + (v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
-  let origens = JSON.parse(localStorage.getItem('origens_db')) || ['Itaú', 'Bradesco', 'Caixa', 'Dinheiro / Caixinha'];
-  let categorias = JSON.parse(localStorage.getItem('categorias_db')) || ['Imóvel/Aluguel', 'Serviços públicos', 'Impostos', 'Atrasos/Multas', 'Operacional'];
-  let corretores = JSON.parse(localStorage.getItem('corretores_objs_db')) || [{ nome: 'Vinícius Barbosa', foto: '' }, { nome: 'Geovana Castro', foto: '' }];
-  let veiculosCapitacao = JSON.parse(localStorage.getItem('veiculos_db')) || ['Marketing', 'Instagram', 'Tráfego Pago', 'Indicação', 'Placa do Imóvel', 'WhatsApp'];
+  var origens = JSON.parse(localStorage.getItem('origens_db')) || ['Itaú', 'Bradesco', 'Caixa', 'Dinheiro / Caixinha'];
+  var categorias = JSON.parse(localStorage.getItem('categorias_db')) || ['Imóvel/Aluguel', 'Serviços públicos', 'Impostos', 'Atrasos/Multas', 'Operacional'];
+  var corretores = JSON.parse(localStorage.getItem('corretores_objs_db')) || [{ nome: 'Vinícius Barbosa', foto: '' }, { nome: 'Geovana Castro', foto: '' }];
+  var veiculosCapitacao = JSON.parse(localStorage.getItem('veiculos_db')) || ['Marketing', 'Instagram', 'Tráfego Pago', 'Indicação', 'Placa do Imóvel', 'WhatsApp'];
   
-  // Garantia de compatibilidade com qualquer formato de utilizador anterior no navegador
-  let usuariosDB = JSON.parse(localStorage.getItem('usuarios_db')) || [{ usuario: 'admin', senha: '123' }];
-  if(!Array.isArray(usuariosDB) || usuariosDB.length === 0) {
+  var usuariosDB = JSON.parse(localStorage.getItem('usuarios_db')) || [{ usuario: 'admin', senha: '123' }];
+  if (!Array.isArray(usuariosDB) || usuariosDB.length === 0) {
     usuariosDB = [{ usuario: 'admin', senha: '123' }];
   }
   
-  let contas = JSON.parse(localStorage.getItem('contas_db')) || [];
-  let comissoes = JSON.parse(localStorage.getItem('comissoes_db')) || [];
-  let alugueis = JSON.parse(localStorage.getItem('alugueis_db')) || [];
-  let chartCorretor;
+  var contas = JSON.parse(localStorage.getItem('contas_db')) || [];
+  var comissoes = JSON.parse(localStorage.getItem('comissoes_db')) || [];
+  var alugueis = JSON.parse(localStorage.getItem('alugueis_db')) || [];
+  var chartCorretor;
 
-  $('formLogin').onsubmit = (e) => {
+  $('formLogin').onsubmit = function(e) {
     e.preventDefault();
-    const u = $('loginUser').value.trim(); 
-    const p = $('loginPass').value.trim();
+    var u = $('loginUser').value.trim(); 
+    var p = $('loginPass').value.trim();
     
-    // Compatibilidade robusta com formatos antigos (u/p) e novos (usuario/senha)
-    const valido = usuariosDB.find(x => 
-      (String(x.usuario || x.u || '').trim() === u) && (String(x.senha || x.p || '').trim() === p)
-    );
+    var valido = false;
+    for (var i = 0; i < usuariosDB.length; i++) {
+      var item = usuariosDB[i];
+      var usr = String(item.usuario || item.u || '').trim();
+      var pwd = String(item.senha || item.p || '').trim();
+      if (usr === u && pwd === p) {
+        valido = true;
+        break;
+      }
+    }
 
     if (valido) {
       localStorage.setItem('sessao_ativa', u);
@@ -354,270 +359,858 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     }
   };
 
-  window.onload = () => { if(localStorage.getItem('sessao_ativa')) entrarSistema(localStorage.getItem('sessao_ativa')); };
+  window.onload = function() {
+    if (localStorage.getItem('sessao_ativa')) {
+      entrarSistema(localStorage.getItem('sessao_ativa'));
+    }
+  };
 
   function entrarSistema(user) {
     $('loginScreen').style.display = 'none';
     $('appLayout').classList.add('authenticated');
-    $('userLogadoTxt').innerText = `Logado como: ${user}`;
-    initAnoSelectors(); sincronizarCustosMarketing(); renderContas();
+    $('userLogadoTxt').innerText = 'Logado como: ' + user;
+    initAnoSelectors(); 
+    sincronizarCustosMarketing(); 
+    renderContas();
   }
-  function sairSistema() { localStorage.removeItem('sessao_ativa'); location.reload(); }
+
+  function sairSistema() {
+    localStorage.removeItem('sessao_ativa');
+    location.reload();
+  }
 
   function mudarAba(aba) {
-    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    var btns = document.querySelectorAll('.nav-btn');
+    for (var i = 0; i < btns.length; i++) btns[i].classList.remove('active');
+    var tabs = document.querySelectorAll('.tab-content');
+    for (var j = 0; j < tabs.length; j++) tabs[j].classList.remove('active');
+    
     $('tituloAbaAtual').innerText = aba.toUpperCase();
-    if (aba === 'contas') { document.querySelectorAll('.nav-btn')[0].classList.add('active'); $('tab-contas').classList.add('active'); renderContas(); }
-    else if (aba === 'dashboard') { document.querySelectorAll('.nav-btn')[1].classList.add('active'); $('tab-dashboard').classList.add('active'); renderDashboard(); }
-    else if (aba === 'comissoes') { document.querySelectorAll('.nav-btn')[2].classList.add('active'); $('tab-comissoes').classList.add('active'); renderComissoes(); }
-    else if (aba === 'aluguel') { document.querySelectorAll('.nav-btn')[3].classList.add('active'); $('tab-aluguel').classList.add('active'); renderAlugueis(); }
-    else if (aba === 'usuarios') { document.querySelectorAll('.nav-btn')[4].classList.add('active'); $('tab-usuarios').classList.add('active'); renderTabelaUsuarios(); }
+    if (aba === 'contas') {
+      btns[0].classList.add('active'); $('tab-contas').classList.add('active'); renderContas();
+    } else if (aba === 'dashboard') {
+      btns[1].classList.add('active'); $('tab-dashboard').classList.add('active'); renderDashboard();
+    } else if (aba === 'comissoes') {
+      btns[2].classList.add('active'); $('tab-comissoes').classList.add('active'); renderComissoes();
+    } else if (aba === 'aluguel') {
+      btns[3].classList.add('active'); $('tab-aluguel').classList.add('active'); renderAlugueis();
+    } else if (aba === 'usuarios') {
+      btns[4].classList.add('active'); $('tab-usuarios').classList.add('active'); renderTabelaUsuarios();
+    }
   }
 
   function initAnoSelectors() {
-    ['filtroAnoContas', 'filtroAnoDash', 'filtroAnoComissoes', 'filtroAnoAluguel'].forEach(id => {
-      let sel = $(id); if(!sel) return; sel.innerHTML = '<option value="todos">Todos Anos</option>';
-      for (let a = 2024; a <= 2028; a++) { sel.innerHTML += `<option value="${a}" ${a===2026?'selected':''}>${a}</option>`; }
-    });
+    var ids = ['filtroAnoContas', 'filtroAnoDash', 'filtroAnoComissoes', 'filtroAnoAluguel'];
+    for (var i = 0; i < ids.length; i++) {
+      var sel = $(ids[i]);
+      if (!sel) continue;
+      sel.innerHTML = '<option value="todos">Todos Anos</option>';
+      for (var a = 2024; a <= 2028; a++) {
+        sel.innerHTML += '<option value="' + a + '" ' + (a === 2026 ? 'selected' : '') + '>' + a + '</option>';
+      }
+    }
   }
 
   // CONTAS
   function carregarSelectsFormulario() {
-    let ori = $('contaOrigem'), cat =$('categoria');
-    if(ori) ori.innerHTML = origens.map(o=>`<option value="${o}">${o}</option>`).join('');
-    if(cat) cat.innerHTML = categorias.map(c=>`<option value="${c}">${c}</option>`).join('');
+    var ori = $('contaOrigem'), cat = $('categoria');
+    if (ori) {
+      var htmlO = '';
+      for (var i = 0; i < origens.length; i++) htmlO += '<option value="' + origens[i] + '">' + origens[i] + '</option>';
+      ori.innerHTML = htmlO;
+    }
+    if (cat) {
+      var htmlC = '';
+      for (var j = 0; j < categorias.length; j++) htmlC += '<option value="' + categorias[j] + '">' + categorias[j] + '</option>';
+      cat.innerHTML = htmlC;
+    }
   }
-  function toggleParcelas() { $('groupParcelas').style.display =$('tipoConta').value === 'Parcelada' ? 'flex' : 'none'; }
+
+  function toggleParcelas() {
+    $('groupParcelas').style.display = $('tipoConta').value === 'Parcelada' ? 'flex' : 'none';
+  }
 
   function sincronizarCustosMarketing() {
-    let mktVendas = {}, mktLoc = {};
-    comissoes.forEach(c => {
-      if(c.veiculoCapitacao && c.veiculoCapitacao.toLowerCase().includes('marketing') && c.dataFechamento){
-        let p = c.dataFechamento.split('-'); let m = parseInt(p[1])+1; let a = parseInt(p[0]); if(m>12){m=1;a++;}
-        let key = `${a}-${String(m).padStart(2,'0')}`; mktVendas[key] = (mktVendas[key]||0)+1;
+    var mktVendas = {}, mktLoc = {};
+    for (var i = 0; i < comissoes.length; i++) {
+      var c = comissoes[i];
+      if (c.veiculoCapitacao && c.veiculoCapitacao.toLowerCase().indexOf('marketing') !== -1 && c.dataFechamento) {
+        var p = c.dataFechamento.split('-');
+        var m = parseInt(p[1]) + 1, a = parseInt(p[0]);
+        if (m > 12) { m = 1; a++; }
+        var key = a + '-' + (m < 10 ? '0' + m : m);
+        mktVendas[key] = (mktVendas[key] || 0) + 1;
       }
-    });
-    alugueis.forEach(a => {
-      if(a.veiculoCapitacao && a.veiculoCapitacao.toLowerCase().includes('marketing') && a.dataFechamento){
-        let p = a.dataFechamento.split('-'); let m = parseInt(p[1])+1; let a = parseInt(p[0]); if(m>12){m=1;a++;}
-        let key = `${a}-${String(m).padStart(2,'0')}`; mktLoc[key] = (mktLoc[key]||0)+1;
+    }
+    for (var j = 0; j < alugueis.length; j++) {
+      var al = alugueis[j];
+      if (al.veiculoCapitacao && al.veiculoCapitacao.toLowerCase().indexOf('marketing') !== -1 && al.dataFechamento) {
+        var p2 = al.dataFechamento.split('-');
+        var m2 = parseInt(p2[1]) + 1, a2 = parseInt(p2[0]);
+        if (m2 > 12) { m2 = 1; a2++; }
+        var key2 = a2 + '-' + (m2 < 10 ? '0' + m2 : m2);
+        mktLoc[key2] = (mktLoc[key2] || 0) + 1;
       }
-    });
-    for(let mes in mktVendas){
-      let q = mktVendas[mes], ex = contas.find(c => c.isAutoMkt==='vendas' && c.vencimento.startsWith(mes));
-      if(ex){ ex.valorPrevisto = q*300; ex.descricao=`Custos Mkt Vendas (${q}x)`; }
-      else contas.push({id:Date.now()+Math.random(), descricao:`Custos Mkt Vendas (${q}x)`, valorPrevisto:q*300, valorReal:0, vencimento:`${mes}-10`, origem:origens[0], tipo:'Variável', parcAtual:1, parcTotal:1, categoria:'Operacional', status:'Pendente', isAutoMkt:'vendas'});
     }
-    for(let mes in mktLoc){
-      let q = mktLoc[mes], ex = contas.find(c => c.isAutoMkt==='locacao' && c.vencimento.startsWith(mes));
-      if(ex){ ex.valorPrevisto = q*50; ex.descricao=`Custos Mkt Locações (${q}x)`; }
-      else contas.push({id:Date.now()+Math.random(), descricao:`Custos Mkt Locações (${q}x)`, valorPrevisto:q*50, valorReal:0, vencimento:`${mes}-10`, origem:origens[0], tipo:'Variável', parcAtual:1, parcTotal:1, categoria:'Operacional', status:'Pendente', isAutoMkt:'locacao'});
+    for (var mes in mktVendas) {
+      var q = mktVendas[mes], ex = null;
+      for (var k = 0; k < contas.length; k++) {
+        if (contas[k].isAutoMkt === 'vendas' && contas[k].vencimento.indexOf(mes) === 0) { ex = contas[k]; break; }
+      }
+      if (ex) {
+        ex.valorPrevisto = q * 300;
+        ex.descricao = 'Custos Mkt Vendas (' + q + 'x)';
+      } else {
+        contas.push({
+          id: Date.now() + Math.random(),
+          descricao: 'Custos Mkt Vendas (' + q + 'x)',
+          valorPrevisto: q * 300,
+          valorReal: 0,
+          vencimento: mes + '-10',
+          origem: origens[0],
+          tipo: 'Variável',
+          parcAtual: 1,
+          parcTotal: 1,
+          categoria: 'Operacional',
+          status: 'Pendente',
+          isAutoMkt: 'vendas'
+        });
+      }
     }
-    contas = contas.filter(c => {
-      let m = c.vencimento ? c.vencimento.substring(0,7) : '';
-      if(c.isAutoMkt==='vendas') return (mktVendas[m]||0)>0; if(c.isAutoMkt==='locacao') return (mktLoc[m]||0)>0; return true;
-    });
+    for (var mes2 in mktLoc) {
+      var q2 = mktLoc[mes2], ex2 = null;
+      for (var k2 = 0; k2 < contas.length; k2++) {
+        if (contas[k2].isAutoMkt === 'locacao' && contas[k2].vencimento.indexOf(mes2) === 0) { ex2 = contas[k2]; break; }
+      }
+      if (ex2) {
+        ex2.valorPrevisto = q2 * 50;
+        ex2.descricao = 'Custos Mkt Locações (' + q2 + 'x)';
+      } else {
+        contas.push({
+          id: Date.now() + Math.random(),
+          descricao: 'Custos Mkt Locações (' + q2 + 'x)',
+          valorPrevisto: q2 * 50,
+          valorReal: 0,
+          vencimento: mes2 + '-10',
+          origem: origens[0],
+          tipo: 'Variável',
+          parcAtual: 1,
+          parcTotal: 1,
+          categoria: 'Operacional',
+          status: 'Pendente',
+          isAutoMkt: 'locacao'
+        });
+      }
+    }
+    var novasContas = [];
+    for (var n = 0; n < contas.length; n++) {
+      var ct = contas[n];
+      var mStr = ct.vencimento ? ct.vencimento.substring(0, 7) : '';
+      if (ct.isAutoMkt === 'vendas') {
+        if ((mktVendas[mStr] || 0) > 0) novasContas.push(ct);
+      } else if (ct.isAutoMkt === 'locacao') {
+        if ((mktLoc[mStr] || 0) > 0) novasContas.push(ct);
+      } else {
+        novasContas.push(ct);
+      }
+    }
+    contas = novasContas;
     localStorage.setItem('contas_db', JSON.stringify(contas));
   }
 
   function renderContas() {
     carregarSelectsFormulario();
-    let aS = $('filtroAnoContas').value, mS =$('filtroMesContas').value;
-    let filt = contas.filter(c => {
-      if(!c.vencimento) return false; let p=c.vencimento.split('-'); 
-      return (aS==='todos'||p[0]===aS) && (mS==='todos'||p[1]===mS);
-    });
-    let prev = 0, real = 0, pend = 0;
-    $('tabelaContas').innerHTML = filt.map(c => {
-      prev += c.valorPrevisto||0; let r = c.valorReal||0; if(c.status==='Pago') real+=r; else pend+=c.valorPrevisto;
-      return `<tr><td><b>${c.isAutoMkt?'🤖':''}${c.descricao}</b></td><td><small>${c.tipo} • ${c.categoria}</small></td><td>${c.origem}</td><td>${c.vencimento.split('-').reverse().join('/')}</td>
-      <td>${formatarMoeda(c.valorPrevisto)}</td><td>${formatarMoeda(c.valorReal)}</td><td><span class="badge badge-${c.status.toLowerCase()}">${c.status}</span></td>
-      <td>${c.status!=='Pago'?`<button class="btn btn-success btn-sm" onclick="baixarConta(${c.id})">Baixar</button>`:''}<button class="btn btn-secondary btn-sm" onclick="editarConta(${c.id})">✏️</button><button class="btn btn-danger btn-sm" onclick="excluirConta(${c.id})">X</button></td></tr>`;
-    }).join('');
-    $('totalPrevisto').innerText = formatarMoeda(prev); $('totalReal').innerText = formatarMoeda(real);$('totalPendente').innerText = formatarMoeda(pend);
-    let v = prev-real; $('totalVariacao').innerText = `${formatarMoeda(Math.abs(v))} ${v>=0?'(Economia)':'(Excesso)'}`; $('totalVariacao').style.color = v>=0?'var(--success)':'var(--danger)';
-  }
-
-  $('formConta').onsubmit = (e) => {
-    e.preventDefault();
-    function renderTabelaUsuarios() {
-  let html = '';
-  for (let i = 0; i < usuariosDB.length; i++) {
-    let u = usuariosDB[i];
-    let nome = u.usuario || u.u || '';
-    let senha = u.senha || u.p || '';
-    html += '<tr><td><input type="text" value="' + nome + '" id="u_n_' + i + '"></td><td><input type="text" value="' + senha + '" id="u_p_' + i + '"></td><td style="display:flex;gap:6px;"><button class="btn btn-sm" onclick="salvarUser(' + i + ')">Salvar</button>';
-    if (usuariosDB.length > 1) {
-      html += '<button class="btn btn-danger btn-sm" onclick="usuariosDB.splice(' + i + ',1);localStorage.setItem(\'usuarios_db\',JSON.stringify(usuariosDB));renderTabelaUsuarios()">X</button>';
+    var aS = $('filtroAnoContas').value, mS = $('filtroMesContas').value;
+    var filt = [];
+    for (var i = 0; i < contas.length; i++) {
+      var c = contas[i];
+      if (!c.vencimento) continue;
+      var p = c.vencimento.split('-');
+      if ((aS === 'todos' || p[0] === aS) && (mS === 'todos' || p[1] === mS)) {
+        filt.push(c);
+      }
     }
-    html += '</td></tr>';
+    var prev = 0, real = 0, pend = 0;
+    var htmlT = '';
+    for (var j = 0; j < filt.length; j++) {
+      var c = filt[j];
+      prev += c.valorPrevisto || 0;
+      var r = c.valorReal || 0;
+      if (c.status === 'Pago') real += r; else pend += c.valorPrevisto || 0;
+      
+      htmlT += '<tr><td><b>' + (c.isAutoMkt ? '🤖' : '') + c.descricao + '</b></td><td><small>' + c.tipo + ' • ' + c.categoria + '</small></td><td>' + c.origem + '</td><td>' + c.vencimento.split('-').reverse().join('/') + '</td>';
+      htmlT += '<td>' + formatarMoeda(c.valorPrevisto) + '</td><td>' + formatarMoeda(c.valorReal) + '</td><td><span class="badge badge-' + c.status.toLowerCase() + '">' + c.status + '</span></td><td>';
+      if (c.status !== 'Pago') {
+        htmlT += '<button class="btn btn-success btn-sm" onclick="baixarConta(' + c.id + ')">Baixar</button> ';
+      }
+      htmlT += '<button class="btn btn-secondary btn-sm" onclick="editarConta(' + c.id + ')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirConta(' + c.id + ')">X</button></td></tr>';
+    }
+    $('tabelaContas').innerHTML = htmlT;
+    $('totalPrevisto').innerText = formatarMoeda(prev);
+    $('totalReal').innerText = formatarMoeda(real);
+    $('totalPendente').innerText = formatarMoeda(pend);
+    var v = prev - real;
+    $('totalVariacao').innerText = formatarMoeda(Math.abs(v)) + ' ' + (v >= 0 ? '(Economia)' : '(Excesso)');
+    $('totalVariacao').style.color = v >= 0 ? 'var(--success)' : 'var(--danger)';
   }
-  $('tabelaUsuarios').innerHTML = html;
-}
-    let obj = { id: id ? parseInt(id) : Date.now(), descricao: $('descricao').value, valorPrevisto: p, valorReal: r, vencimento: $('vencimento').value, origem:$('contaOrigem').value, tipo: $('tipoConta').value, parcAtual: parseInt($('parcAtual').value)||1, parcTotal: parseInt($('parcTotal').value)\vert{}\vert{}1, categoria:$('categoria').value, status: r>0?'Pago':'Pendente', isAutoMkt: id ? contas.find(x=>x.id==id).isAutoMkt : false };
-    if(id) contas[contas.findIndex(x=>x.id==id)] = obj; else contas.push(obj);
-    localStorage.setItem('contas_db', JSON.stringify(contas)); limparFormConta(); renderContas();
-  };
-  function baixarConta(id) { let c = contas.find(x=>x.id===id); if(c){ let v=prompt('Valor Pago:', c.valorPrevisto); if(v!==null){ c.valorReal=parseFloat(v)||c.valorPrevisto; c.status='Pago'; localStorage.setItem('contas_db',JSON.stringify(contas)); renderContas(); } } }
-  function editarConta(id) { let c = contas.find(x=>x.id===id); if(c){ $('contaId').value=c.id; $('descricao').value=c.descricao; $('valorPrevisto').value=c.valorPrevisto; $('valorReal').value=c.valorReal||''; $('vencimento').value=c.vencimento; $('contaOrigem').value=c.origem; $('tipoConta').value=c.tipo; $('parcAtual').value=c.parcAtual||1; $('parcTotal').value=c.parcTotal\vert{}\vert{}1; $('categoria').value=c.categoria; toggleParcelas(); } }
-  function excluirConta(id) { if(confirm('Excluir?')){ contas=contas.filter(x=>x.id!==id); localStorage.setItem('contas_db',JSON.stringify(contas)); renderContas(); } }
-  function limparFormConta() { $('formConta').reset();$('contaId').value=''; toggleParcelas(); }
-  function calcularProporcional() { let res = (parseFloat($('calcVal').value\vert{}\vert{}0)/parseFloat($('calcDiasTotais').value||30))*parseFloat($('calcDiasUso').value\vert{}\vert{}0);$('resCalc').innerText = `Proporcional: ${formatarMoeda(res)}`; }
-  function gerarProximoMes() { alert('Função auto gerar ativa!'); }
 
-  // COMISSÕES COM PAGAMENTO PARCIAL
-  function toggleDataPrevisao() { $('groupDataPrevisao').style.display =$('tipoPrevisao').value === 'com_data' ? 'flex' : 'none'; }
+  $('formConta').onsubmit = function(e) {
+    e.preventDefault();
+    var id = $('contaId').value, p = parseFloat($('valorPrevisto').value) || 0, r = parseFloat($('valorReal').value) || 0;
+    var isAuto = false;
+    if (id) {
+      for (var i = 0; i < contas.length; i++) {
+        if (contas[i].id == id) { isAuto = contas[i].isAutoMkt; break; }
+      }
+    }
+    var obj = {
+      id: id ? parseInt(id) : Date.now(),
+      descricao: $('descricao').value,
+      valorPrevisto: p,
+      valorReal: r,
+      vencimento: $('vencimento').value,
+      origem: $('contaOrigem').value,
+      tipo: $('tipoConta').value,
+      parcAtual: parseInt($('parcAtual').value) || 1,
+      parcTotal: parseInt($('parcTotal').value) || 1,
+      categoria: $('categoria').value,
+      status: r > 0 ? 'Pago' : 'Pendente',
+      isAutoMkt: isAuto
+    };
+    if (id) {
+      for (var j = 0; j < contas.length; j++) {
+        if (contas[j].id == id) { contas[j] = obj; break; }
+      }
+    } else {
+      contas.push(obj);
+    }
+    localStorage.setItem('contas_db', JSON.stringify(contas));
+    limparFormConta();
+    renderContas();
+  };
+
+  function baixarConta(id) {
+    var c = null;
+    for (var i = 0; i < contas.length; i++) { if (contas[i].id === id) { c = contas[i]; break; } }
+    if (c) {
+      var v = prompt('Valor Pago:', c.valorPrevisto);
+      if (v !== null) {
+        c.valorReal = parseFloat(v) || c.valorPrevisto;
+        c.status = 'Pago';
+        localStorage.setItem('contas_db', JSON.stringify(contas));
+        renderContas();
+      }
+    }
+  }
+
+  function editarConta(id) {
+    var c = null;
+    for (var i = 0; i < contas.length; i++) { if (contas[i].id === id) { c = contas[i]; break; } }
+    if (c) {
+      $('contaId').value = c.id;
+      $('descricao').value = c.descricao;
+      $('valorPrevisto').value = c.valorPrevisto;
+      $('valorReal').value = c.valorReal || '';
+      $('vencimento').value = c.vencimento;
+      $('contaOrigem').value = c.origem;
+      $('tipoConta').value = c.tipo;
+      $('parcAtual').value = c.parcAtual || 1;
+      $('parcTotal').value = c.parcTotal || 1;
+      $('categoria').value = c.categoria;
+      toggleParcelas();
+    }
+  }
+
+  function excluirConta(id) {
+    if (confirm('Excluir?')) {
+      var novas = [];
+      for (var i = 0; i < contas.length; i++) { if (contas[i].id !== id) novas.push(contas[i]); }
+      contas = novas;
+      localStorage.setItem('contas_db', JSON.stringify(contas));
+      renderContas();
+    }
+  }
+
+  function limparFormConta() {
+    $('formConta').reset();
+    $('contaId').value = '';
+    toggleParcelas();
+  }
+
+  function calcularProporcional() {
+    var val = parseFloat($('calcVal').value || 0);
+    var tot = parseFloat($('calcDiasTotais').value || 30);
+    var uso = parseFloat($('calcDiasUso').value || 0);
+    var res = (val / tot) * uso;
+    $('resCalc').innerText = 'Proporcional: ' + formatarMoeda(res);
+  }
+
+  function gerarProximoMes() {
+    alert('Função auto gerar ativa!');
+  }
+
+  // COMISSÕES
+  function toggleDataPrevisao() {
+    $('groupDataPrevisao').style.display = $('tipoPrevisao').value === 'com_data' ? 'flex' : 'none';
+  }
+
   function carregarSelectsComissoes() {
-    let htmlC = '<option value="todos">Todos</option>' + corretores.map(c=>`<option value="${c.nome}">${c.nome}</option>`).join('');
-    if($('filtroCorretorComissoes'))$('filtroCorretorComissoes').innerHTML = htmlC;
-    if($('corretor'))$('corretor').innerHTML = corretores.map(c=>`<option value="${c.nome}">${c.nome}</option>`).join('');
-    let htmlV = '<option value="todos">Todos</option>' + veiculosCapitacao.map(v=>`<option value="${v}">${v}</option>`).join('');
-    if($('filtroCapitacaoComissoes'))$('filtroCapitacaoComissoes').innerHTML = htmlV;
-    if($('veiculoCapitacao'))$('veiculoCapitacao').innerHTML = veiculosCapitacao.map(v=>`<option value="${v}">${v}</option>`).join('');
+    var htmlC = '<option value="todos">Todos</option>';
+    for (var i = 0; i < corretores.length; i++) {
+      htmlC += '<option value="' + corretores[i].nome + '">' + corretores[i].nome + '</option>';
+    }
+    if ($('filtroCorretorComissoes')) $('filtroCorretorComissoes').innerHTML = htmlC;
+    if ($('corretor')) $('corretor').innerHTML = htmlC.replace('<option value="todos">Todos</option>', '');
+
+    var htmlV = '<option value="todos">Todos</option>';
+    for (var j = 0; j < veiculosCapitacao.length; j++) {
+      htmlV += '<option value="' + veiculosCapitacao[j] + '">' + veiculosCapitacao[j] + '</option>';
+    }
+    if ($('filtroCapitacaoComissoes')) $('filtroCapitacaoComissoes').innerHTML = htmlV;
+    if ($('veiculoCapitacao')) $('veiculoCapitacao').innerHTML = htmlV.replace('<option value="todos">Todos</option>', '');
   }
 
   function renderComissoes() {
     carregarSelectsComissoes();
-    let aS = $('filtroAnoComissoes').value, mS =$('filtroMesComissoes').value, cS = $('filtroCorretorComissoes').value, vS =$('filtroCapitacaoComissoes').value;
-    let filt = comissoes.filter(c => {
-      if(cS!=='todos' && c.corretor!==cS) return false; if(vS!=='todos' && c.veiculoCapitacao!==vS) return false;
-      if(!c.dataFechamento) return false; let p=c.dataFechamento.split('-'); return (aS==='todos'||p[0]===aS) && (mS==='todos'||p[1]===mS);
-    });
-    let tv = 0, tc = 0, tr = 0, tP = 0;
-    $('tabelaComissoes').innerHTML = filt.map(c => {
-      let cTotal = c.valorComissao||0, cRec = c.valorRecebido||0, falta = cTotal - cRec;
-      tv += c.valorVenda||0; tc += cTotal; tr += cRec; if(falta>0) tP += falta;
-      let badge = c.status==='Recebido'?'<span class="badge badge-recebido">Recebido</span>':c.status==='Parcial'?'<span class="badge badge-parcial">Parcial</span>':'<span class="badge badge-areceber">A Receber</span>';
-      let fot = corretores.find(x=>x.nome===c.corretor)?.foto || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
-      return `<tr><td>${c.dataFechamento.split('-').reverse().join('/')}</td>
-      <td><small>C: <b>${c.comprador}</b><br>V: ${c.vendedor}</small></td><td><span class="badge badge-capitacao">${c.veiculoCapitacao}</span></td>
-      <td><div class="corretor-cell"><img src="${fot}" class="corretor-avatar"><span>${c.corretor}</span></div></td>
-      <td>${formatarMoeda(c.valorVenda)}</td><td><b>${formatarMoeda(cTotal)}</b></td>
-      <td style="color:var(--success)">${formatarMoeda(cRec)}</td><td style="color:var(--danger)"><b>${formatarMoeda(falta>0?falta:0)}</b></td>
-      <td><small>${c.retidoPor&&c.retidoPor!=='Nenhum'?c.retidoPor:'-'}</small></td><td>${badge}</td>
-      <td>${c.status!=='Recebido'?`<button class="btn btn-success btn-sm" onclick="baixarComissao(${c.id})">Baixar</button>`:''}<button class="btn btn-secondary btn-sm" onclick="editarComissao(${c.id})">✏️</button><button class="btn btn-danger btn-sm" onclick="excluirComissao(${c.id})">X</button></td></tr>`;
-    }).join('');
-    $('totalVendasComissao').innerText = formatarMoeda(tv);$('totalComissaoGeral').innerText = formatarMoeda(tc); $('totalComissaoAReceber').innerText = formatarMoeda(tP);$('totalComissaoRecebida').innerText = formatarMoeda(tr);
+    var aS = $('filtroAnoComissoes').value, mS = $('filtroMesComissoes').value, cS = $('filtroCorretorComissoes').value, vS = $('filtroCapitacaoComissoes').value;
+    var filt = [];
+    for (var i = 0; i < comissoes.length; i++) {
+      var c = comissoes[i];
+      if (cS !== 'todos' && c.corretor !== cS) continue;
+      if (vS !== 'todos' && c.veiculoCapitacao !== vS) continue;
+      if (!c.dataFechamento) continue;
+      var p = c.dataFechamento.split('-');
+      if ((aS === 'todos' || p[0] === aS) && (mS === 'todos' || p[1] === mS)) {
+        filt.push(c);
+      }
+    }
+    var tv = 0, tc = 0, tr = 0, tP = 0;
+    var htmlC = '';
+    for (var j = 0; j < filt.length; j++) {
+      var c = filt[j];
+      var cTotal = c.valorComissao || 0, cRec = c.valorRecebido || 0, falta = cTotal - cRec;
+      tv += c.valorVenda || 0; tc += cTotal; tr += cRec; if (falta > 0) tP += falta;
+      
+      var badge = '<span class="badge badge-areceber">A Receber</span>';
+      if (c.status === 'Recebido') badge = '<span class="badge badge-recebido">Recebido</span>';
+      else if (c.status === 'Parcial') badge = '<span class="badge badge-parcial">Parcial</span>';
+
+      var fot = 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
+      for (var k = 0; k < corretores.length; k++) {
+        if (corretores[k].nome === c.corretor && corretores[k].foto) { fot = corretores[k].foto; break; }
+      }
+
+      htmlC += '<tr><td>' + c.dataFechamento.split('-').reverse().join('/') + '</td>';
+      htmlC += '<td><small>C: <b>' + c.comprador + '</b><br>V: ' + c.vendedor + '</small></td>';
+      htmlC += '<td><span class="badge badge-capitacao">' + c.veiculoCapitacao + '</span></td>';
+      htmlC += '<td><div class="corretor-cell"><img src="' + fot + '" class="corretor-avatar"><span>' + c.corretor + '</span></div></td>';
+      htmlC += '<td>' + formatarMoeda(c.valorVenda) + '</td><td><b>' + formatarMoeda(cTotal) + '</b></td>';
+      htmlC += '<td style="color:var(--success)">' + formatarMoeda(cRec) + '</td>';
+      htmlC += '<td style="color:var(--danger)"><b>' + formatarMoeda(falta > 0 ? falta : 0) + '</b></td>';
+      htmlC += '<td><small>' + (c.retidoPor && c.retidoPor !== 'Nenhum' ? c.retidoPor : '-') + '</small></td><td>' + badge + '</td>';
+      htmlC += '<td>';
+      if (c.status !== 'Recebido') {
+        htmlC += '<button class="btn btn-success btn-sm" onclick="baixarComissao(' + c.id + ')">Baixar</button> ';
+      }
+      htmlC += '<button class="btn btn-secondary btn-sm" onclick="editarComissao(' + c.id + ')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirComissao(' + c.id + ')">X</button></td></tr>';
+    }
+    $('tabelaComissoes').innerHTML = htmlC;
+    $('totalVendasComissao').innerText = formatarMoeda(tv);
+    $('totalComissaoGeral').innerText = formatarMoeda(tc);
+    $('totalComissaoAReceber').innerText = formatarMoeda(tP);
+    $('totalComissaoRecebida').innerText = formatarMoeda(tr);
   }
 
-  $('formComissao').onsubmit = (e) => {
+  $('formComissao').onsubmit = function(e) {
     e.preventDefault();
-    let id = $('comissaoId').value, vt = parseFloat($('valorComissao').value)\vert{}\vert{}0, vr = parseFloat($('valorRecebido').value)||0;
-    let st = 'A Receber'; if(vr>=vt && vt>0) st='Recebido'; else if(vr>0) st='Parcial';
-    let obj = { id: id ? parseInt(id) : Date.now(), comprador: $('comprador').value, veiculoCapitacao:$('veiculoCapitacao').value, vendedor: $('vendedor').value, corretor:$('corretor').value, dataFechamento: $('dataFechamentoComissao').value, valorVenda: parseFloat($('valorVenda').value)||0, valorComissao: vt, valorRecebido: vr, retidoPor: $('retidoPor').value, tipoPrevisao:$('tipoPrevisao').value, dataPrevisao: $('tipoPrevisao').value==='com_data'?$('dataPrevisao').value:'', status: st };
-    if(id) comissoes[comissoes.findIndex(x=>x.id==id)] = obj; else comissoes.push(obj);
-    localStorage.setItem('comissoes_db', JSON.stringify(comissoes)); sincronizarCustosMarketing(); limparFormComissao(); renderComissoes();
+    var id = $('comissaoId').value, vt = parseFloat($('valorComissao').value) || 0, vr = parseFloat($('valorRecebido').value) || 0;
+    var st = 'A Receber';
+    if (vr >= vt && vt > 0) st = 'Recebido';
+    else if (vr > 0) st = 'Parcial';
+
+    var obj = {
+      id: id ? parseInt(id) : Date.now(),
+      comprador: $('comprador').value,
+      veiculoCapitacao: $('veiculoCapitacao').value,
+      vendedor: $('vendedor').value,
+      corretor: $('corretor').value,
+      dataFechamento: $('dataFechamentoComissao').value,
+      valorVenda: parseFloat($('valorVenda').value) || 0,
+      valorComissao: vt,
+      valorRecebido: vr,
+      retidoPor: $('retidoPor').value,
+      tipoPrevisao: $('tipoPrevisao').value,
+      dataPrevisao: $('tipoPrevisao').value === 'com_data' ? $('dataPrevisao').value : '',
+      status: st
+    };
+    if (id) {
+      for (var i = 0; i < comissoes.length; i++) {
+        if (comissoes[i].id == id) { comissoes[i] = obj; break; }
+      }
+    } else {
+      comissoes.push(obj);
+    }
+    localStorage.setItem('comissoes_db', JSON.stringify(comissoes));
+    sincronizarCustosMarketing();
+    limparFormComissao();
+    renderComissoes();
   };
+
   function baixarComissao(id) {
-    let c = comissoes.find(x=>x.id===id);
-    if(c && c.status!=='Recebido'){
-      let falta = (c.valorComissao||0)-(c.valorRecebido||0);
-      let v = prompt(`Quanto está recebendo agora? (Falta: R$ ${falta.toFixed(2)})`, falta);
-      if(v!==null){
-        let val = parseFloat(v.replace(',','.'));
-        if(!isNaN(val) && val>0){
-          c.valorRecebido = (c.valorRecebido||0)+val;
-          c.status = c.valorRecebido>=c.valorComissao ? 'Recebido' : 'Parcial';
-          let q = prompt('Quem reteve? [1] Imobiliária, [2] Corretor (Deixe em branco se nenhum)');
-          if(q==='1') c.retidoPor='Imobiliária'; else if(q==='2') c.retidoPor='Corretor';
-          localStorage.setItem('comissoes_db',JSON.stringify(comissoes)); renderComissoes();
+    var c = null;
+    for (var i = 0; i < comissoes.length; i++) { if (comissoes[i].id === id) { c = comissoes[i]; break; } }
+    if (c && c.status !== 'Recebido') {
+      var falta = (c.valorComissao || 0) - (c.valorRecebido || 0);
+      var v = prompt('Quanto está recebendo agora? (Falta: R$ ' + falta.toFixed(2) + ')', falta);
+      if (v !== null) {
+        var val = parseFloat(v.replace(',', '.'));
+        if (!isNaN(val) && val > 0) {
+          c.valorRecebido = (c.valorRecebido || 0) + val;
+          c.status = c.valorRecebido >= c.valorComissao ? 'Recebido' : 'Parcial';
+          var q = prompt('Quem reteve? [1] Imobiliária, [2] Corretor (Deixe em branco se nenhum)');
+          if (q === '1') c.retidoPor = 'Imobiliária';
+          else if (q === '2') c.retidoPor = 'Corretor';
+          localStorage.setItem('comissoes_db', JSON.stringify(comissoes));
+          renderComissoes();
         }
       }
     }
   }
-  function editarComissao(id) { let c = comissoes.find(x=>x.id===id); if(c){ $('comissaoId').value=c.id; $('comprador').value=c.comprador; $('veiculoCapitacao').value=c.veiculoCapitacao; $('vendedor').value=c.vendedor; $('corretor').value=c.corretor; $('dataFechamentoComissao').value=c.dataFechamento; $('valorVenda').value=c.valorVenda; $('valorComissao').value=c.valorComissao; $('valorRecebido').value=c.valorRecebido\vert{}\vert{}'';$('retidoPor').value=c.retidoPor||'Nenhum'; $('tipoPrevisao').value=c.tipoPrevisao; $('dataPrevisao').value=c.dataPrevisao||''; toggleDataPrevisao(); } }
-  function excluirComissao(id) { if(confirm('Excluir?')){ comissoes=comissoes.filter(x=>x.id!==id); localStorage.setItem('comissoes_db',JSON.stringify(comissoes)); sincronizarCustosMarketing(); renderComissoes(); } }
-  function limparFormComissao() { $('formComissao').reset();$('comissaoId').value=''; toggleDataPrevisao(); }
+
+  function editarComissao(id) {
+    var c = null;
+    for (var i = 0; i < comissoes.length; i++) { if (comissoes[i].id === id) { c = comissoes[i]; break; } }
+    if (c) {
+      $('comissaoId').value = c.id;
+      $('comprador').value = c.comprador;
+      $('veiculoCapitacao').value = c.veiculoCapitacao;
+      $('vendedor').value = c.vendedor;
+      $('corretor').value = c.corretor;
+      $('dataFechamentoComissao').value = c.dataFechamento;
+      $('valorVenda').value = c.valorVenda;
+      $('valorComissao').value = c.valorComissao;
+      $('valorRecebido').value = c.valorRecebido || '';
+      $('retidoPor').value = c.retidoPor || 'Nenhum';
+      $('tipoPrevisao').value = c.tipoPrevisao;
+      $('dataPrevisao').value = c.dataPrevisao || '';
+      toggleDataPrevisao();
+    }
+  }
+
+  function excluirComissao(id) {
+    if (confirm('Excluir?')) {
+      var novas = [];
+      for (var i = 0; i < comissoes.length; i++) { if (comissoes[i].id !== id) novas.push(comissoes[i]); }
+      comissoes = novas;
+      localStorage.setItem('comissoes_db', JSON.stringify(comissoes));
+      sincronizarCustosMarketing();
+      renderComissoes();
+    }
+  }
+
+  function limparFormComissao() {
+    $('formComissao').reset();
+    $('comissaoId').value = '';
+    toggleDataPrevisao();
+  }
 
   // ALUGUEL
   function carregarSelectsAluguel() {
-    if($('filtroCorretorAluguel'))$('filtroCorretorAluguel').innerHTML = '<option value="todos">Todos</option>' + corretores.map(c=>`<option value="${c.nome}">${c.nome}</option>`).join('');
-    if($('corretorAluguel'))$('corretorAluguel').innerHTML = corretores.map(c=>`<option value="${c.nome}">${c.nome}</option>`).join('');
-    if($('filtroCapitacaoAluguel'))$('filtroCapitacaoAluguel').innerHTML = '<option value="todos">Todos</option>' + veiculosCapitacao.map(v=>`<option value="${v}">${v}</option>`).join('');
-    if($('veiculoCapitacaoAluguel'))$('veiculoCapitacaoAluguel').innerHTML = veiculosCapitacao.map(v=>`<option value="${v}">${v}</option>`).join('');
+    var htmlC = '<option value="todos">Todos</option>';
+    for (var i = 0; i < corretores.length; i++) {
+      htmlC += '<option value="' + corretores[i].nome + '">' + corretores[i].nome + '</option>';
+    }
+    if ($('filtroCorretorAluguel')) $('filtroCorretorAluguel').innerHTML = htmlC;
+    if ($('corretorAluguel')) $('corretorAluguel').innerHTML = htmlC.replace('<option value="todos">Todos</option>', '');
+
+    var htmlV = '<option value="todos">Todos</option>';
+    for (var j = 0; j < veiculosCapitacao.length; j++) {
+      htmlV += '<option value="' + veiculosCapitacao[j] + '">' + veiculosCapitacao[j] + '</option>';
+    }
+    if ($('filtroCapitacaoAluguel')) $('filtroCapitacaoAluguel').innerHTML = htmlV;
+    if ($('veiculoCapitacaoAluguel')) $('veiculoCapitacaoAluguel').innerHTML = htmlV.replace('<option value="todos">Todos</option>', '');
   }
+
   function renderAlugueis() {
-    carregarSelectsAluguel(); let aS = $('filtroAnoAluguel').value, mS =$('filtroMesAluguel').value, cS = $('filtroCorretorAluguel').value, vS =$('filtroCapitacaoAluguel').value;
-    let filt = alugueis.filter(a => { if(cS!=='todos' && a.corretor!==cS) return false; if(vS!=='todos' && a.veiculoCapitacao!==vS) return false; if(!a.dataFechamento) return false; let p=a.dataFechamento.split('-'); return (aS==='todos'||p[0]===aS) && (mS==='todos'||p[1]===mS); });
-    let totVal = 0, mkt = 0;
-    $('tabelaAlugueis').innerHTML = filt.map(a => {
-      totVal += a.valorAluguel||0; if(a.veiculoCapitacao&&a.veiculoCapitacao.toLowerCase().includes('marketing')) mkt++;
-      let f = corretores.find(x=>x.nome===a.corretor)?.foto || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
-      return `<tr><td>${a.dataFechamento.split('-').reverse().join('/')}</td><td><b>${a.inquilino}</b></td><td><span class="badge badge-capitacao">${a.veiculoCapitacao}</span></td><td>${a.proprietario}</td><td><div class="corretor-cell"><img src="${f}" class="corretor-avatar"><span>${a.corretor}</span></div></td><td>${formatarMoeda(a.valorAluguel)}</td><td>${a.veiculoCapitacao.toLowerCase().includes('marketing')?'<b style="color:var(--danger)">R$ 50,00</b>':'-'}</td><td><button class="btn btn-secondary btn-sm" onclick="editarAluguel(${a.id})">✏️</button><button class="btn btn-danger btn-sm" onclick="excluirAluguel(${a.id})">X</button></td></tr>`;
-    }).join('');
-    $('qtdAlugueisFechados').innerText = filt.length; $('totalValorAlugueis').innerText = formatarMoeda(totVal);$('totalAluguelMarketing').innerText = mkt;
+    carregarSelectsAluguel();
+    var aS = $('filtroAnoAluguel').value, mS = $('filtroMesAluguel').value, cS = $('filtroCorretorAluguel').value, vS = $('filtroCapitacaoAluguel').value;
+    var filt = [];
+    for (var i = 0; i < alugueis.length; i++) {
+      var a = alugueis[i];
+      if (cS !== 'todos' && a.corretor !== cS) continue;
+      if (vS !== 'todos' && a.veiculoCapitacao !== vS) continue;
+      if (!a.dataFechamento) continue;
+      var p = a.dataFechamento.split('-');
+      if ((aS === 'todos' || p[0] === aS) && (mS === 'todos' || p[1] === mS)) {
+        filt.push(a);
+      }
+    }
+    var totVal = 0, mkt = 0;
+    var htmlA = '';
+    for (var j = 0; j < filt.length; j++) {
+      var a = filt[j];
+      totVal += a.valorAluguel || 0;
+      if (a.veiculoCapitacao && a.veiculoCapitacao.toLowerCase().indexOf('marketing') !== -1) mkt++;
+      
+      var f = 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
+      for (var k = 0; k < corretores.length; k++) {
+        if (corretores[k].nome === a.corretor && corretores[k].foto) { f = corretores[k].foto; break; }
+      }
+
+      htmlA += '<tr><td>' + a.dataFechamento.split('-').reverse().join('/') + '</td><td><b>' + a.inquilino + '</b></td>';
+      htmlA += '<td><span class="badge badge-capitacao">' + a.veiculoCapitacao + '</span></td><td>' + a.proprietario + '</td>';
+      htmlA += '<td><div class="corretor-cell"><img src="' + f + '" class="corretor-avatar"><span>' + a.corretor + '</span></div></td>';
+      htmlA += '<td>' + formatarMoeda(a.valorAluguel) + '</td><td>' + (a.veiculoCapitacao.toLowerCase().indexOf('marketing') !== -1 ? '<b style="color:var(--danger)">R$ 50,00</b>' : '-') + '</td>';
+      htmlA += '<td><button class="btn btn-secondary btn-sm" onclick="editarAluguel(' + a.id + ')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirAluguel(' + a.id + ')">X</button></td></tr>';
+    }
+    $('tabelaAlugueis').innerHTML = htmlA;
+    $('qtdAlugueisFechados').innerText = filt.length;
+    $('totalValorAlugueis').innerText = formatarMoeda(totVal);
+    $('totalAluguelMarketing').innerText = mkt;
   }
-  $('formAluguel').onsubmit = (e) => { e.preventDefault(); let id =$('aluguelId').value; let obj = { id: id ? parseInt(id) : Date.now(), inquilino: $('inquilino').value, veiculoCapitacao:$('veiculoCapitacaoAluguel').value, proprietario: $('proprietarioAluguel').value, valorAluguel: parseFloat($('valorAluguel').value)||0, dataFechamento: $('dataFechamentoAluguel').value, corretor:$('corretorAluguel').value }; if(id) alugueis[alugueis.findIndex(x=>x.id==id)] = obj; else { alugueis.push(obj); alert('Gerado custo Marketing mês seguinte.'); } localStorage.setItem('alugueis_db', JSON.stringify(alugueis)); sincronizarCustosMarketing(); limparFormAluguel(); renderAlugueis(); };
-  function editarAluguel(id){ let a=alugueis.find(x=>x.id===id); if(a){$('aluguelId').value=a.id; $('inquilino').value=a.inquilino; $('veiculoCapitacaoAluguel').value=a.veiculoCapitacao; $('proprietarioAluguel').value=a.proprietario; $('valorAluguel').value=a.valorAluguel; $('dataFechamentoAluguel').value=a.dataFechamento; $('corretorAluguel').value=a.corretor;} }
-  function excluirAluguel(id){ if(confirm('Excluir?')){ alugueis=alugueis.filter(x=>x.id!==id); localStorage.setItem('alugueis_db',JSON.stringify(alugueis)); sincronizarCustosMarketing(); renderAlugueis(); } }
-  function limparFormAluguel(){ $('formAluguel').reset();$('aluguelId').value=''; }
+
+  $('formAluguel').onsubmit = function(e) {
+    e.preventDefault();
+    var id = $('aluguelId').value;
+    var obj = {
+      id: id ? parseInt(id) : Date.now(),
+      inquilino: $('inquilino').value,
+      veiculoCapitacao: $('veiculoCapitacaoAluguel').value,
+      proprietario: $('proprietarioAluguel').value,
+      valorAluguel: parseFloat($('valorAluguel').value) || 0,
+      dataFechamento: $('dataFechamentoAluguel').value,
+      corretor: $('corretorAluguel').value
+    };
+    if (id) {
+      for (var i = 0; i < alugueis.length; i++) {
+        if (alugueis[i].id == id) { alugueis[i] = obj; break; }
+      }
+    } else {
+      alugueis.push(obj);
+      alert('Gerado custo Marketing mês seguinte.');
+    }
+    localStorage.setItem('alugueis_db', JSON.stringify(alugueis));
+    sincronizarCustosMarketing();
+    limparFormAluguel();
+    renderAlugueis();
+  };
+
+  function editarAluguel(id) {
+    var a = null;
+    for (var i = 0; i < alugueis.length; i++) { if (alugueis[i].id === id) { a = alugueis[i]; break; } }
+    if (a) {
+      $('aluguelId').value = a.id;
+      $('inquilino').value = a.inquilino;
+      $('veiculoCapitacaoAluguel').value = a.veiculoCapitacao;
+      $('proprietarioAluguel').value = a.proprietario;
+      $('valorAluguel').value = a.valorAluguel;
+      $('dataFechamentoAluguel').value = a.dataFechamento;
+      $('corretorAluguel').value = a.corretor;
+    }
+  }
+
+  function excluirAluguel(id) {
+    if (confirm('Excluir?')) {
+      var novas = [];
+      for (var i = 0; i < alugueis.length; i++) { if (alugueis[i].id !== id) novas.push(alugueis[i]); }
+      alugueis = novas;
+      localStorage.setItem('alugueis_db', JSON.stringify(alugueis));
+      sincronizarCustosMarketing();
+      renderAlugueis();
+    }
+  }
+
+  function limparFormAluguel() {
+    $('formAluguel').reset();
+    $('aluguelId').value = '';
+  }
 
   // DASHBOARD
-  function renderDashboard(){
-    if($('filtroCorretorDash'))$('filtroCorretorDash').innerHTML = '<option value="todos">Todos</option>' + corretores.map(c=>`<option value="${c.nome}">${c.nome}</option>`).join('');
-    let aS = $('filtroAnoDash').value, mS = $('filtroMesDash').value, cS =$('filtroCorretorDash')?.value;
-    let f = comissoes.filter(c => { if(cS!=='todos' && c.corretor!==cS) return false; if(!c.dataFechamento) return false; let p=c.dataFechamento.split('-'); return (aS==='todos'||p[0]===aS) && (mS==='todos'||p[1]===mS); });
-    let tV=0, tC=0, tR=0, tP=0, mapa={};
-    corretores.forEach(c => { mapa[c.nome] = { nome: c.nome, vol: 0, qtd: 0, com: 0, foto: c.foto||'https://cdn-icons-png.flaticon.com/512/3135/3135715.png' }; });
-    f.forEach(c => { tV+=c.valorVenda||0; tC+=c.valorComissao||0; tR+=c.valorRecebido||0; let falta=(c.valorComissao||0)-(c.valorRecebido||0); if(falta>0) tP+=falta; if(mapa[c.corretor]) { mapa[c.corretor].vol+=c.valorVenda||0; mapa[c.corretor].qtd++; mapa[c.corretor].com+=c.valorComissao||0; } });
-    $('dashTotalVendas').innerText=formatarMoeda(tV);$('dashTotalComissao').innerText=formatarMoeda(tC); $('dashComissaoAReceber').innerText=formatarMoeda(tP);$('dashComissaoRecebida').innerText=formatarMoeda(tR);
-    let rank = Object.values(mapa).sort((a,b)=>b.vol-a.vol);
-    if(chartCorretor) chartCorretor.destroy();
-    chartCorretor = new Chart($('chartVendasCorretor'), { type: 'bar', data: { labels: rank.map(x=>x.nome), datasets: [{ label: 'Volume Vendas (R$)', data: rank.map(x=>x.vol), backgroundColor: '#2a5045', borderRadius: 6 }] }, options: { responsive: true, maintainAspectRatio: false } });
-    $('listaRankingCorretores').innerHTML = rank.map((r,i) => `<div class="ranking-item"><div style="display:flex;align-items:center;gap:12px;"><div class="ranking-pos">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1+'º'}</div><img src="${r.foto}" class="corretor-avatar"><div><div style="font-weight:700;">${r.nome}</div><small>${r.qtd} venda(s)</small></div></div><div style="text-align:right;"><div style="font-weight:800;color:var(--primary);">${formatarMoeda(r.vol)}</div><small style="color:var(--success);">Comissão: ${formatarMoeda(r.com)}</small></div></div>`).join('');
+  function renderDashboard() {
+    var htmlC = '<option value="todos">Todos</option>';
+    for (var i = 0; i < corretores.length; i++) {
+      htmlC += '<option value="' + corretores[i].nome + '">' + corretores[i].nome + '</option>';
+    }
+    if ($('filtroCorretorDash')) $('filtroCorretorDash').innerHTML = htmlC;
+
+    var aS = $('filtroAnoDash').value, mS = $('filtroMesDash').value, cS = $('filtroCorretorDash') ? $('filtroCorretorDash').value : 'todos';
+    var f = [];
+    for (var j = 0; j < comissoes.length; j++) {
+      var c = comissoes[j];
+      if (cS !== 'todos' && c.corretor !== cS) continue;
+      if (!c.dataFechamento) continue;
+      var p = c.dataFechamento.split('-');
+      if ((aS === 'todos' || p[0] === aS) && (mS === 'todos' || p[1] === mS)) {
+        f.push(c);
+      }
+    }
+
+    var tV = 0, tC = 0, tR = 0, tP = 0, mapa = {};
+    for (var k = 0; k < corretores.length; k++) {
+      mapa[corretores[k].nome] = {
+        nome: corretores[k].nome,
+        vol: 0,
+        qtd: 0,
+        com: 0,
+        foto: corretores[k].foto || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'
+      };
+    }
+
+    for (var l = 0; l < f.length; l++) {
+      var c = f[l];
+      tV += c.valorVenda || 0;
+      tC += c.valorComissao || 0;
+      tR += c.valorRecebido || 0;
+      var falta = (c.valorComissao || 0) - (c.valorRecebido || 0);
+      if (falta > 0) tP += falta;
+      if (mapa[c.corretor]) {
+        mapa[c.corretor].vol += c.valorVenda || 0;
+        mapa[c.corretor].qtd++;
+        mapa[c.corretor].com += c.valorComissao || 0;
+      }
+    }
+
+    $('dashTotalVendas').innerText = formatarMoeda(tV);
+    $('dashTotalComissao').innerText = formatarMoeda(tC);
+    $('dashComissaoAReceber').innerText = formatarMoeda(tP);
+    $('dashComissaoRecebida').innerText = formatarMoeda(tR);
+
+    var rank = [];
+    for (var key in mapa) rank.push(mapa[key]);
+    rank.sort(function(a, b) { return b.vol - a.vol; });
+
+    if (chartCorretor) chartCorretor.destroy();
+    var labels = [], dataVals = [];
+    for (var r = 0; r < rank.length; r++) {
+      labels.push(rank[r].nome);
+      dataVals.push(rank[r].vol);
+    }
+
+    chartCorretor = new Chart($('chartVendasCorretor'), {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{ label: 'Volume Vendas (R$)', data: dataVals, backgroundColor: '#2a5045', borderRadius: 6 }]
+      },
+      options: { responsive: true, maintainAspectRatio: false }
+    });
+
+    var htmlRank = '';
+    for (var m = 0; m < rank.length; m++) {
+      var item = rank[m];
+      var pos = m === 0 ? '🥇' : m === 1 ? '🥈' : m === 2 ? '🥉' : (m + 1) + 'º';
+      htmlRank += '<div class="ranking-item"><div style="display:flex;align-items:center;gap:12px;"><div class="ranking-pos">' + pos + '</div>';
+      htmlRank += '<img src="' + item.foto + '" class="corretor-avatar"><div><div style="font-weight:700;">' + item.nome + '</div><small>' + item.qtd + ' venda(s)</small></div></div>';
+      htmlRank += '<div style="text-align:right;"><div style="font-weight:800;color:var(--primary);">' + formatarMoeda(item.vol) + '</div><small style="color:var(--success);">Comissão: ' + formatarMoeda(item.com) + '</small></div></div>';
+    }
+    $('listaRankingCorretores').innerHTML = htmlRank;
   }
 
-  // CONFIGURAÇÕES
-  function abrirGerenciadorCorretores() { $('modalCorretores').style.display='flex'; renderListaCorretores(); }
-  function renderListaCorretores() {
-    $('listaCorretores').innerHTML = corretores.map((c,i) => `<div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;background:#f8fafc;padding:8px;border-radius:8px;border:1px solid #e2e8f0;"><img src="${c.foto||'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'}" class="corretor-avatar"><input type="text" value="${c.nome}" id="corr_n_${i}" style="flex:1;"><button class="btn btn-sm" onclick="salvarCorretor(${i})">Salvar</button><button class="btn btn-danger btn-sm" onclick="removerCorretor(${i})">X</button></div>`).join('');
+  // CONFIGURAÇÕES CORRETORES
+  function abrirGerenciadorCorretores() {
+    $('modalCorretores').style.display = 'flex';
+    renderListaCorretores();
   }
-  function salvarCorretor(i) { let n=$(`corr_n_${i}`).value; if(n){ corretores[i].nome=n; localStorage.setItem('corretores_objs_db',JSON.stringify(corretores)); renderListaCorretores(); } }
-  function removerCorretor(i) { if(corretores.length>1){ corretores.splice(i,1); localStorage.setItem('corretores_objs_db',JSON.stringify(corretores)); renderListaCorretores(); } else alert('Mantenha 1 corretor.'); }
-  
-  // COMPRESSÃO E UPLOAD DA IMAGEM
+
+  function renderListaCorretores() {
+    var html = '';
+    for (var i = 0; i < corretores.length; i++) {
+      var c = corretores[i];
+      html += '<div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;background:#f8fafc;padding:8px;border-radius:8px;border:1px solid #e2e8f0;">';
+      html += '<img src="' + (c.foto || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png') + '" class="corretor-avatar">';
+      html += '<input type="text" value="' + c.nome + '" id="corr_n_' + i + '" style="flex:1;">';
+      html += '<button class="btn btn-sm" onclick="salvarCorretor(' + i + ')">Salvar</button>';
+      html += '<button class="btn btn-danger btn-sm" onclick="removerCorretor(' + i + ')">X</button></div>';
+    }
+    $('listaCorretores').innerHTML = html;
+  }
+
+  function salvarCorretor(i) {
+    var n = $('corr_n_' + i).value;
+    if (n) {
+      corretores[i].nome = n;
+      localStorage.setItem('corretores_objs_db', JSON.stringify(corretores));
+      renderListaCorretores();
+    }
+  }
+
+  function removerCorretor(i) {
+    if (corretores.length > 1) {
+      corretores.splice(i, 1);
+      localStorage.setItem('corretores_objs_db', JSON.stringify(corretores));
+      renderListaCorretores();
+    } else {
+      alert('Mantenha pelo menos 1 corretor.');
+    }
+  }
+
   function adicionarCorretor() {
-    let nome = $('novoCorretorNome').value.trim(), file =$('novoCorretorFoto').files[0];
-    if(!nome || corretores.some(x=>x.nome===nome)) return alert('Nome inválido ou já existe.');
-    if(file) {
-      let reader = new FileReader();
-      reader.onload = function(e){
-        let img = new Image();
-        img.onload = function(){
-          let canvas = document.createElement('canvas');
-          let scale = 150 / img.width; canvas.width = 150; canvas.height = img.height * scale;
-          canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-          corretores.push({nome:nome, foto:canvas.toDataURL('image/jpeg', 0.6)});
-          localStorage.setItem('corretores_objs_db',JSON.stringify(corretores));
-          $('novoCorretorNome').value='';$('novoCorretorFoto').value=''; renderListaCorretores();
+    var nome = $('novoCorretorNome').value.trim();
+    var fileInput = $('novoCorretorFoto');
+    var file = fileInput.files[0];
+    
+    if (!nome) { alert('Insira um nome válido.'); return; }
+    
+    for (var i = 0; i < corretores.length; i++) {
+      if (corretores[i].nome === nome) { alert('Já existe um corretor com este nome.'); return; }
+    }
+
+    if (file) {
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        var img = new Image();
+        img.onload = function() {
+          var canvas = document.createElement('canvas');
+          var scale = 150 / img.width;
+          canvas.width = 150;
+          canvas.height = img.height * scale;
+          var ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          var dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+          
+          corretores.push({ nome: nome, foto: dataUrl });
+          localStorage.setItem('corretores_objs_db', JSON.stringify(corretores));
+          $('novoCorretorNome').value = '';
+          fileInput.value = '';
+          renderListaCorretores();
         };
         img.src = e.target.result;
       };
       reader.readAsDataURL(file);
     } else {
-      corretores.push({nome:nome, foto:''}); localStorage.setItem('corretores_objs_db',JSON.stringify(corretores)); $('novoCorretorNome').value=''; renderListaCorretores();
+      corretores.push({ nome: nome, foto: '' });
+      localStorage.setItem('corretores_objs_db', JSON.stringify(corretores));
+      $('novoCorretorNome').value = '';
+      renderListaCorretores();
     }
   }
 
-  function abrirGerenciadorContas() { $('modalOrigens').style.display='flex'; renderListaOrigens(); }
-  function renderListaOrigens() { $('listaOrigens').innerHTML = origens.map((o,i) => `<div style="display:flex;gap:5px;margin-bottom:8px;"><input type="text" value="${o}" id="ori_${i}" style="flex:1;"><button class="btn btn-sm" onclick="if($('ori_${i}').value){origens[${i}]=$('ori_${i}').value;localStorage.setItem('origens_db',JSON.stringify(origens));renderListaOrigens();}">Salvar</button><button class="btn btn-danger btn-sm" onclick="if(origens.length>1){origens.splice(${i},1);localStorage.setItem('origens_db',JSON.stringify(origens));renderListaOrigens();}">X</button></div>`).join(''); }
-  function adicionarOrigem() { let v=$('novaOrigemNome').value; if(v && !origens.includes(v)){ origens.push(v); localStorage.setItem('origens_db',JSON.stringify(origens));$('novaOrigemNome').value=''; renderListaOrigens(); } }
-
-  function abrirGerenciadorCategorias() { $('modalCategorias').style.display='flex'; renderListaCategorias(); }
-  function renderListaCategorias() { $('listaCategorias').innerHTML = categorias.map((c,i) => `<div style="display:flex;gap:5px;margin-bottom:8px;"><input type="text" value="${c}" id="cat_${i}" style="flex:1;"><button class="btn btn-sm" onclick="if($('cat_${i}').value){categorias[${i}]=$('cat_${i}').value;localStorage.setItem('categorias_db',JSON.stringify(categorias));renderListaCategorias();}">Salvar</button><button class="btn btn-danger btn-sm" onclick="if(categorias.length>1){categorias.splice(${i},1);localStorage.setItem('categorias_db',JSON.stringify(categorias));renderListaCategorias();}">X</button></div>`).join(''); }
-  function adicionarCategoria() { let v=$('novaCategoriaNome').value; if(v && !categorias.includes(v)){ categorias.push(v); localStorage.setItem('categorias_db',JSON.stringify(categorias));$('novaCategoriaNome').value=''; renderListaCategorias(); } }
-
-  function abrirGerenciadorVeiculos() { $('modalVeiculos').style.display='flex'; renderListaVeiculos(); }
-  function renderListaVeiculos() { $('listaVeiculos').innerHTML = veiculosCapitacao.map((v,i) => `<div style="display:flex;gap:5px;margin-bottom:8px;"><input type="text" value="${v}" id="vei_${i}" style="flex:1;" ${v==='Marketing'?'readonly':''}><button class="btn btn-sm" onclick="if($('vei_${i}').value){veiculosCapitacao[${i}]=$('vei_${i}').value;localStorage.setItem('veiculos_db',JSON.stringify(veiculosCapitacao));renderListaVeiculos();}">Salvar</button>${v!=='Marketing'?`<button class="btn btn-danger btn-sm" onclick="veiculosCapitacao.splice(${i},1);localStorage.setItem('veiculos_db',JSON.stringify(veiculosCapitacao));renderListaVeiculos();">X</button>`:''}</div>`).join(''); }
-  function adicionarVeiculo() { let v=$('novoVeiculoNome').value; if(v && !veiculosCapitacao.includes(v)){ veiculosCapitacao.push(v); localStorage.setItem('veiculos_db',JSON.stringify(veiculosCapitacao));$('novoVeiculoNome').value=''; renderListaVeiculos(); } }
-
-  // USUARIOS
-  function renderTabelaUsuarios() {
-    $('tabelaUsuarios').innerHTML = usuariosDB.map((u,i) => `<tr><td><input type="text" value="${u.usuario || u.u || ''}" id="u_n_${i}"></td><td><input type="text" value="${u.senha || u.p || ''}" id="u_p_${i}"></td><td style="display:flex;gap:6px;"><button class="btn btn-sm" onclick="salvarUser(${i})">Salvar</button><button class="btn btn-danger btn-sm" onclick="if(usuariosDB.length>1){usuariosDB.splice(${i},1);localStorage.setItem('usuarios_db',JSON.stringify(usuariosDB));renderTabelaUsuarios()}">X</button></td></tr>`).join('');
+  function abrirGerenciadorContas() {
+    $('modalOrigens').style.display = 'flex';
+    renderListaOrigens();
   }
-  function adicionarUsuario() { let u=$('novoUserNome').value, p=$('novoUserPass').value; if(u&&p&&!usuariosDB.some(x=>(x.usuario||x.u)===u)){ usuariosDB.push({usuario:u, senha:p}); localStorage.setItem('usuarios_db',JSON.stringify(usuariosDB)); $('novoUserNome').value='';$('novoUserPass').value=''; renderTabelaUsuarios(); alert('Cadastrado!'); } }
-  function salvarUser(i) { let u=$(`u_n_${i}`).value, p=$(`u_p_${i}`).value; if(u&&p){ usuariosDB[i]={usuario:u,senha:p}; localStorage.setItem('usuarios_db',JSON.stringify(usuariosDB)); renderTabelaUsuarios(); alert('Atualizado!'); } }
+
+  function renderListaOrigens() {
+    var html = '';
+    for (var i = 0; i < origens.length; i++) {
+      html += '<div style="display:flex;gap:5px;margin-bottom:8px;"><input type="text" value="' + origens[i] + '" id="ori_' + i + '" style="flex:1;">';
+      html += '<button class="btn btn-sm" onclick="if($(\'ori_' + i + '\').value){origens[' + i + ']=\$(\'ori_' + i + '\').value;localStorage.setItem(\'origens_db\',JSON.stringify(origens));renderListaOrigens();}">Salvar</button>';
+      html += '<button class="btn btn-danger btn-sm" onclick="if(origens.length>1){origens.splice(' + i + ',1);localStorage.setItem(\'origens_db\',JSON.stringify(origens));renderListaOrigens();}">X</button></div>';
+    }
+    $('listaOrigens').innerHTML = html;
+  }
+
+  function adicionarOrigem() {
+    var v = $('novaOrigemNome').value.trim();
+    if (v && origens.indexOf(v) === -1) {
+      origens.push(v);
+      localStorage.setItem('origens_db', JSON.stringify(origens));
+      $('novaOrigemNome').value = '';
+      renderListaOrigens();
+    }
+  }
+
+  function abrirGerenciadorCategorias() {
+    $('modalCategorias').style.display = 'flex';
+    renderListaCategorias();
+  }
+
+  function renderListaCategorias() {
+    var html = '';
+    for (var i = 0; i < categorias.length; i++) {
+      html += '<div style="display:flex;gap:5px;margin-bottom:8px;"><input type="text" value="' + categorias[i] + '" id="cat_' + i + '" style="flex:1;">';
+      html += '<button class="btn btn-sm" onclick="if($(\'cat_' + i + '\').value){categorias[' + i + ']=\$(\'cat_' + i + '\').value;localStorage.setItem(\'categorias_db\',JSON.stringify(categorias));renderListaCategorias();}">Salvar</button>';
+      html += '<button class="btn btn-danger btn-sm" onclick="if(categorias.length>1){categorias.splice(' + i + ',1);localStorage.setItem(\'categorias_db\',JSON.stringify(categorias));renderListaCategorias();}">X</button></div>';
+    }
+    $('listaCategorias').innerHTML = html;
+  }
+
+  function adicionarCategoria() {
+    var v = $('novaCategoriaNome').value.trim();
+    if (v && categorias.indexOf(v) === -1) {
+      categorias.push(v);
+      localStorage.setItem('categorias_db', JSON.stringify(categorias));
+      $('novaCategoriaNome').value = '';
+      renderListaCategorias();
+    }
+  }
+
+  function abrirGerenciadorVeiculos() {
+    $('modalVeiculos').style.display = 'flex';
+    renderListaVeiculos();
+  }
+
+  function renderListaVeiculos() {
+    var html = '';
+    for (var i = 0; i < veiculosCapitacao.length; i++) {
+      var v = veiculosCapitacao[i];
+      html += '<div style="display:flex;gap:5px;margin-bottom:8px;"><input type="text" value="' + v + '" id="vei_' + i + '" style="flex:1;" ' + (v === 'Marketing' ? 'readonly' : '') + '>';
+      html += '<button class="btn btn-sm" onclick="if($(\'vei_' + i + '\').value){veiculosCapitacao[' + i + ']=\$(\'vei_' + i + '\').value;localStorage.setItem(\'veiculos_db\',JSON.stringify(veiculosCapitacao));renderListaVeiculos();}">Salvar</button>';
+      if (v !== 'Marketing') {
+        html += '<button class="btn btn-danger btn-sm" onclick="veiculosCapitacao.splice(' + i + ',1);localStorage.setItem(\'veiculos_db\',JSON.stringify(veiculosCapitacao));renderListaVeiculos();">X</button>';
+      }
+      html += '</div>';
+    }
+    $('listaVeiculos').innerHTML = html;
+  }
+
+  function adicionarVeiculo() {
+    var v = $('novoVeiculoNome').value.trim();
+    if (v && veiculosCapitacao.indexOf(v) === -1) {
+      veiculosCapitacao.push(v);
+      localStorage.setItem('veiculos_db', JSON.stringify(veiculosCapitacao));
+      $('novoVeiculoNome').value = '';
+      renderListaVeiculos();
+    }
+  }
+
+  // UTILIZADORES
+  function renderTabelaUsuarios() {
+    var html = '';
+    for (var i = 0; i < usuariosDB.length; i++) {
+      var u = usuariosDB[i];
+      var nome = u.usuario || u.u || '';
+      var senha = u.senha || u.p || '';
+      html += '<tr><td><input type="text" value="' + nome + '" id="u_n_' + i + '"></td>';
+      html += '<td><input type="text" value="' + senha + '" id="u_p_' + i + '"></td>';
+      html += '<td style="display:flex;gap:6px;"><button class="btn btn-sm" onclick="salvarUser(' + i + ')">Salvar</button>';
+      if (usuariosDB.length > 1) {
+        html += '<button class="btn btn-danger btn-sm" onclick="usuariosDB.splice(' + i + ',1);localStorage.setItem(\'usuarios_db\',JSON.stringify(usuariosDB));renderTabelaUsuarios()">X</button>';
+      }
+      html += '</td></tr>';
+    }
+    $('tabelaUsuarios').innerHTML = html;
+  }
+
+  function adicionarUsuario() {
+    var u = $('novoUserNome').value.trim();
+    var p = $('novoUserPass').value.trim();
+    var existe = false;
+    for (var i = 0; i < usuariosDB.length; i++) {
+      if ((usuariosDB[i].usuario || usuariosDB[i].u) === u) { existe = true; break; }
+    }
+    if (u && p && !existe) {
+      usuariosDB.push({ usuario: u, senha: p });
+      localStorage.setItem('usuarios_db', JSON.stringify(usuariosDB));
+      $('novoUserNome').value = '';
+      $('novoUserPass').value = '';
+      renderTabelaUsuarios();
+      alert('Utilizador cadastrado com sucesso!');
+    } else {
+      alert('Utilizador inválido ou já existente.');
+    }
+  }
+
+  function salvarUser(i) {
+    var u = $('u_n_' + i).value.trim();
+    var p = $('u_p_' + i).value.trim();
+    if (u && p) {
+      usuariosDB[i] = { usuario: u, senha: p };
+      localStorage.setItem('usuarios_db', JSON.stringify(usuariosDB));
+      renderTabelaUsuarios();
+      alert('Utilizador atualizado!');
+    }
+  }
 </script>
 </body>
 </html>
