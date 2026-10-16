@@ -1,226 +1,77 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sistema de Gestão Financeira - Realiza Imóveis</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <style>
-    :root {
-      --bg-color: #f2f5f4;
-      --card-bg: #ffffff;
-      --text-main: #1c2d28;
-      --text-muted: #536b63;
-      --primary: #2a5045;
-      --primary-hover: #1f3d34;
-      --primary-light: #e8f0ed;
-      --success: #10b981;
-      --warning: #f59e0b;
-      --danger: #ef4444;
-      --border: #d4e0dc;
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
-    body { background-color: var(--bg-color); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; }
-
-    #loginScreen {
-      position: fixed;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(42, 80, 69, 0.98);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 999;
-    }
-    .login-box {
-      background: white;
-      padding: 35px;
-      border-radius: 14px;
-      width: 100%;
-      max-width: 400px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-      text-align: center;
-    }
-    .login-box h2 { color: var(--primary); margin-bottom: 8px; font-size: 1.6rem; }
-    .login-box p { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 25px; }
-
-    .app-layout {
-      display: none;
-      width: 100%;
-      height: 100vh;
-      grid-template-columns: 260px 1fr;
-    }
-    .app-layout.authenticated { display: grid; }
-
-    .sidebar {
-      background: var(--primary);
-      color: white;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      padding: 20px;
-      box-shadow: 4px 0 15px rgba(0,0,0,0.05);
-      z-index: 10;
-    }
-
-    .sidebar-brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding-bottom: 20px;
-      border-bottom: 1px solid rgba(255,255,255,0.15);
-      margin-bottom: 20px;
-    }
-
-    .logo-box {
-      width: 44px;
-      height: 44px;
-      background-color: #ffffff;
-      border-radius: 8px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 5px;
-    }
-
-    .brand-title h1 { font-size: 1.1rem; color: #ffffff; font-weight: 700; }
-    .brand-title p { font-size: 0.7rem; color: #b8d0c8; text-transform: uppercase; letter-spacing: 1px; }
-
-    .sidebar-menu {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      flex: 1;
-    }
-
-    .nav-btn {
-      width: 100%;
-      padding: 12px 16px;
-      border: none;
-      background: transparent;
-      color: #b8d0c8;
-      font-weight: 600;
-      font-size: 0.95rem;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: 0.2s;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      text-align: left;
-    }
-
-    .nav-btn:hover { background: rgba(255,255,255,0.1); color: white; }
-    .nav-btn.active { background: #ffffff; color: var(--primary); font-weight: 700; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-
-    .main-content {
-      overflow-y: auto;
-      padding: 25px;
-      background: var(--bg-color);
-      height: 100vh;
-    }
-
-    .header-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-      background: white;
-      padding: 15px 25px;
-      border-radius: 12px;
-      border: 1px solid var(--border);
-    }
-
-    .tab-content { display: none; }
-    .tab-content.active { display: block; }
-
-    .filter-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-    .filter-bar label { color: var(--text-muted); font-size: 0.85rem; font-weight: 600; }
-    
-    .grid-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 20px; }
-    .card { background: var(--card-bg); padding: 18px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 2px 4px rgba(0,0,0,0.03); }
-    .card-title { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
-    .card-val { font-size: 1.5rem; font-weight: 700; margin-top: 5px; }
-    
-    .grid-main { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 20px; }
-    @media (max-width: 900px) { 
-      body { height: auto; overflow: auto; }
-      .app-layout { grid-template-columns: 1fr; height: auto; }
-      .sidebar { height: auto; }
-      .main-content { height: auto; }
-      .grid-main { grid-template-columns: 1fr; }
-    }
-    
-    form { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
-    .form-group { display: flex; flex-direction: column; gap: 5px; text-align: left; }
-    label { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); }
-    input, select { padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; outline: none; background: #fafcfb; width: 100%; }
-    input:focus, select:focus { border-color: var(--primary); background: #ffffff; }
-    
-    .btn { background: var(--primary); color: white; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
-    .btn:hover { background: var(--primary-hover); }
-    .btn-success { background: var(--success); }
-    .btn-success:hover { background: #059669; }
-    .btn-danger { background: var(--danger); }
-    .btn-secondary { background: #536b63; }
-    .btn-sm { padding: 6px 12px; font-size: 0.8rem; border-radius: 6px; }
-
-    .table-container { overflow-x: auto; margin-top: 15px; }
-    table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; }
-    th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.88rem; vertical-align: middle; }
-    th { background: var(--primary-light); color: var(--primary); font-weight: 700; }
-    
-    .badge { padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 700; display: inline-block; }
-    .badge-pago, .badge-recebido { background: #d1fae5; color: #065f46; }
-    .badge-pendente, .badge-areceber { background: #fef3c7; color: #92400e; }
-    .badge-parcial { background: #fef08a; color: #854d0e; }
-    .badge-atrasado { background: #fee2e2; color: #991b1b; }
-    .badge-semprevisao { background: #e2e8f0; color: #475569; }
-    .badge-capitacao { background: #e0f2fe; color: #0369a1; }
-
-    .corretor-avatar {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      object-fit: cover;
-      border: 2px solid var(--primary);
-    }
-    .corretor-cell { display: flex; align-items: center; gap: 10px; }
-
-    .ranking-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 12px;
-      background: #fafcfb;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      margin-bottom: 10px;
-      transition: 0.2s;
-    }
-    .ranking-item:hover { background: var(--primary-light); }
-    .ranking-pos { font-weight: 800; font-size: 1.1rem; color: var(--primary); width: 35px; }
-
-    .modal-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 100; }
-    .modal-content { background: white; padding: 25px; border-radius: 12px; max-width: 500px; width: 90%; }
-    .chart-box { height: 280px; position: relative; }
-  </style>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Gestão Financeira - Realiza Imóveis</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{--bg-color:#f2f5f4;--card-bg:#ffffff;--text-main:#1c2d28;--text-muted:#536b63;--primary:#2a5045;--primary-hover:#1f3d34;--primary-light:#e8f0ed;--success:#10b981;--warning:#f59e0b;--danger:#ef4444;--border:#d4e0dc}
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',system-ui,sans-serif}
+body{background-color:var(--bg-color);color:var(--text-main);display:flex;height:100vh;overflow:hidden}
+#loginScreen{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(42,80,69,.98);display:flex;justify-content:center;align-items:center;z-index:999}
+.login-box{background:white;padding:35px;border-radius:14px;width:100%;max-width:400px;box-shadow:0 10px 30px rgba(0,0,0,.25);text-align:center}
+.login-box h2{color:var(--primary);margin-bottom:8px;font-size:1.6rem}
+.login-box p{color:var(--text-muted);font-size:.85rem;margin-bottom:25px}
+.app-layout{display:none;width:100%;height:100vh;grid-template-columns:260px 1fr}
+.app-layout.authenticated{display:grid}
+.sidebar{background:var(--primary);color:white;display:flex;flex-direction:column;justify-content:space-between;padding:20px;box-shadow:4px 0 15px rgba(0,0,0,.05);z-index:10}
+.sidebar-brand{display:flex;align-items:center;gap:12px;padding-bottom:20px;border-bottom:1px solid rgba(255,255,255,.15);margin-bottom:20px}
+.logo-box{width:44px;height:44px;background-color:#fff;border-radius:8px;display:flex;justify-content:center;align-items:center;padding:5px}
+.brand-title h1{font-size:1.1rem;color:#fff;font-weight:700}
+.brand-title p{font-size:.7rem;color:#b8d0c8;text-transform:uppercase;letter-spacing:1px}
+.sidebar-menu{display:flex;flex-direction:column;gap:8px;flex:1}
+.nav-btn{width:100%;padding:12px 16px;border:none;background:0 0;color:#b8d0c8;font-weight:600;font-size:.95rem;border-radius:8px;cursor:pointer;transition:.2s;display:flex;align-items:center;gap:12px;text-align:left}
+.nav-btn:hover{background:rgba(255,255,255,.1);color:#fff}
+.nav-btn.active{background:#fff;color:var(--primary);font-weight:700;box-shadow:0 4px 10px rgba(0,0,0,.1)}
+.main-content{overflow-y:auto;padding:25px;background:var(--bg-color);height:100vh}
+.header-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;background:#fff;padding:15px 25px;border-radius:12px;border:1px solid var(--border)}
+.tab-content{display:none} .tab-content.active{display:block}
+.filter-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.filter-bar label{color:var(--text-muted);font-size:.85rem;font-weight:600}
+.grid-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:15px;margin-bottom:20px}
+.card{background:var(--card-bg);padding:18px;border-radius:12px;border:1px solid var(--border);box-shadow:0 2px 4px rgba(0,0,0,.03)}
+.card-title{font-size:.85rem;font-weight:600;color:var(--text-muted);text-transform:uppercase}
+.card-val{font-size:1.5rem;font-weight:700;margin-top:5px}
+.grid-main{display:grid;grid-template-columns:2fr 1fr;gap:20px;margin-bottom:20px}
+@media (max-width:900px){body,.app-layout,.sidebar,.main-content{height:auto;overflow:auto}.app-layout,.grid-main{grid-template-columns:1fr}}
+form{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.form-group{display:flex;flex-direction:column;gap:5px;text-align:left}
+label{font-size:.8rem;font-weight:600;color:var(--text-muted)}
+input,select{padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:.9rem;outline:0;background:#fafcfb;width:100%}
+input:focus,select:focus{border-color:var(--primary);background:#fff}
+.btn{background:var(--primary);color:#fff;border:none;padding:10px 16px;border-radius:8px;cursor:pointer;font-weight:600;transition:.2s;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.btn:hover{background:var(--primary-hover)}
+.btn-success{background:var(--success)} .btn-success:hover{background:#059669}
+.btn-danger{background:var(--danger)} .btn-secondary{background:#536b63}
+.btn-sm{padding:6px 12px;font-size:.8rem;border-radius:6px}
+.table-container{overflow-x:auto;margin-top:15px}
+table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden}
+th,td{padding:12px 14px;text-align:left;border-bottom:1px solid var(--border);font-size:.88rem;vertical-align:middle}
+th{background:var(--primary-light);color:var(--primary);font-weight:700}
+.badge{padding:4px 8px;border-radius:12px;font-size:.75rem;font-weight:700;display:inline-block}
+.badge-pago,.badge-recebido{background:#d1fae5;color:#065f46}
+.badge-pendente,.badge-areceber{background:#fee2e2;color:#991b1b}
+.badge-parcial{background:#fef3c7;color:#92400e}
+.badge-semprevisao{background:#e2e8f0;color:#475569}
+.badge-capitacao{background:#e0f2fe;color:#0369a1}
+.corretor-avatar{width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid var(--primary)}
+.corretor-cell{display:flex;align-items:center;gap:10px}
+.ranking-item{display:flex;align-items:center;justify-content:space-between;padding:12px;background:#fafcfb;border:1px solid var(--border);border-radius:10px;margin-bottom:10px;transition:.2s}
+.ranking-item:hover{background:var(--primary-light)}
+.ranking-pos{font-weight:800;font-size:1.1rem;color:var(--primary);width:35px}
+.modal-bg{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);display:none;justify-content:center;align-items:center;z-index:100}
+.modal-content{background:#fff;padding:25px;border-radius:12px;max-width:500px;width:90%}
+.chart-box{height:280px;position:relative}
+</style>
 </head>
 <body>
 
 <div id="loginScreen">
   <div class="login-box">
-    <h2>Realiza Imóveis</h2>
-    <p>Painel de Gestão Financeira</p>
+    <h2>Realiza Imóveis</h2><p>Painel de Gestão Financeira</p>
     <form id="formLogin">
-      <div class="form-group" style="margin-bottom:12px;">
-        <label>Utilizador</label>
-        <input type="text" id="loginUser" required placeholder="Ex: admin">
-      </div>
-      <div class="form-group" style="margin-bottom:20px;">
-        <label>Palavra-passe</label>
-        <input type="password" id="loginPass" required placeholder="Ex: 123">
-      </div>
+      <div class="form-group" style="margin-bottom:12px;"><label>Utilizador</label><input type="text" id="loginUser" required placeholder="Ex: admin"></div>
+      <div class="form-group" style="margin-bottom:20px;"><label>Palavra-passe</label><input type="password" id="loginPass" required placeholder="Ex: 123"></div>
       <button type="submit" class="btn" style="width:100%; justify-content:center;">Entrar no Sistema</button>
     </form>
     <div id="loginError" style="color:var(--danger); font-size:0.8rem; margin-top:12px; font-weight:600;"></div>
@@ -233,16 +84,11 @@
       <div class="sidebar-brand">
         <div class="logo-box">
           <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect width="100" height="100" fill="#2a5045"/>
-            <path d="M10 48 H90 M15 48 L35 32 L50 48 M42 48 V28 H58 V48 M55 48 L68 35 L85 48" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <rect width="100" height="100" fill="#2a5045"/><path d="M10 48 H90 M15 48 L35 32 L50 48 M42 48 V28 H58 V48 M55 48 L68 35 L85 48" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </div>
-        <div class="brand-title">
-          <h1>Realiza Imóveis</h1>
-          <p>Gestão Financeira</p>
-        </div>
+        <div class="brand-title"><h1>Realiza Imóveis</h1><p>Gestão Financeira</p></div>
       </div>
-
       <nav class="sidebar-menu">
         <button class="nav-btn active" onclick="mudarAba('contas')">💳 Contas a Pagar</button>
         <button class="nav-btn" onclick="mudarAba('dashboard')">📊 Dashboard</button>
@@ -251,7 +97,6 @@
         <button class="nav-btn" onclick="mudarAba('usuarios')">👤 Gerir Utilizadores</button>
       </nav>
     </div>
-
     <div>
       <div style="font-size: 0.8rem; color: #b8d0c8; margin-bottom: 8px;" id="userLogadoTxt">Logado como: admin</div>
       <button class="btn btn-danger btn-sm" onclick="sairSistema()" style="width:100%;">🚪 Sair da Conta</button>
@@ -268,9 +113,485 @@
     <div id="tab-contas" class="tab-content active">
       <div class="card" style="margin-bottom: 20px;">
         <div class="filter-bar">
-          <label for="filtroAnoContas">Ano:</label>
-          <select id="filtroAnoContas" onchange="renderContas()"></select>
-          <label for="filtroMesContas">Mês:</label>
+          <label>Ano:</label><select id="filtroAnoContas" onchange="renderContas()"></select>
+          <label>Mês:</label>
           <select id="filtroMesContas" onchange="renderContas()">
-            <option value="todos">Ano Todo (Consolidado)</option>
-            <option value="01">Janeiro</option><option value="02">Fevereiro</option><option value="03">Março</option><option value="04">Abril</option><option value="05">Maio</option><option value="06">Junho</option><option value="07">Julho</option><option value="08">Agosto</option><option value="09" selected>Setembro</option><option value="10">Outubro
+            <option value="todos">Ano Todo (Consolidado)</option><option value="01">Jan</option><option value="02">Fev</option><option value="03">Mar</option><option value="04">Abr</option><option value="05">Mai</option><option value="06">Jun</option><option value="07">Jul</option><option value="08">Ago</option><option value="09" selected>Set</option><option value="10">Out</option><option value="11">Nov</option><option value="12">Dez</option>
+          </select>
+          <button class="btn btn-secondary btn-sm" onclick="abrirGerenciadorContas()">⚙️ Contas de Saída</button>
+          <button class="btn btn-secondary btn-sm" onclick="abrirGerenciadorCategorias()">⚙️ Categorias</button>
+          <button class="btn btn-success btn-sm" onclick="gerarProximoMes()">🔄 Gerar Próximo Mês</button>
+        </div>
+      </div>
+      <div class="grid-cards">
+        <div class="card"><div class="card-title">Previsto Total</div><div class="card-val" id="totalPrevisto" style="color: var(--primary);">R$ 0,00</div></div>
+        <div class="card"><div class="card-title">Realizado / Pago</div><div class="card-val" id="totalReal" style="color: var(--success);">R$ 0,00</div></div>
+        <div class="card"><div class="card-title">Variação</div><div class="card-val" id="totalVariacao">R$ 0,00</div></div>
+        <div class="card"><div class="card-title">Total Geral Devido</div><div class="card-val" id="totalPendente" style="color: var(--danger);">R$ 0,00</div></div>
+      </div>
+      <div class="grid-main">
+        <div class="card">
+          <h3 style="color: var(--primary); margin-bottom: 12px;">Cadastrar / Editar Conta</h3>
+          <form id="formConta">
+            <input type="hidden" id="contaId">
+            <div class="form-group" style="grid-column: 1 / -1;"><label>Descrição / Fornecedor</label><input type="text" id="descricao" required></div>
+            <div class="form-group"><label>Valor Previsto (R$)</label><input type="number" step="0.01" id="valorPrevisto" required></div>
+            <div class="form-group"><label>Valor Pago (R$)</label><input type="number" step="0.01" id="valorReal"></div>
+            <div class="form-group"><label>Vencimento</label><input type="date" id="vencimento" required></div>
+            <div class="form-group"><label>Conta de Saída</label><select id="contaOrigem" required></select></div>
+            <div class="form-group"><label>Tipo</label><select id="tipoConta" onchange="toggleParcelas()"><option value="Fixa">Fixa</option><option value="Variável">Variável</option><option value="Parcelada">Parcelada</option></select></div>
+            <div class="form-group" id="groupParcelas" style="display:none;"><label>Parcela / Total</label><div style="display:flex;gap:5px;"><input type="number" id="parcAtual" value="1"><input type="number" id="parcTotal" value="12"></div></div>
+            <div class="form-group"><label>Categoria</label><select id="categoria" required></select></div>
+            <div style="grid-column: 1 / -1; display:flex; gap:10px;"><button type="submit" class="btn" style="flex:1;">Salvar</button><button type="button" class="btn btn-secondary" onclick="limparFormConta()">Limpar</button></div>
+          </form>
+        </div>
+        <div class="card">
+          <h3 style="color: var(--primary); margin-bottom: 12px;">Calculadora Proporcional</h3>
+          <div class="form-group" style="margin-bottom:8px;"><label>Valor Total Mensal (R$)</label><input type="number" id="calcVal"></div>
+          <div class="form-group" style="margin-bottom:8px;"><label>Dias Utilizados / Total</label><div style="display:flex; gap:5px;"><input type="number" id="calcDiasUso" placeholder="Ex: 17"><input type="number" id="calcDiasTotais" value="30"></div></div>
+          <button class="btn btn-success" style="width:100%; margin-top:5px;" onclick="calcularProporcional()">Calcular</button>
+          <div id="resCalc" style="margin-top:12px; font-weight:bold; font-size:0.95rem; color: var(--primary);"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="table-container">
+          <table>
+            <thead><tr><th>Descrição</th><th>Tipo</th><th>Origem</th><th>Vencimento</th><th>Previsto</th><th>Pago</th><th>Status</th><th>Ações</th></tr></thead>
+            <tbody id="tabelaContas"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div id="tab-dashboard" class="tab-content">
+      <div class="card" style="margin-bottom: 20px;">
+        <div class="filter-bar">
+          <label>Ano:</label><select id="filtroAnoDash" onchange="renderDashboard()"></select>
+          <label>Mês:</label><select id="filtroMesDash" onchange="renderDashboard()"><option value="todos">Todos</option><option value="01">Jan</option><option value="02">Fev</option><option value="03">Mar</option><option value="04">Abr</option><option value="05">Mai</option><option value="06">Jun</option><option value="07">Jul</option><option value="08">Ago</option><option value="09">Set</option><option value="10">Out</option><option value="11">Nov</option><option value="12">Dez</option></select>
+          <label>Corretor:</label><select id="filtroCorretorDash" onchange="renderDashboard()"></select>
+          <button class="btn btn-secondary btn-sm" onclick="abrirGerenciadorCorretores()">📸 Gerenciar Corretores</button>
+        </div>
+      </div>
+      <div class="grid-cards">
+        <div class="card"><div class="card-title">Volume Vendas</div><div class="card-val" id="dashTotalVendas" style="color: var(--primary);">R$ 0,00</div></div>
+        <div class="card"><div class="card-title">Total Comissões</div><div class="card-val" id="dashTotalComissao" style="color: var(--primary);">R$ 0,00</div></div>
+        <div class="card"><div class="card-title">A Receber</div><div class="card-val" id="dashComissaoAReceber" style="color: var(--warning);">R$ 0,00</div></div>
+        <div class="card"><div class="card-title">Recebidas</div><div class="card-val" id="dashComissaoRecebida" style="color: var(--success);">R$ 0,00</div></div>
+      </div>
+      <div class="grid-main">
+        <div class="card"><div class="chart-box"><canvas id="chartVendasCorretor"></canvas></div></div>
+        <div class="card">
+          <h3 style="color: var(--primary); margin-bottom: 15px;">🏆 Ranking de Vendas</h3>
+          <div id="listaRankingCorretores"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMISSÕES -->
+    <div id="tab-comissoes" class="tab-content">
+      <div class="card" style="margin-bottom: 20px;">
+        <div class="filter-bar">
+          <label>Ano:</label><select id="filtroAnoComissoes" onchange="renderComissoes()"></select>
+          <label>Mês:</label><select id="filtroMesComissoes" onchange="renderComissoes()"><option value="todos">Todos</option><option value="01">Jan</option><option value="02">Fev</option><option value="03">Mar</option><option value="04">Abr</option><option value="05">Mai</option><option value="06">Jun</option><option value="07">Jul</option><option value="08">Ago</option><option value="09">Set</option><option value="10">Out</option><option value="11">Nov</option><option value="12">Dez</option></select>
+          <label>Corretor:</label><select id="filtroCorretorComissoes" onchange="renderComissoes()"></select>
+          <label>Captação:</label><select id="filtroCapitacaoComissoes" onchange="renderComissoes()"></select>
+          <button class="btn btn-secondary btn-sm" onclick="abrirGerenciadorCorretores()">📸 Corretores</button>
+          <button class="btn btn-secondary btn-sm" onclick="abrirGerenciadorVeiculos()">⚙️ Veículos</button>
+        </div>
+      </div>
+      <div class="grid-cards">
+        <div class="card"><div class="card-title">Volume Vendas</div><div class="card-val" id="totalVendasComissao" style="color: var(--primary);">R$ 0,00</div></div>
+        <div class="card"><div class="card-title">Total Comissões</div><div class="card-val" id="totalComissaoGeral" style="color: var(--primary);">R$ 0,00</div></div>
+        <div class="card"><div class="card-title">A Receber</div><div class="card-val" id="totalComissaoAReceber" style="color: var(--warning);">R$ 0,00</div></div>
+        <div class="card"><div class="card-title">Recebidas</div><div class="card-val" id="totalComissaoRecebida" style="color: var(--success);">R$ 0,00</div></div>
+      </div>
+      <div class="card" style="margin-bottom:20px;">
+        <h3 style="color: var(--primary); margin-bottom: 12px;">Lançar Nova Comissão / Venda</h3>
+        <form id="formComissao">
+          <input type="hidden" id="comissaoId">
+          <div class="form-group"><label>Comprador</label><input type="text" id="comprador" required></div>
+          <div class="form-group"><label>Veículo Captação</label><select id="veiculoCapitacao" required></select></div>
+          <div class="form-group"><label>Vendedor / Proprietário</label><input type="text" id="vendedor" required></div>
+          <div class="form-group"><label>Corretor Responsável</label><select id="corretor" required></select></div>
+          <div class="form-group"><label>Data Fechamento</label><input type="date" id="dataFechamentoComissao" required></div>
+          <div class="form-group"><label>Valor da Venda (R$)</label><input type="number" step="0.01" id="valorVenda" required></div>
+          <div class="form-group"><label>Comissão Total (R$)</label><input type="number" step="0.01" id="valorComissao" required></div>
+          <div class="form-group"><label>Já Recebido (R$)</label><input type="number" step="0.01" id="valorRecebido"></div>
+          <div class="form-group"><label>Quem reteve?</label>
+            <select id="retidoPor"><option value="Nenhum">Selecione...</option><option value="Imobiliária">Imobiliária</option><option value="Corretor">Corretor</option></select>
+          </div>
+          <div class="form-group"><label>Previsão</label><select id="tipoPrevisao" onchange="toggleDataPrevisao()"><option value="com_data">Com Data</option><option value="sem_previsao">Sem Previsão</option></select></div>
+          <div class="form-group" id="groupDataPrevisao"><label>Data Previsão</label><input type="date" id="dataPrevisao"></div>
+          <div style="grid-column: 1 / -1; display:flex; gap:10px;"><button type="submit" class="btn" style="flex:1;">Salvar Comissão</button><button type="button" class="btn btn-secondary" onclick="limparFormComissao()">Limpar</button></div>
+        </form>
+      </div>
+      <div class="card">
+        <div class="table-container">
+          <table>
+            <thead><tr><th>Data</th><th>Clientes</th><th>Captação</th><th>Corretor</th><th>Venda</th><th>Comissão Total</th><th>Já Recebido</th><th>Falta</th><th>Retenção</th><th>Status</th><th>Ações</th></tr></thead>
+            <tbody id="tabelaComissoes"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ALUGUEL -->
+    <div id="tab-aluguel" class="tab-content">
+      <div class="card" style="margin-bottom: 20px;">
+        <div class="filter-bar">
+          <label>Ano:</label><select id="filtroAnoAluguel" onchange="renderAlugueis()"></select>
+          <label>Mês:</label><select id="filtroMesAluguel" onchange="renderAlugueis()"><option value="todos">Todos</option><option value="01">Jan</option><option value="02">Fev</option><option value="03">Mar</option><option value="04">Abr</option><option value="05">Mai</option><option value="06">Jun</option><option value="07">Jul</option><option value="08">Ago</option><option value="09">Set</option><option value="10">Out</option><option value="11">Nov</option><option value="12">Dez</option></select>
+          <label>Corretor:</label><select id="filtroCorretorAluguel" onchange="renderAlugueis()"></select>
+          <label>Captação:</label><select id="filtroCapitacaoAluguel" onchange="renderAlugueis()"></select>
+        </div>
+      </div>
+      <div class="grid-cards">
+        <div class="card"><div class="card-title">Total Locações</div><div class="card-val" id="qtdAlugueisFechados" style="color: var(--primary);">0</div></div>
+        <div class="card"><div class="card-title">Volume Alugueis</div><div class="card-val" id="totalValorAlugueis" style="color: var(--success);">R$ 0,00</div></div>
+        <div class="card"><div class="card-title">Captações Marketing</div><div class="card-val" id="totalAluguelMarketing" style="color: var(--warning);">0</div></div>
+      </div>
+      <div class="card" style="margin-bottom:20px;">
+        <h3 style="color: var(--primary); margin-bottom: 12px;">Lançar Novo Aluguel Fechado</h3>
+        <form id="formAluguel">
+          <input type="hidden" id="aluguelId">
+          <div class="form-group"><label>Inquilino</label><input type="text" id="inquilino" required></div>
+          <div class="form-group"><label>Veículo Captação</label><select id="veiculoCapitacaoAluguel" required></select></div>
+          <div class="form-group"><label>Proprietário</label><input type="text" id="proprietarioAluguel" required></div>
+          <div class="form-group"><label>Valor do Aluguel (R$)</label><input type="number" step="0.01" id="valorAluguel" required></div>
+          <div class="form-group"><label>Data de Fechamento</label><input type="date" id="dataFechamentoAluguel" required></div>
+          <div class="form-group"><label>Corretor</label><select id="corretorAluguel" required></select></div>
+          <div style="grid-column: 1 / -1; display:flex; gap:10px;"><button type="submit" class="btn" style="flex:1;">Salvar Locação</button><button type="button" class="btn btn-secondary" onclick="limparFormAluguel()">Limpar</button></div>
+        </form>
+      </div>
+      <div class="card">
+        <div class="table-container">
+          <table>
+            <thead><tr><th>Fechamento</th><th>Inquilino</th><th>Captação</th><th>Proprietário</th><th>Corretor</th><th>Valor</th><th>Custo Mkt</th><th>Ações</th></tr></thead>
+            <tbody id="tabelaAlugueis"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- UTILIZADORES -->
+    <div id="tab-usuarios" class="tab-content">
+      <div class="card" style="margin-bottom: 20px;">
+        <h3 style="color: var(--primary); margin-bottom: 12px;">Cadastrar Novo Utilizador</h3>
+        <form id="formNovoUser" onsubmit="event.preventDefault(); adicionarUsuario();" style="grid-template-columns: 1fr 1fr auto;">
+          <div class="form-group"><label>Utilizador</label><input type="text" id="novoUserNome" required></div>
+          <div class="form-group"><label>Palavra-passe</label><input type="password" id="novoUserPass" required></div>
+          <div style="display:flex; align-items:flex-end;"><button type="submit" class="btn">Cadastrar</button></div>
+        </form>
+      </div>
+      <div class="card">
+        <div class="table-container">
+          <table>
+            <thead><tr><th>Utilizador</th><th>Palavra-passe</th><th>Ações</th></tr></thead>
+            <tbody id="tabelaUsuarios"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Modais -->
+<div class="modal-bg" id="modalOrigens"><div class="modal-content"><h3 style="color: var(--primary); margin-bottom: 10px;">Gerenciar Contas de Saída</h3><div style="display:flex; gap:8px; margin-bottom:15px;"><input type="text" id="novaOrigemNome" placeholder="Nova Conta" style="flex:1;"><button class="btn btn-sm" onclick="adicionarOrigem()">Add</button></div><div id="listaOrigens" style="max-height:200px; overflow-y:auto; margin-bottom:15px;"></div><button class="btn btn-secondary" style="width:100%;" onclick="$('modalOrigens').style.display='none';renderContas()">Fechar</button></div></div>
+<div class="modal-bg" id="modalCategorias"><div class="modal-content"><h3 style="color: var(--primary); margin-bottom: 10px;">Gerenciar Categorias</h3><div style="display:flex; gap:8px; margin-bottom:15px;"><input type="text" id="novaCategoriaNome" placeholder="Nova Categoria" style="flex:1;"><button class="btn btn-sm" onclick="adicionarCategoria()">Add</button></div><div id="listaCategorias" style="max-height:200px; overflow-y:auto; margin-bottom:15px;"></div><button class="btn btn-secondary" style="width:100%;" onclick="$('modalCategorias').style.display='none';renderContas()">Fechar</button></div></div>
+<div class="modal-bg" id="modalVeiculos"><div class="modal-content"><h3 style="color: var(--primary); margin-bottom: 10px;">Gerenciar Veículos</h3><div style="display:flex; gap:8px; margin-bottom:15px;"><input type="text" id="novoVeiculoNome" placeholder="Novo Veículo" style="flex:1;"><button class="btn btn-sm" onclick="adicionarVeiculo()">Add</button></div><div id="listaVeiculos" style="max-height:200px; overflow-y:auto; margin-bottom:15px;"></div><button class="btn btn-secondary" style="width:100%;" onclick="$('modalVeiculos').style.display='none';renderComissoes();renderAlugueis()">Fechar</button></div></div>
+
+<!-- MODAL CORRETORES COM UPLOAD -->
+<div class="modal-bg" id="modalCorretores">
+  <div class="modal-content">
+    <h3 style="color: var(--primary); margin-bottom: 10px;">Cadastrar Corretor & Foto</h3>
+    <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:15px; border-bottom:1px solid #ccc; padding-bottom:15px;">
+      <input type="text" id="novoCorretorNome" placeholder="Nome do Corretor">
+      <label style="font-size:0.8rem;">Anexar Foto (Será comprimida automaticamente):</label>
+      <input type="file" id="novoCorretorFoto" accept="image/*" style="background:#fff; padding:6px;">
+      <button class="btn btn-sm" onclick="adicionarCorretor()">Cadastrar Corretor</button>
+    </div>
+    <div id="listaCorretores" style="max-height:220px; overflow-y:auto; margin-bottom:15px;"></div>
+    <button class="btn btn-secondary" style="width:100%;" onclick="$('modalCorretores').style.display='none'; carregarSelectsComissoes(); carregarSelectsAluguel(); renderComissoes(); renderAlugueis();">Fechar</button>
+  </div>
+</div>
+
+<script>
+  const $ = id => document.getElementById(id);
+  function formatarMoeda(v) { return 'R$ ' + (v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+
+  let origens = JSON.parse(localStorage.getItem('origens_db')) || ['Itaú', 'Bradesco', 'Caixa', 'Dinheiro / Caixinha'];
+  let categorias = JSON.parse(localStorage.getItem('categorias_db')) || ['Imóvel/Aluguel', 'Serviços públicos', 'Impostos', 'Atrasos/Multas', 'Operacional'];
+  let corretores = JSON.parse(localStorage.getItem('corretores_objs_db')) || [{ nome: 'Vinícius Barbosa', foto: '' }, { nome: 'Geovana Castro', foto: '' }];
+  let veiculosCapitacao = JSON.parse(localStorage.getItem('veiculos_db')) || ['Marketing', 'Instagram', 'Tráfego Pago', 'Indicação', 'Placa do Imóvel', 'WhatsApp'];
+  let usuariosDB = JSON.parse(localStorage.getItem('usuarios_db')) || [{ usuario: 'admin', senha: '123' }];
+  if(usuariosDB.length===0) usuariosDB = [{ usuario: 'admin', senha: '123' }];
+  
+  let contas = JSON.parse(localStorage.getItem('contas_db')) || [];
+  let comissoes = JSON.parse(localStorage.getItem('comissoes_db')) || [];
+  let alugueis = JSON.parse(localStorage.getItem('alugueis_db')) || [];
+  let chartCorretor;
+
+  $('formLogin').onsubmit = (e) => {
+    e.preventDefault();
+    const u = $('loginUser').value.trim(); const p = $('loginPass').value.trim();
+    if (usuariosDB.find(x => x.usuario === u && x.senha === p)) {
+      localStorage.setItem('sessao_ativa', u);
+      entrarSistema(u);
+    } else { $('loginError').innerText = 'Inválido!'; }
+  };
+
+  window.onload = () => { if(localStorage.getItem('sessao_ativa')) entrarSistema(localStorage.getItem('sessao_ativa')); };
+
+  function entrarSistema(user) {
+    $('loginScreen').style.display = 'none';
+    $('appLayout').classList.add('authenticated');
+    $('userLogadoTxt').innerText = `Logado como: ${user}`;
+    initAnoSelectors(); sincronizarCustosMarketing(); renderContas();
+  }
+  function sairSistema() { localStorage.removeItem('sessao_ativa'); location.reload(); }
+
+  function mudarAba(aba) {
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    $('tituloAbaAtual').innerText = aba.toUpperCase();
+    if (aba === 'contas') { document.querySelectorAll('.nav-btn')[0].classList.add('active'); $('tab-contas').classList.add('active'); renderContas(); }
+    else if (aba === 'dashboard') { document.querySelectorAll('.nav-btn')[1].classList.add('active'); $('tab-dashboard').classList.add('active'); renderDashboard(); }
+    else if (aba === 'comissoes') { document.querySelectorAll('.nav-btn')[2].classList.add('active'); $('tab-comissoes').classList.add('active'); renderComissoes(); }
+    else if (aba === 'aluguel') { document.querySelectorAll('.nav-btn')[3].classList.add('active'); $('tab-aluguel').classList.add('active'); renderAlugueis(); }
+    else if (aba === 'usuarios') { document.querySelectorAll('.nav-btn')[4].classList.add('active'); $('tab-usuarios').classList.add('active'); renderTabelaUsuarios(); }
+  }
+
+  function initAnoSelectors() {
+    ['filtroAnoContas', 'filtroAnoDash', 'filtroAnoComissoes', 'filtroAnoAluguel'].forEach(id => {
+      let sel = $(id); if(!sel) return; sel.innerHTML = '<option value="todos">Todos Anos</option>';
+      for (let a = 2024; a <= 2028; a++) { sel.innerHTML += `<option value="${a}" ${a===2026?'selected':''}>${a}</option>`; }
+    });
+  }
+
+  // CONTAS
+  function carregarSelectsFormulario() {
+    let ori = $('contaOrigem'), cat =$('categoria');
+    if(ori) ori.innerHTML = origens.map(o=>`<option value="${o}">${o}</option>`).join('');
+    if(cat) cat.innerHTML = categorias.map(c=>`<option value="${c}">${c}</option>`).join('');
+  }
+  function toggleParcelas() { $('groupParcelas').style.display =$('tipoConta').value === 'Parcelada' ? 'flex' : 'none'; }
+
+  function sincronizarCustosMarketing() {
+    let mktVendas = {}, mktLoc = {};
+    comissoes.forEach(c => {
+      if(c.veiculoCapitacao && c.veiculoCapitacao.toLowerCase().includes('marketing') && c.dataFechamento){
+        let p = c.dataFechamento.split('-'); let m = parseInt(p[1])+1; let a = parseInt(p[0]); if(m>12){m=1;a++;}
+        let key = `${a}-${String(m).padStart(2,'0')}`; mktVendas[key] = (mktVendas[key]||0)+1;
+      }
+    });
+    alugueis.forEach(a => {
+      if(a.veiculoCapitacao && a.veiculoCapitacao.toLowerCase().includes('marketing') && a.dataFechamento){
+        let p = a.dataFechamento.split('-'); let m = parseInt(p[1])+1; let a = parseInt(p[0]); if(m>12){m=1;a++;}
+        let key = `${a}-${String(m).padStart(2,'0')}`; mktLoc[key] = (mktLoc[key]||0)+1;
+      }
+    });
+    for(let mes in mktVendas){
+      let q = mktVendas[mes], ex = contas.find(c => c.isAutoMkt==='vendas' && c.vencimento.startsWith(mes));
+      if(ex){ ex.valorPrevisto = q*300; ex.descricao=`Custos Mkt Vendas (${q}x)`; }
+      else contas.push({id:Date.now()+Math.random(), descricao:`Custos Mkt Vendas (${q}x)`, valorPrevisto:q*300, valorReal:0, vencimento:`${mes}-10`, origem:origens[0], tipo:'Variável', parcAtual:1, parcTotal:1, categoria:'Operacional', status:'Pendente', isAutoMkt:'vendas'});
+    }
+    for(let mes in mktLoc){
+      let q = mktLoc[mes], ex = contas.find(c => c.isAutoMkt==='locacao' && c.vencimento.startsWith(mes));
+      if(ex){ ex.valorPrevisto = q*50; ex.descricao=`Custos Mkt Locações (${q}x)`; }
+      else contas.push({id:Date.now()+Math.random(), descricao:`Custos Mkt Locações (${q}x)`, valorPrevisto:q*50, valorReal:0, vencimento:`${mes}-10`, origem:origens[0], tipo:'Variável', parcAtual:1, parcTotal:1, categoria:'Operacional', status:'Pendente', isAutoMkt:'locacao'});
+    }
+    contas = contas.filter(c => {
+      let m = c.vencimento ? c.vencimento.substring(0,7) : '';
+      if(c.isAutoMkt==='vendas') return (mktVendas[m]||0)>0; if(c.isAutoMkt==='locacao') return (mktLoc[m]||0)>0; return true;
+    });
+    localStorage.setItem('contas_db', JSON.stringify(contas));
+  }
+
+  function renderContas() {
+    carregarSelectsFormulario();
+    let aS = $('filtroAnoContas').value, mS =$('filtroMesContas').value;
+    let filt = contas.filter(c => {
+      if(!c.vencimento) return false; let p=c.vencimento.split('-'); 
+      return (aS==='todos'||p[0]===aS) && (mS==='todos'||p[1]===mS);
+    });
+    let prev = 0, real = 0, pend = 0;
+    $('tabelaContas').innerHTML = filt.map(c => {
+      prev += c.valorPrevisto||0; let r = c.valorReal||0; if(c.status==='Pago') real+=r; else pend+=c.valorPrevisto;
+      return `<tr><td><b>${c.isAutoMkt?'🤖':''}${c.descricao}</b></td><td><small>${c.tipo} • ${c.categoria}</small></td><td>${c.origem}</td><td>${c.vencimento.split('-').reverse().join('/')}</td>
+      <td>${formatarMoeda(c.valorPrevisto)}</td><td>${formatarMoeda(c.valorReal)}</td><td><span class="badge badge-${c.status.toLowerCase()}">${c.status}</span></td>
+      <td>${c.status!=='Pago'?`<button class="btn btn-success btn-sm" onclick="baixarConta(${c.id})">Baixar</button>`:''}<button class="btn btn-secondary btn-sm" onclick="editarConta(${c.id})">✏️</button><button class="btn btn-danger btn-sm" onclick="excluirConta(${c.id})">X</button></td></tr>`;
+    }).join('');
+    $('totalPrevisto').innerText = formatarMoeda(prev); $('totalReal').innerText = formatarMoeda(real);$('totalPendente').innerText = formatarMoeda(pend);
+    let v = prev-real; $('totalVariacao').innerText = `${formatarMoeda(Math.abs(v))} ${v>=0?'(Economia)':'(Excesso)'}`; $('totalVariacao').style.color = v>=0?'var(--success)':'var(--danger)';
+  }
+
+  $('formConta').onsubmit = (e) => {
+    e.preventDefault();
+    let id = $('contaId').value, p = parseFloat($('valorPrevisto').value)\vert{}\vert{}0, r = parseFloat($('valorReal').value)||0;
+    let obj = { id: id ? parseInt(id) : Date.now(), descricao: $('descricao').value, valorPrevisto: p, valorReal: r, vencimento: $('vencimento').value, origem:$('contaOrigem').value, tipo: $('tipoConta').value, parcAtual: parseInt($('parcAtual').value)||1, parcTotal: parseInt($('parcTotal').value)\vert{}\vert{}1, categoria:$('categoria').value, status: r>0?'Pago':'Pendente', isAutoMkt: id ? contas.find(x=>x.id==id).isAutoMkt : false };
+    if(id) contas[contas.findIndex(x=>x.id==id)] = obj; else contas.push(obj);
+    localStorage.setItem('contas_db', JSON.stringify(contas)); limparFormConta(); renderContas();
+  };
+  function baixarConta(id) { let c = contas.find(x=>x.id===id); if(c){ let v=prompt('Valor Pago:', c.valorPrevisto); if(v!==null){ c.valorReal=parseFloat(v)||c.valorPrevisto; c.status='Pago'; localStorage.setItem('contas_db',JSON.stringify(contas)); renderContas(); } } }
+  function editarConta(id) { let c = contas.find(x=>x.id===id); if(c){ $('contaId').value=c.id; $('descricao').value=c.descricao; $('valorPrevisto').value=c.valorPrevisto; $('valorReal').value=c.valorReal||''; $('vencimento').value=c.vencimento; $('contaOrigem').value=c.origem; $('tipoConta').value=c.tipo; $('parcAtual').value=c.parcAtual||1; $('parcTotal').value=c.parcTotal\vert{}\vert{}1; $('categoria').value=c.categoria; toggleParcelas(); } }
+  function excluirConta(id) { if(confirm('Excluir?')){ contas=contas.filter(x=>x.id!==id); localStorage.setItem('contas_db',JSON.stringify(contas)); renderContas(); } }
+  function limparFormConta() { $('formConta').reset();$('contaId').value=''; toggleParcelas(); }
+  function calcularProporcional() { let res = (parseFloat($('calcVal').value\vert{}\vert{}0)/parseFloat($('calcDiasTotais').value||30))*parseFloat($('calcDiasUso').value\vert{}\vert{}0);$('resCalc').innerText = `Proporcional: ${formatarMoeda(res)}`; }
+  function gerarProximoMes() { alert('Função auto gerar ativa!'); }
+
+  // COMISSÕES COM PAGAMENTO PARCIAL
+  function toggleDataPrevisao() { $('groupDataPrevisao').style.display =$('tipoPrevisao').value === 'com_data' ? 'flex' : 'none'; }
+  function carregarSelectsComissoes() {
+    let htmlC = '<option value="todos">Todos</option>' + corretores.map(c=>`<option value="${c.nome}">${c.nome}</option>`).join('');
+    if($('filtroCorretorComissoes'))$('filtroCorretorComissoes').innerHTML = htmlC;
+    if($('corretor'))$('corretor').innerHTML = corretores.map(c=>`<option value="${c.nome}">${c.nome}</option>`).join('');
+    let htmlV = '<option value="todos">Todos</option>' + veiculosCapitacao.map(v=>`<option value="${v}">${v}</option>`).join('');
+    if($('filtroCapitacaoComissoes'))$('filtroCapitacaoComissoes').innerHTML = htmlV;
+    if($('veiculoCapitacao'))$('veiculoCapitacao').innerHTML = veiculosCapitacao.map(v=>`<option value="${v}">${v}</option>`).join('');
+  }
+
+  function renderComissoes() {
+    carregarSelectsComissoes();
+    let aS = $('filtroAnoComissoes').value, mS =$('filtroMesComissoes').value, cS = $('filtroCorretorComissoes').value, vS =$('filtroCapitacaoComissoes').value;
+    let filt = comissoes.filter(c => {
+      if(cS!=='todos' && c.corretor!==cS) return false; if(vS!=='todos' && c.veiculoCapitacao!==vS) return false;
+      if(!c.dataFechamento) return false; let p=c.dataFechamento.split('-'); return (aS==='todos'||p[0]===aS) && (mS==='todos'||p[1]===mS);
+    });
+    let tv = 0, tc = 0, tr = 0, tP = 0;
+    $('tabelaComissoes').innerHTML = filt.map(c => {
+      let cTotal = c.valorComissao||0, cRec = c.valorRecebido||0, falta = cTotal - cRec;
+      tv += c.valorVenda||0; tc += cTotal; tr += cRec; if(falta>0) tP += falta;
+      let badge = c.status==='Recebido'?'<span class="badge badge-recebido">Recebido</span>':c.status==='Parcial'?'<span class="badge badge-parcial">Parcial</span>':'<span class="badge badge-areceber">A Receber</span>';
+      let fot = corretores.find(x=>x.nome===c.corretor)?.foto || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
+      return `<tr><td>${c.dataFechamento.split('-').reverse().join('/')}</td>
+      <td><small>C: <b>${c.comprador}</b><br>V: ${c.vendedor}</small></td><td><span class="badge badge-capitacao">${c.veiculoCapitacao}</span></td>
+      <td><div class="corretor-cell"><img src="${fot}" class="corretor-avatar"><span>${c.corretor}</span></div></td>
+      <td>${formatarMoeda(c.valorVenda)}</td><td><b>${formatarMoeda(cTotal)}</b></td>
+      <td style="color:var(--success)">${formatarMoeda(cRec)}</td><td style="color:var(--danger)"><b>${formatarMoeda(falta>0?falta:0)}</b></td>
+      <td><small>${c.retidoPor&&c.retidoPor!=='Nenhum'?c.retidoPor:'-'}</small></td><td>${badge}</td>
+      <td>${c.status!=='Recebido'?`<button class="btn btn-success btn-sm" onclick="baixarComissao(${c.id})">Baixar</button>`:''}<button class="btn btn-secondary btn-sm" onclick="editarComissao(${c.id})">✏️</button><button class="btn btn-danger btn-sm" onclick="excluirComissao(${c.id})">X</button></td></tr>`;
+    }).join('');
+    $('totalVendasComissao').innerText = formatarMoeda(tv);$('totalComissaoGeral').innerText = formatarMoeda(tc); $('totalComissaoAReceber').innerText = formatarMoeda(tP);$('totalComissaoRecebida').innerText = formatarMoeda(tr);
+  }
+
+  $('formComissao').onsubmit = (e) => {
+    e.preventDefault();
+    let id = $('comissaoId').value, vt = parseFloat($('valorComissao').value)\vert{}\vert{}0, vr = parseFloat($('valorRecebido').value)||0;
+    let st = 'A Receber'; if(vr>=vt && vt>0) st='Recebido'; else if(vr>0) st='Parcial';
+    let obj = { id: id ? parseInt(id) : Date.now(), comprador: $('comprador').value, veiculoCapitacao:$('veiculoCapitacao').value, vendedor: $('vendedor').value, corretor:$('corretor').value, dataFechamento: $('dataFechamentoComissao').value, valorVenda: parseFloat($('valorVenda').value)||0, valorComissao: vt, valorRecebido: vr, retidoPor: $('retidoPor').value, tipoPrevisao:$('tipoPrevisao').value, dataPrevisao: $('tipoPrevisao').value==='com_data'?$('dataPrevisao').value:'', status: st };
+    if(id) comissoes[comissoes.findIndex(x=>x.id==id)] = obj; else comissoes.push(obj);
+    localStorage.setItem('comissoes_db', JSON.stringify(comissoes)); sincronizarCustosMarketing(); limparFormComissao(); renderComissoes();
+  };
+  function baixarComissao(id) {
+    let c = comissoes.find(x=>x.id===id);
+    if(c && c.status!=='Recebido'){
+      let falta = (c.valorComissao||0)-(c.valorRecebido||0);
+      let v = prompt(`Quanto está recebendo agora? (Falta: R$ ${falta.toFixed(2)})`, falta);
+      if(v!==null){
+        let val = parseFloat(v.replace(',','.'));
+        if(!isNaN(val) && val>0){
+          c.valorRecebido = (c.valorRecebido||0)+val;
+          c.status = c.valorRecebido>=c.valorComissao ? 'Recebido' : 'Parcial';
+          let q = prompt('Quem reteve? [1] Imobiliária, [2] Corretor (Deixe em branco se nenhum)');
+          if(q==='1') c.retidoPor='Imobiliária'; else if(q==='2') c.retidoPor='Corretor';
+          localStorage.setItem('comissoes_db',JSON.stringify(comissoes)); renderComissoes();
+        }
+      }
+    }
+  }
+  function editarComissao(id) { let c = comissoes.find(x=>x.id===id); if(c){ $('comissaoId').value=c.id; $('comprador').value=c.comprador; $('veiculoCapitacao').value=c.veiculoCapitacao; $('vendedor').value=c.vendedor; $('corretor').value=c.corretor; $('dataFechamentoComissao').value=c.dataFechamento; $('valorVenda').value=c.valorVenda; $('valorComissao').value=c.valorComissao; $('valorRecebido').value=c.valorRecebido\vert{}\vert{}'';$('retidoPor').value=c.retidoPor||'Nenhum'; $('tipoPrevisao').value=c.tipoPrevisao; $('dataPrevisao').value=c.dataPrevisao||''; toggleDataPrevisao(); } }
+  function excluirComissao(id) { if(confirm('Excluir?')){ comissoes=comissoes.filter(x=>x.id!==id); localStorage.setItem('comissoes_db',JSON.stringify(comissoes)); sincronizarCustosMarketing(); renderComissoes(); } }
+  function limparFormComissao() { $('formComissao').reset();$('comissaoId').value=''; toggleDataPrevisao(); }
+
+  // ALUGUEL
+  function carregarSelectsAluguel() {
+    if($('filtroCorretorAluguel'))$('filtroCorretorAluguel').innerHTML = '<option value="todos">Todos</option>' + corretores.map(c=>`<option value="${c.nome}">${c.nome}</option>`).join('');
+    if($('corretorAluguel'))$('corretorAluguel').innerHTML = corretores.map(c=>`<option value="${c.nome}">${c.nome}</option>`).join('');
+    if($('filtroCapitacaoAluguel'))$('filtroCapitacaoAluguel').innerHTML = '<option value="todos">Todos</option>' + veiculosCapitacao.map(v=>`<option value="${v}">${v}</option>`).join('');
+    if($('veiculoCapitacaoAluguel'))$('veiculoCapitacaoAluguel').innerHTML = veiculosCapitacao.map(v=>`<option value="${v}">${v}</option>`).join('');
+  }
+  function renderAlugueis() {
+    carregarSelectsAluguel(); let aS = $('filtroAnoAluguel').value, mS =$('filtroMesAluguel').value, cS = $('filtroCorretorAluguel').value, vS =$('filtroCapitacaoAluguel').value;
+    let filt = alugueis.filter(a => { if(cS!=='todos' && a.corretor!==cS) return false; if(vS!=='todos' && a.veiculoCapitacao!==vS) return false; if(!a.dataFechamento) return false; let p=a.dataFechamento.split('-'); return (aS==='todos'||p[0]===aS) && (mS==='todos'||p[1]===mS); });
+    let totVal = 0, mkt = 0;
+    $('tabelaAlugueis').innerHTML = filt.map(a => {
+      totVal += a.valorAluguel||0; if(a.veiculoCapitacao&&a.veiculoCapitacao.toLowerCase().includes('marketing')) mkt++;
+      let f = corretores.find(x=>x.nome===a.corretor)?.foto || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
+      return `<tr><td>${a.dataFechamento.split('-').reverse().join('/')}</td><td><b>${a.inquilino}</b></td><td><span class="badge badge-capitacao">${a.veiculoCapitacao}</span></td><td>${a.proprietario}</td><td><div class="corretor-cell"><img src="${f}" class="corretor-avatar"><span>${a.corretor}</span></div></td><td>${formatarMoeda(a.valorAluguel)}</td><td>${a.veiculoCapitacao.toLowerCase().includes('marketing')?'<b style="color:var(--danger)">R$ 50,00</b>':'-'}</td><td><button class="btn btn-secondary btn-sm" onclick="editarAluguel(${a.id})">✏️</button><button class="btn btn-danger btn-sm" onclick="excluirAluguel(${a.id})">X</button></td></tr>`;
+    }).join('');
+    $('qtdAlugueisFechados').innerText = filt.length; $('totalValorAlugueis').innerText = formatarMoeda(totVal);$('totalAluguelMarketing').innerText = mkt;
+  }
+  $('formAluguel').onsubmit = (e) => { e.preventDefault(); let id =$('aluguelId').value; let obj = { id: id ? parseInt(id) : Date.now(), inquilino: $('inquilino').value, veiculoCapitacao:$('veiculoCapitacaoAluguel').value, proprietario: $('proprietarioAluguel').value, valorAluguel: parseFloat($('valorAluguel').value)||0, dataFechamento: $('dataFechamentoAluguel').value, corretor:$('corretorAluguel').value }; if(id) alugueis[alugueis.findIndex(x=>x.id==id)] = obj; else { alugueis.push(obj); alert('Gerado custo Marketing mês seguinte.'); } localStorage.setItem('alugueis_db', JSON.stringify(alugueis)); sincronizarCustosMarketing(); limparFormAluguel(); renderAlugueis(); };
+  function editarAluguel(id){ let a=alugueis.find(x=>x.id===id); if(a){$('aluguelId').value=a.id; $('inquilino').value=a.inquilino; $('veiculoCapitacaoAluguel').value=a.veiculoCapitacao; $('proprietarioAluguel').value=a.proprietario; $('valorAluguel').value=a.valorAluguel; $('dataFechamentoAluguel').value=a.dataFechamento; $('corretorAluguel').value=a.corretor;} }
+  function excluirAluguel(id){ if(confirm('Excluir?')){ alugueis=alugueis.filter(x=>x.id!==id); localStorage.setItem('alugueis_db',JSON.stringify(alugueis)); sincronizarCustosMarketing(); renderAlugueis(); } }
+  function limparFormAluguel(){ $('formAluguel').reset();$('aluguelId').value=''; }
+
+  // DASHBOARD
+  function renderDashboard(){
+    if($('filtroCorretorDash'))$('filtroCorretorDash').innerHTML = '<option value="todos">Todos</option>' + corretores.map(c=>`<option value="${c.nome}">${c.nome}</option>`).join('');
+    let aS = $('filtroAnoDash').value, mS = $('filtroMesDash').value, cS =$('filtroCorretorDash')?.value;
+    let f = comissoes.filter(c => { if(cS!=='todos' && c.corretor!==cS) return false; if(!c.dataFechamento) return false; let p=c.dataFechamento.split('-'); return (aS==='todos'||p[0]===aS) && (mS==='todos'||p[1]===mS); });
+    let tV=0, tC=0, tR=0, tP=0, mapa={};
+    corretores.forEach(c => { mapa[c.nome] = { nome: c.nome, vol: 0, qtd: 0, com: 0, foto: c.foto||'https://cdn-icons-png.flaticon.com/512/3135/3135715.png' }; });
+    f.forEach(c => { tV+=c.valorVenda||0; tC+=c.valorComissao||0; tR+=c.valorRecebido||0; let falta=(c.valorComissao||0)-(c.valorRecebido||0); if(falta>0) tP+=falta; if(mapa[c.corretor]) { mapa[c.corretor].vol+=c.valorVenda||0; mapa[c.corretor].qtd++; mapa[c.corretor].com+=c.valorComissao||0; } });
+    $('dashTotalVendas').innerText=formatarMoeda(tV);$('dashTotalComissao').innerText=formatarMoeda(tC); $('dashComissaoAReceber').innerText=formatarMoeda(tP);$('dashComissaoRecebida').innerText=formatarMoeda(tR);
+    let rank = Object.values(mapa).sort((a,b)=>b.vol-a.vol);
+    if(chartCorretor) chartCorretor.destroy();
+    chartCorretor = new Chart($('chartVendasCorretor'), { type: 'bar', data: { labels: rank.map(x=>x.nome), datasets: [{ label: 'Volume Vendas (R$)', data: rank.map(x=>x.vol), backgroundColor: '#2a5045', borderRadius: 6 }] }, options: { responsive: true, maintainAspectRatio: false } });
+    $('listaRankingCorretores').innerHTML = rank.map((r,i) => `<div class="ranking-item"><div style="display:flex;align-items:center;gap:12px;"><div class="ranking-pos">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1+'º'}</div><img src="${r.foto}" class="corretor-avatar"><div><div style="font-weight:700;">${r.nome}</div><small>${r.qtd} venda(s)</small></div></div><div style="text-align:right;"><div style="font-weight:800;color:var(--primary);">${formatarMoeda(r.vol)}</div><small style="color:var(--success);">Comissão: ${formatarMoeda(r.com)}</small></div></div>`).join('');
+  }
+
+  // CONFIGURAÇÕES
+  function abrirGerenciadorCorretores() { $('modalCorretores').style.display='flex'; renderListaCorretores(); }
+  function renderListaCorretores() {
+    $('listaCorretores').innerHTML = corretores.map((c,i) => `<div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;background:#f8fafc;padding:8px;border-radius:8px;border:1px solid #e2e8f0;"><img src="${c.foto||'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'}" class="corretor-avatar"><input type="text" value="${c.nome}" id="corr_n_${i}" style="flex:1;"><button class="btn btn-sm" onclick="salvarCorretor(${i})">Salvar</button><button class="btn btn-danger btn-sm" onclick="removerCorretor(${i})">X</button></div>`).join('');
+  }
+  function salvarCorretor(i) { let n=$(`corr_n_${i}`).value; if(n){ corretores[i].nome=n; localStorage.setItem('corretores_objs_db',JSON.stringify(corretores)); renderListaCorretores(); } }
+  function removerCorretor(i) { if(corretores.length>1){ corretores.splice(i,1); localStorage.setItem('corretores_objs_db',JSON.stringify(corretores)); renderListaCorretores(); } else alert('Mantenha 1 corretor.'); }
+  
+  // COMPRESSÃO E UPLOAD DA IMAGEM
+  function adicionarCorretor() {
+    let nome = $('novoCorretorNome').value.trim(), file =$('novoCorretorFoto').files[0];
+    if(!nome || corretores.some(x=>x.nome===nome)) return alert('Nome inválido ou já existe.');
+    if(file) {
+      let reader = new FileReader();
+      reader.onload = function(e){
+        let img = new Image();
+        img.onload = function(){
+          let canvas = document.createElement('canvas');
+          let scale = 150 / img.width; canvas.width = 150; canvas.height = img.height * scale;
+          canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+          corretores.push({nome:nome, foto:canvas.toDataURL('image/jpeg', 0.6)});
+          localStorage.setItem('corretores_objs_db',JSON.stringify(corretores));
+          $('novoCorretorNome').value='';$('novoCorretorFoto').value=''; renderListaCorretores();
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    } else {
+      corretores.push({nome:nome, foto:''}); localStorage.setItem('corretores_objs_db',JSON.stringify(corretores)); $('novoCorretorNome').value=''; renderListaCorretores();
+    }
+  }
+
+  function abrirGerenciadorContas() { $('modalOrigens').style.display='flex'; renderListaOrigens(); }
+  function renderListaOrigens() { $('listaOrigens').innerHTML = origens.map((o,i) => `<div style="display:flex;gap:5px;margin-bottom:8px;"><input type="text" value="${o}" id="ori_${i}" style="flex:1;"><button class="btn btn-sm" onclick="if($('ori_${i}').value){origens[${i}]=$('ori_${i}').value;localStorage.setItem('origens_db',JSON.stringify(origens));renderListaOrigens();}">Salvar</button><button class="btn btn-danger btn-sm" onclick="if(origens.length>1){origens.splice(${i},1);localStorage.setItem('origens_db',JSON.stringify(origens));renderListaOrigens();}">X</button></div>`).join(''); }
+  function adicionarOrigem() { let v=$('novaOrigemNome').value; if(v && !origens.includes(v)){ origens.push(v); localStorage.setItem('origens_db',JSON.stringify(origens));$('novaOrigemNome').value=''; renderListaOrigens(); } }
+
+  function abrirGerenciadorCategorias() { $('modalCategorias').style.display='flex'; renderListaCategorias(); }
+  function renderListaCategorias() { $('listaCategorias').innerHTML = categorias.map((c,i) => `<div style="display:flex;gap:5px;margin-bottom:8px;"><input type="text" value="${c}" id="cat_${i}" style="flex:1;"><button class="btn btn-sm" onclick="if($('cat_${i}').value){categorias[${i}]=$('cat_${i}').value;localStorage.setItem('categorias_db',JSON.stringify(categorias));renderListaCategorias();}">Salvar</button><button class="btn btn-danger btn-sm" onclick="if(categorias.length>1){categorias.splice(${i},1);localStorage.setItem('categorias_db',JSON.stringify(categorias));renderListaCategorias();}">X</button></div>`).join(''); }
+  function adicionarCategoria() { let v=$('novaCategoriaNome').value; if(v && !categorias.includes(v)){ categorias.push(v); localStorage.setItem('categorias_db',JSON.stringify(categorias));$('novaCategoriaNome').value=''; renderListaCategorias(); } }
+
+  function abrirGerenciadorVeiculos() { $('modalVeiculos').style.display='flex'; renderListaVeiculos(); }
+  function renderListaVeiculos() { $('listaVeiculos').innerHTML = veiculosCapitacao.map((v,i) => `<div style="display:flex;gap:5px;margin-bottom:8px;"><input type="text" value="${v}" id="vei_${i}" style="flex:1;" ${v==='Marketing'?'readonly':''}><button class="btn btn-sm" onclick="if($('vei_${i}').value){veiculosCapitacao[${i}]=$('vei_${i}').value;localStorage.setItem('veiculos_db',JSON.stringify(veiculosCapitacao));renderListaVeiculos();}">Salvar</button>${v!=='Marketing'?`<button class="btn btn-danger btn-sm" onclick="veiculosCapitacao.splice(${i},1);localStorage.setItem('veiculos_db',JSON.stringify(veiculosCapitacao));renderListaVeiculos();">X</button>`:''}</div>`).join(''); }
+  function adicionarVeiculo() { let v=$('novoVeiculoNome').value; if(v && !veiculosCapitacao.includes(v)){ veiculosCapitacao.push(v); localStorage.setItem('veiculos_db',JSON.stringify(veiculosCapitacao));$('novoVeiculoNome').value=''; renderListaVeiculos(); } }
+
+  // USUARIOS
+  function renderTabelaUsuarios() {
+    $('tabelaUsuarios').innerHTML = usuariosDB.map((u,i) => `<tr><td><input type="text" value="${u.usuario}" id="u_n_${i}"></td><td><input type="text" value="${u.senha}" id="u_p_${i}"></td><td style="display:flex;gap:6px;"><button class="btn btn-sm" onclick="salvarUser(${i})">Salvar</button><button class="btn btn-danger btn-sm" onclick="if(usuariosDB.length>1){usuariosDB.splice(${i},1);localStorage.setItem('usuarios_db',JSON.stringify(usuariosDB));renderTabelaUsuarios()}">X</button></td></tr>`).join('');
+  }
+  function adicionarUsuario() { let u=$('novoUserNome').value, p=$('novoUserPass').value; if(u&&p&&!usuariosDB.some(x=>x.usuario===u)){ usuariosDB.push({usuario:u, senha:p}); localStorage.setItem('usuarios_db',JSON.stringify(usuariosDB)); $('novoUserNome').value='';$('novoUserPass').value=''; renderTabelaUsuarios(); alert('Cadastrado!'); } }
+  function salvarUser(i) { let u=$(`u_n_${i}`).value, p=$(`u_p_${i}`).value; if(u&&p){ usuariosDB[i]={usuario:u,senha:p}; localStorage.setItem('usuarios_db',JSON.stringify(usuariosDB)); renderTabelaUsuarios(); alert('Atualizado!'); } }
+</script>
+</body>
+</html>
