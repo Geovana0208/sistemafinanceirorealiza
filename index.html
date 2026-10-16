@@ -696,9 +696,11 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       }
     }
     
-    // ORDENAÇÃO CRONOLÓGICA (DATA DE FECHAMENTO)
+    // ORDENAÇÃO CRONOLÓGICA SEGURA (DATA DE FECHAMENTO)
     filt.sort(function(a, b) {
-      return new Date(a.dataFechamento) - new Date(b.dataFechamento);
+      var tA = a.dataFechamento ? new Date(a.dataFechamento).getTime() : 0;
+      var tB = b.dataFechamento ? new Date(b.dataFechamento).getTime() : 0;
+      return tA - tB;
     });
 
     var tv = 0, tc = 0, tr = 0, tP = 0;
@@ -876,9 +878,11 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       }
     }
 
-    // ORDENAÇÃO CRONOLÓGICA (DATA DE FECHAMENTO)
+    // ORDENAÇÃO CRONOLÓGICA SEGURA (DATA DE FECHAMENTO)
     filt.sort(function(a, b) {
-      return new Date(a.dataFechamento) - new Date(b.dataFechamento);
+      var tA = a.dataFechamento ? new Date(a.dataFechamento).getTime() : 0;
+      var tB = b.dataFechamento ? new Date(b.dataFechamento).getTime() : 0;
+      return tA - tB;
     });
 
     var totVal = 0, mkt = 0;
