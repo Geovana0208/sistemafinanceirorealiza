@@ -116,7 +116,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
           <label>Ano:</label><select id="filtroAnoContas" onchange="renderContas()"></select>
           <label>Mês:</label>
           <select id="filtroMesContas" onchange="renderContas()">
-            <option value="todos">Ano Todo (Consolidado)</option><option value="01">Jan</option><option value="02">Fev</option><option value="03">Mar</option><option value="04">Abr</option><option value="05">Mai</option><option value="06">Jun</option><option value="07">Jul</option><option value="08">Ago</option><option value="09" selected>Set</option><option value="10">Out</option><option value="11">Nov</option><option value="12">Dez</option>
+            <option value="todos">Ano Todo (Consolidado)</option><option value="01">Jan</option><option value="02">Fev</option><option value="03">Mar</option><option value="04">Abr</option><option value="05">Mai</option><option value="06">Jun</option><option value="07">Jul</option><option value="08">Ago</option><option value="09">Set</option><option value="10">Out</option><option value="11">Nov</option><option value="12">Dez</option>
           </select>
           <button class="btn btn-secondary btn-sm" onclick="abrirGerenciadorContas()">⚙️ Contas de Saída</button>
           <button class="btn btn-secondary btn-sm" onclick="abrirGerenciadorCategorias()">⚙️ Categorias</button>
@@ -405,9 +405,9 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     for (var i = 0; i < ids.length; i++) {
       var sel = $(ids[i]);
       if (!sel) continue;
-      sel.innerHTML = '<option value="todos">Todos Anos</option>';
+      sel.innerHTML = '<option value="todos" selected>Todos Anos</option>';
       for (var a = 2024; a <= 2028; a++) {
-        sel.innerHTML += '<option value="' + a + '" ' + (a === 2026 ? 'selected' : '') + '>' + a + '</option>';
+        sel.innerHTML += '<option value="' + a + '">' + a + '</option>';
       }
     }
   }
@@ -689,8 +689,9 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       var c = comissoes[i];
       if (cS !== 'todos' && c.corretor !== cS) continue;
       if (vS !== 'todos' && c.veiculoCapitacao !== vS) continue;
-      if (!c.dataFechamento) continue;
-      var p = c.dataFechamento.split('-');
+      
+      var dt = c.dataFechamento || '2026-01-01';
+      var p = dt.split('-');
       if ((aS === 'todos' || p[0] === aS) && (mS === 'todos' || p[1] === mS)) {
         filt.push(c);
       }
@@ -719,7 +720,9 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
         if (corretores[k].nome === c.corretor && corretores[k].foto) { fot = corretores[k].foto; break; }
       }
 
-      htmlC += '<tr><td>' + c.dataFechamento.split('-').reverse().join('/') + '</td>';
+      var dataFmt = c.dataFechamento ? c.dataFechamento.split('-').reverse().join('/') : '-';
+
+      htmlC += '<tr><td>' + dataFmt + '</td>';
       htmlC += '<td><small>C: <b>' + c.comprador + '</b><br>V: ' + c.vendedor + '</small></td>';
       htmlC += '<td><span class="badge badge-capitacao">' + c.veiculoCapitacao + '</span></td>';
       htmlC += '<td><div class="corretor-cell"><img src="' + fot + '" class="corretor-avatar"><span>' + c.corretor + '</span></div></td>';
@@ -871,8 +874,9 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       var a = alugueis[i];
       if (cS !== 'todos' && a.corretor !== cS) continue;
       if (vS !== 'todos' && a.veiculoCapitacao !== vS) continue;
-      if (!a.dataFechamento) continue;
-      var p = a.dataFechamento.split('-');
+      
+      var dt = a.dataFechamento || '2026-01-01';
+      var p = dt.split('-');
       if ((aS === 'todos' || p[0] === aS) && (mS === 'todos' || p[1] === mS)) {
         filt.push(a);
       }
@@ -897,7 +901,9 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
         if (corretores[k].nome === a.corretor && corretores[k].foto) { f = corretores[k].foto; break; }
       }
 
-      htmlA += '<tr><td>' + a.dataFechamento.split('-').reverse().join('/') + '</td><td><b>' + a.inquilino + '</b></td>';
+      var dataFmt = a.dataFechamento ? a.dataFechamento.split('-').reverse().join('/') : '-';
+
+      htmlA += '<tr><td>' + dataFmt + '</td><td><b>' + a.inquilino + '</b></td>';
       htmlA += '<td><span class="badge badge-capitacao">' + a.veiculoCapitacao + '</span></td><td>' + a.proprietario + '</td>';
       htmlA += '<td><div class="corretor-cell"><img src="' + f + '" class="corretor-avatar"><span>' + a.corretor + '</span></div></td>';
       htmlA += '<td>' + formatarMoeda(a.valorAluguel) + '</td><td>' + (a.veiculoCapitacao.toLowerCase().indexOf('marketing') !== -1 ? '<b style="color:var(--danger)">R$ 50,00</b>' : '-') + '</td>';
@@ -983,8 +989,9 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     for (var j = 0; j < comissoes.length; j++) {
       var c = comissoes[j];
       if (cS !== 'todos' && c.corretor !== cS) continue;
-      if (!c.dataFechamento) continue;
-      var p = c.dataFechamento.split('-');
+      
+      var dt = c.dataFechamento || '2026-01-01';
+      var p = dt.split('-');
       if ((aS === 'todos' || p[0] === aS) && (mS === 'todos' || p[1] === mS)) {
         f.push(c);
       }
@@ -1221,7 +1228,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       html += '<div style="display:flex;gap:5px;margin-bottom:8px;"><input type="text" value="' + v + '" id="vei_' + i + '" style="flex:1;" ' + (v === 'Marketing' ? 'readonly' : '') + '>';
       html += '<button class="btn btn-sm" onclick="if($(\'vei_' + i + '\').value){veiculosCapitacao[' + i + ']=\$(\'vei_' + i + '\').value;localStorage.setItem(\'veiculos_db\',JSON.stringify(veiculosCapitacao));renderListaVeiculos();}">Salvar</button>';
       if (v !== 'Marketing') {
-        html += '<button class="btn btn-danger btn-sm" onclick="veiculosCapitacao.splice(' + i + ',1);localStorage.setItem(\'veiculos_db\',JSON.stringify(veiculosCapitacao));renderListaVeiculos();">X</button>';
+        html += '<button class="btn btn-danger btn-sm" onclick="veiculosCapitacao.splice(' + i + ',1);localStorage.setItem(\'veiculos_db\',JSON.stringify(veiculosCapitacao));renderListaVeiculos();}">X</button>';
       }
       html += '</div>';
     }
