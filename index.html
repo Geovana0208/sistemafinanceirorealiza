@@ -1006,7 +1006,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     $('listaRankingCorretores').innerHTML = htmlRank;
   }
 
-  // CONFIGURAÇÕES CORRETORES
+  // CONFIGURAÇÕES CORRETORES (COM FOTO PARA JÁ CADASTRADOS)
   function abrirGerenciadorCorretores() {
     $('modalCorretores').style.display = 'flex';
     renderListaCorretores();
@@ -1016,9 +1016,10 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     var html = '';
     for (var i = 0; i < corretores.length; i++) {
       var c = corretores[i];
-      html += '<div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;background:#f8fafc;padding:8px;border-radius:8px;border:1px solid #e2e8f0;">';
+      html += '<div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;background:#f8fafc;padding:8px;border-radius:8px;border:1px solid #e2e8f0;flex-wrap:wrap;">';
       html += '<img src="' + (c.foto || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png') + '" class="corretor-avatar">';
-      html += '<input type="text" value="' + c.nome + '" id="corr_n_' + i + '" style="flex:1;">';
+      html += '<input type="text" value="' + c.nome + '" id="corr_n_' + i + '" style="flex:1;min-width:120px;">';
+      html += '<input type="file" accept="image/*" id="corr_f_' + i + '" style="font-size:0.75rem;width:140px;">';
       html += '<button class="btn btn-sm" onclick="salvarCorretor(' + i + ')">Salvar</button>';
       html += '<button class="btn btn-danger btn-sm" onclick="removerCorretor(' + i + ')">X</button></div>';
     }
@@ -1026,11 +1027,39 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   }
 
   function salvarCorretor(i) {
-    var n = $('corr_n_' + i).value;
-    if (n) {
+    var n = $('corr_n_' + i).value.trim();
+    var fileInput = $('corr_f_' + i);
+    var file = fileInput.files[0];
+    
+    if (!n) { alert('Insira um nome válido.'); return; }
+
+    if (file) {
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        var img = new Image();
+        img.onload = function() {
+          var canvas = document.createElement('canvas');
+          var scale = 150 / img.width;
+          canvas.width = 150;
+          canvas.height = img.height * scale;
+          var ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          var dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+          
+          corretores[i].nome = n;
+          corretores[i].foto = dataUrl;
+          localStorage.setItem('corretores_objs_db', JSON.stringify(corretores));
+          renderListaCorretores();
+          alert('Corretor e foto atualizados com sucesso!');
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    } else {
       corretores[i].nome = n;
       localStorage.setItem('corretores_objs_db', JSON.stringify(corretores));
       renderListaCorretores();
+      alert('Nome do corretor atualizado!');
     }
   }
 
