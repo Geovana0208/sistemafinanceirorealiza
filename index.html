@@ -28,7 +28,7 @@ body{background-color:var(--bg-color);color:var(--text-main);display:flex;height
 .tab-content{display:none} .tab-content.active{display:block}
 .filter-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .filter-bar label{color:var(--text-muted);font-size:.85rem;font-weight:600}
-.grid-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:15px;margin-bottom:20px}
+.grid-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;margin-bottom:20px}
 .card{background:var(--card-bg);padding:18px;border-radius:12px;border:1px solid var(--border);box-shadow:0 2px 4px rgba(0,0,0,.03)}
 .card-title{font-size:.85rem;font-weight:600;color:var(--text-muted);text-transform:uppercase}
 .card-val{font-size:1.5rem;font-weight:700;margin-top:5px}
@@ -131,6 +131,8 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
         <div class="card"><div class="card-title">Realizado / Pago</div><div class="card-val" id="totalReal" style="color: var(--success);">R$ 0,00</div></div>
         <div class="card"><div class="card-title">Variação</div><div class="card-val" id="totalVariacao">R$ 0,00</div></div>
         <div class="card"><div class="card-title">Total Geral Devido</div><div class="card-val" id="totalPendente" style="color: var(--danger);">R$ 0,00</div></div>
+        <div class="card"><div class="card-title">Vencem Hoje</div><div class="card-val" id="totalVencemHoje" style="color: var(--warning);">R$ 0,00</div></div>
+        <div class="card"><div class="card-title">Próximos 7 Dias</div><div class="card-val" id="totalProximosDias" style="color: var(--primary);">R$ 0,00</div></div>
       </div>
       <div class="grid-main">
         <div class="card">
@@ -575,13 +577,40 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
         filt.push(c);
       }
     }
-    var prev = 0, real = 0, pend = 0;
+    
+    var prev = 0, real = 0, pend = 0, vencemHojeVal = 0, proximosDiasVal = 0;
+
+    // Obter data atual e data daqui a 7 dias em formato YYYY-MM-DD
+    var dH = new Date();
+    var anoH = dH.getFullYear();
+    var mesH = String(dH.getMonth() + 1).padStart(2, '0');
+    var diaH = String(dH.getDate()).padStart(2, '0');
+    var hojeStr = anoH + '-' + mesH + '-' + diaH;
+
+    var dFuturo = new Date();
+    dFuturo.setDate(dH.getDate() + 7);
+    var anoF = dFuturo.getFullYear();
+    var mesF = String(dFuturo.getMonth() + 1).padStart(2, '0');
+    var diaF = String(dFuturo.getDate()).padStart(2, '0');
+    var futuroStr = anoF + '-' + mesF + '-' + diaF;
+
     var htmlT = '';
     for (var j = 0; j < filt.length; j++) {
       var c = filt[j];
       prev += c.valorPrevisto || 0;
       var r = c.valorReal || 0;
-      if (c.status === 'Pago') real += r; else pend += c.valorPrevisto || 0;
+      
+      if (c.status === 'Pago') {
+        real += r;
+      } else {
+        pend += c.valorPrevisto || 0;
+        // Valida se vence hoje ou nos próximos 7 dias
+        if (c.vencimento === hojeStr) {
+          vencemHojeVal += c.valorPrevisto || 0;
+        } else if (c.vencimento > hojeStr && c.vencimento <= futuroStr) {
+          proximosDiasVal += c.valorPrevisto || 0;
+        }
+      }
       
       htmlT += '<tr><td><b>' + (c.isAutoMkt ? '🤖' : '') + (c.descricao || '-') + '</b></td><td><small>' + (c.tipo || '-') + ' • ' + (c.categoria || '-') + '</small></td><td>' + (c.origem || '-') + '</td><td>' + (c.vencimento ? c.vencimento.split('-').reverse().join('/') : '-') + '</td>';
       htmlT += '<td>' + formatarMoeda(c.valorPrevisto) + '</td><td>' + formatarMoeda(c.valorReal) + '</td><td><span class="badge badge-' + String(c.status || 'Pendente').toLowerCase() + '">' + (c.status || 'Pendente') + '</span></td><td>';
@@ -590,10 +619,14 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       }
       htmlT += '<button class="btn btn-secondary btn-sm" onclick="editarConta(' + c.id + ')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirConta(' + c.id + ')">X</button></td></tr>';
     }
+    
     $('tabelaContas').innerHTML = htmlT;
     $('totalPrevisto').innerText = formatarMoeda(prev);
     $('totalReal').innerText = formatarMoeda(real);
     $('totalPendente').innerText = formatarMoeda(pend);
+    $('totalVencemHoje').innerText = formatarMoeda(vencemHojeVal);
+    $('totalProximosDias').innerText = formatarMoeda(proximosDiasVal);
+    
     var v = prev - real;
     $('totalVariacao').innerText = formatarMoeda(Math.abs(v)) + ' ' + (v >= 0 ? '(Economia)' : '(Excesso)');
     $('totalVariacao').style.color = v >= 0 ? 'var(--success)' : 'var(--danger)';
