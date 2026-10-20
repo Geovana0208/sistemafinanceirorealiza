@@ -324,7 +324,6 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   var $ = function(id) { return document.getElementById(id); };
   function formatarMoeda(v) { return 'R$ ' + (v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
-  // Carregamento seguro dos dados com fallback para arrays limpos
   var origens = ['Itaú', 'Bradesco', 'Caixa', 'Dinheiro / Caixinha'];
   try {
     var storedOrigens = JSON.parse(localStorage.getItem('origens_db'));
@@ -1001,7 +1000,18 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   }
 
   // DASHBOARD
+  function carregarSelectsDashboard() {
+    var htmlC = '<option value="todos">Todos</option>';
+    for (var i = 0; i < corretores.length; i++) {
+      if (corretores[i] && corretores[i].nome) {
+        htmlC += '<option value="' + corretores[i].nome + '">' + corretores[i].nome + '</option>';
+      }
+    }
+    if ($('filtroCorretorDash')) $('filtroCorretorDash').innerHTML = htmlC;
+  }
+
   function renderDashboard() {
+    carregarSelectsDashboard();
     var aS = $('filtroAnoDash').value, mS = $('filtroMesDash').value, cS = $('filtroCorretorDash') ? $('filtroCorretorDash').value : 'todos';
     var f = [];
     for (var j = 0; j < comissoes.length; j++) {
