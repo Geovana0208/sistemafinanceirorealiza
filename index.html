@@ -331,11 +331,11 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     <div id="tab-imoveis" class="tab-content">
       <div class="card" style="margin-bottom: 20px;">
         <h3 style="color: var(--primary); margin-bottom: 12px;">Cadastrar / Gerenciar Imóvel</h3>
-        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;">Associe o BCI, o ID do DAMAE e o Código do Contrato do imóvel.</p>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;">Associe o BCI, o ID do DAMAE (opcional) e o Código do Contrato do imóvel.</p>
         <form id="formImovel" onsubmit="event.preventDefault(); salvarImovelForm();">
           <input type="hidden" id="imovelInternalId">
           <div class="form-group"><label>Número do BCI</label><input type="text" id="imovelBciInput" required placeholder="Ex: 01.12.008.00073.004"></div>
-          <div class="form-group"><label>ID Eletrônico DAMAE (Água/Luz)</label><input type="text" id="imovelDamaeInput" required placeholder="Ex: 74315927@02"></div>
+          <div class="form-group"><label>ID Eletrônico DAMAE (Opcional)</label><input type="text" id="imovelDamaeInput" placeholder="Ex: 74315927@02"></div>
           <div class="form-group"><label>Código do Contrato (Interno)</label><input type="text" id="imovelContratoInput" required placeholder="Ex: CONT-2026-01"></div>
           <div class="form-group">
             <label>Status do Imóvel</label>
@@ -354,6 +354,8 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       <div class="card">
         <h3 style="color: var(--primary); margin-bottom: 12px;">Resumo dos Imóveis & Situação de Contas</h3>
         <div class="filter-bar" style="margin-bottom: 15px;">
+          <label>Pesquisar Contrato:</label>
+          <input type="text" id="filtroBuscaContratoImoveis" oninput="renderImoveis()" placeholder="Nº Contrato..." style="max-width:160px;">
           <label>Situação Contas:</label>
           <select id="filtroStatusImoveis" onchange="renderImoveis()">
             <option value="todos">Todos</option>
@@ -390,6 +392,8 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       <div class="card">
         <h3 style="color: var(--primary); margin-bottom: 12px;">Consulta de IPTU / BCI (Prefeitura de São João del Rei)</h3>
         <div class="filter-bar" style="margin-bottom: 15px;">
+          <label>Pesquisar Contrato:</label>
+          <input type="text" id="filtroBuscaContratoIptu" oninput="renderBcis()" placeholder="Nº Contrato..." style="max-width:160px;">
           <label>Situação Contas:</label>
           <select id="filtroStatusIptu" onchange="renderBcis()">
             <option value="todos">Todos</option>
@@ -426,6 +430,8 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       <div class="card">
         <h3 style="color: var(--primary); margin-bottom: 12px;">Consulta de Contas DAMAE / Luz (Automática)</h3>
         <div class="filter-bar" style="margin-bottom: 15px;">
+          <label>Pesquisar Contrato:</label>
+          <input type="text" id="filtroBuscaContratoDamae" oninput="renderDamae()" placeholder="Nº Contrato..." style="max-width:160px;">
           <label>Situação Contas:</label>
           <select id="filtroStatusDamae" onchange="renderDamae()">
             <option value="todos">Todos</option>
@@ -919,18 +925,19 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   function renderImoveis() {
     var filtroStatus = $('filtroStatusImoveis') ? $('filtroStatusImoveis').value : 'todos';
     var filtroImovel = $('filtroImovelStatus') ? $('filtroImovelStatus').value : 'todos';
+    var filtroBusca = $('filtroBuscaContratoImoveis') ? $('filtroBuscaContratoImoveis').value.trim().toLowerCase() : '';
 
     var html = '';
     for (var i = 0; i < imoveisDB.length; i++) {
       var item = imoveisDB[i];
       if (!item) continue;
 
+      var contratoLower = String(item.contrato || '').toLowerCase();
+      if (filtroBusca && !contratoLower.includes(filtroBusca)) continue;
+
       var pendente = isImovelPendente(item);
-      // Aplicar filtro de contas
       if (filtroStatus === 'em_dia' && pendente) continue;
       if (filtroStatus === 'pendente' && !pendente) continue;
-
-      // Aplicar filtro de status do imóvel
       if (filtroImovel !== 'todos' && item.status !== filtroImovel) continue;
 
       var badgeClass = item.status === 'Alugado' ? 'badge-alugado' : 'badge-desocupado';
@@ -955,6 +962,16 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     var damaeVal = $('imovelDamaeInput').value.trim();
     var contratoVal = $('imovelContratoInput').value.trim();
     var statusVal = $('imovelStatusInput').value;
+
+    // Verificar se já existe um imóvel com o mesmo número de contrato (exceto ao editar o próprio registro)
+    for (var k = 0; k < imoveisDB.length; k++) {
+      if (imoveisDB[k] && imoveisDB[k].contrato.toLowerCase() === contratoVal.toLowerCase()) {
+        if (!id || imoveisDB[k].id != id) {
+          alert('Erro: Já existe um imóvel cadastrado com o número de contrato "' + contratoVal + '"!');
+          return;
+        }
+      }
+    }
 
     var statusBciDefault = (bciVal === '01.04.008.00064.056') ? '<span style="color:var(--danger); font-weight:bold;">Pendente</span>' : '<span style="color:var(--success); font-weight:bold;">Em dia</span>';
     var statusDamaeDefault = (damaeVal === '84336830@02') ? '<span style="color:var(--danger); font-weight:bold;">Pendente</span>' : '<span style="color:var(--success); font-weight:bold;">Em dia</span>';
@@ -1024,11 +1041,15 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   function renderBcis() {
     var filtroStatus = $('filtroStatusIptu') ? $('filtroStatusIptu').value : 'todos';
     var filtroImovel = $('filtroImovelIptu') ? $('filtroImovelIptu').value : 'todos';
+    var filtroBusca = $('filtroBuscaContratoIptu') ? $('filtroBuscaContratoIptu').value.trim().toLowerCase() : '';
 
     var html = '';
     for (var i = 0; i < imoveisDB.length; i++) {
       var item = imoveisDB[i];
       if (!item) continue;
+
+      var contratoLower = String(item.contrato || '').toLowerCase();
+      if (filtroBusca && !contratoLower.includes(filtroBusca)) continue;
 
       var bciStr = String(item.statusBci || '').toLowerCase();
       var pendente = bciStr.includes('pendente') || bciStr.includes('aberto');
@@ -1091,12 +1112,17 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   function renderDamae() {
     var filtroStatus = $('filtroStatusDamae') ? $('filtroStatusDamae').value : 'todos';
     var filtroImovel = $('filtroImovelDamae') ? $('filtroImovelDamae').value : 'todos';
+    var filtroBusca = $('filtroBuscaContratoDamae') ? $('filtroBuscaContratoDamae').value.trim().toLowerCase() : '';
 
     var html = '';
     for (var i = 0; i < imoveisDB.length; i++) {
       var item = imoveisDB[i];
       if (!item) continue;
-      var dId = item.damaeId || '74315927@02';
+
+      var contratoLower = String(item.contrato || '').toLowerCase();
+      if (filtroBusca && !contratoLower.includes(filtroBusca)) continue;
+
+      var dId = item.damaeId || '-';
 
       var damaeStr = String(item.statusDamae || '').toLowerCase();
       var pendente = damaeStr.includes('pendente') || damaeStr.includes('aberto');
@@ -1111,7 +1137,13 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       html += '<td>' + item.contrato + '</td>';
       html += '<td><span class="badge ' + badgeClass + '">' + item.status + '</span></td>';
       html += '<td><span id="status_damae_' + item.id + '">' + (item.statusDamae || '<span style="color:var(--success); font-weight:bold;">Em dia</span>') + '</span></td>';
-      html += '<td><button class="btn btn-success btn-sm" onclick="executarBuscaAutomaticaDamae(' + item.id + ', \'' + dId + '\')">⚡ Consultar</button></td>';
+      html += '<td>';
+      if (item.damaeId) {
+        html += '<button class="btn btn-success btn-sm" onclick="executarBuscaAutomaticaDamae(' + item.id + ', \'' + item.damaeId + '\')">⚡ Consultar</button>';
+      } else {
+        html += '<small style="color:var(--text-muted)">Sem ID</small>';
+      }
+      html += '</td>';
       html += '</tr>';
     }
     $('tabelaDamae').innerHTML = html;
@@ -1149,7 +1181,9 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   async function consultarTodosDamae() {
     alert('Iniciando consulta automática em massa para todos os IDs DAMAE cadastrados...');
     for (var i = 0; i < imoveisDB.length; i++) {
-      await executarBuscaAutomaticaDamae(imoveisDB[i].id, imoveisDB[i].damaeId);
+      if (imoveisDB[i].damaeId) {
+        await executarBuscaAutomaticaDamae(imoveisDB[i].id, imoveisDB[i].damaeId);
+      }
     }
     renderDamae();
     alert('Consulta em massa de DAMAE concluída!');
