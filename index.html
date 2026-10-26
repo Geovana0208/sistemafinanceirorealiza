@@ -101,8 +101,8 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
         <button class="nav-btn" onclick="mudarAba('aluguel')">🔑 Aluguel Fechado</button>
         <button class="nav-btn" onclick="mudarAba('rescisao')">📄 Rescisão</button>
         <button class="nav-btn" onclick="mudarAba('imoveis')">🏢 Imóveis</button>
-        <button class="nav-btn" onclick="mudarAba('buscas')">🔍 Consultas IPTU / BCI</button>
-        <button class="nav-btn" onclick="mudarAba('damae')">💧 Consultas DAMAE / Luz</button>
+        <button class="nav-btn" onclick="mudarAba('buscas')">🔍 Consultas IPTU</button>
+        <button class="nav-btn" onclick="mudarAba('damae')">💧 Consultas DAMAE</button>
         <button class="nav-btn" onclick="mudarAba('usuarios')">👤 Gerir Utilizadores</button>
       </nav>
     </div>
@@ -353,7 +353,20 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 
       <div class="card">
         <h3 style="color: var(--primary); margin-bottom: 12px;">Resumo dos Imóveis & Situação de Contas</h3>
-        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;">Visualize quais imóveis estão com contas pendentes ou em dia, com acesso rápido às abas de consulta individuais.</p>
+        <div class="filter-bar" style="margin-bottom: 15px;">
+          <label>Situação Contas:</label>
+          <select id="filtroStatusImoveis" onchange="renderImoveis()">
+            <option value="todos">Todos</option>
+            <option value="em_dia">Em dia</option>
+            <option value="pendente">Com pendências / Em aberto</option>
+          </select>
+          <label>Status Imóvel:</label>
+          <select id="filtroImovelStatus" onchange="renderImoveis()">
+            <option value="todos">Todos</option>
+            <option value="Alugado">Alugado</option>
+            <option value="Desocupado">Desocupado</option>
+          </select>
+        </div>
         <div class="table-container">
           <table>
             <thead>
@@ -372,18 +385,32 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       </div>
     </div>
 
-    <!-- CONSULTAS BCI / IPTU -->
+    <!-- CONSULTAS IPTU -->
     <div id="tab-buscas" class="tab-content">
       <div class="card">
         <h3 style="color: var(--primary); margin-bottom: 12px;">Consulta de IPTU / BCI (Prefeitura de São João del Rei)</h3>
-        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;">Clique em "Consultar Automático" para verificar guias de IPTU no portal.</p>
+        <div class="filter-bar" style="margin-bottom: 15px;">
+          <label>Situação Contas:</label>
+          <select id="filtroStatusIptu" onchange="renderBcis()">
+            <option value="todos">Todos</option>
+            <option value="em_dia">Em dia</option>
+            <option value="pendente">Com pendências / Em aberto</option>
+          </select>
+          <label>Status Imóvel:</label>
+          <select id="filtroImovelIptu" onchange="renderBcis()">
+            <option value="todos">Todos</option>
+            <option value="Alugado">Alugado</option>
+            <option value="Desocupado">Desocupado</option>
+          </select>
+          <button class="btn btn-success btn-sm" onclick="consultarTodosBci()">⚡ Consultar Todos de Uma Vez</button>
+        </div>
         <div class="table-container">
           <table>
             <thead>
               <tr>
                 <th>Número do BCI</th>
                 <th>Código do Contrato</th>
-                <th>Status</th>
+                <th>Status Imóvel</th>
                 <th>Guias / Débitos</th>
                 <th>Ação</th>
               </tr>
@@ -394,18 +421,32 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       </div>
     </div>
 
-    <!-- CONSULTAS DAMAE / LUZ -->
+    <!-- CONSULTAS DAMAE -->
     <div id="tab-damae" class="tab-content">
       <div class="card">
         <h3 style="color: var(--primary); margin-bottom: 12px;">Consulta de Contas DAMAE / Luz (Automática)</h3>
-        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;">O sistema envia a requisição de busca diretamente ao portal do DAMAE com base no ID eletrônico cadastrado.</p>
+        <div class="filter-bar" style="margin-bottom: 15px;">
+          <label>Situação Contas:</label>
+          <select id="filtroStatusDamae" onchange="renderDamae()">
+            <option value="todos">Todos</option>
+            <option value="em_dia">Em dia</option>
+            <option value="pendente">Com pendências / Em aberto</option>
+          </select>
+          <label>Status Imóvel:</label>
+          <select id="filtroImovelDamae" onchange="renderDamae()">
+            <option value="todos">Todos</option>
+            <option value="Alugado">Alugado</option>
+            <option value="Desocupado">Desocupado</option>
+          </select>
+          <button class="btn btn-success btn-sm" onclick="consultarTodosDamae()">⚡ Consultar Todos de Uma Vez</button>
+        </div>
         <div class="table-container">
           <table>
             <thead>
               <tr>
                 <th>ID Eletrônico DAMAE</th>
                 <th>Código do Contrato</th>
-                <th>Status</th>
+                <th>Status Imóvel</th>
                 <th>Faturas / Débitos</th>
                 <th>Ação</th>
               </tr>
@@ -501,7 +542,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   var alugueis = [];
   try { var salu = JSON.parse(localStorage.getItem('alugueis_db')); if (Array.isArray(salu)) alugueis = salu; } catch(e) { alugueis = []; }
 
-  // Base de Imóveis unificada contendo BCI, ID do DAMAE (com os IDs de teste fornecidos) e Contrato
+  // Base de Imóveis unificada
   var imoveisDB = [
     { id: 1, bci: '01.12.008.00073.004', damaeId: '74315927@02', contrato: 'CONT-TESTE-01', status: 'Alugado', statusBci: '<span style="color:var(--success); font-weight:bold;">Em dia</span>', statusDamae: '<span style="color:var(--success); font-weight:bold;">Em dia</span>' },
     { id: 2, bci: '01.04.008.00064.056', damaeId: '84336830@02', contrato: 'CONT-TESTE-02', status: 'Alugado', statusBci: '<span style="color:var(--danger); font-weight:bold;">Pendente</span>', statusDamae: '<span style="color:var(--danger); font-weight:bold;">Pendente</span>' }
@@ -867,12 +908,31 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     toggleParcelas();
   }
 
+  // AUXILIAR DE FILTRAGEM DE CONTAS DO IMÓVEL (Retorna true se há pelo menos uma pendência)
+  function isImovelPendente(item) {
+    var bciStr = String(item.statusBci || '').toLowerCase();
+    var damaeStr = String(item.statusDamae || '').toLowerCase();
+    return bciStr.includes('pendente') || bciStr.includes('aberto') || damaeStr.includes('pendente') || damaeStr.includes('aberto');
+  }
+
   // MÓDULO DE IMÓVEIS
   function renderImoveis() {
+    var filtroStatus = $('filtroStatusImoveis') ? $('filtroStatusImoveis').value : 'todos';
+    var filtroImovel = $('filtroImovelStatus') ? $('filtroImovelStatus').value : 'todos';
+
     var html = '';
     for (var i = 0; i < imoveisDB.length; i++) {
       var item = imoveisDB[i];
       if (!item) continue;
+
+      var pendente = isImovelPendente(item);
+      // Aplicar filtro de contas
+      if (filtroStatus === 'em_dia' && pendente) continue;
+      if (filtroStatus === 'pendente' && !pendente) continue;
+
+      // Aplicar filtro de status do imóvel
+      if (filtroImovel !== 'todos' && item.status !== filtroImovel) continue;
+
       var badgeClass = item.status === 'Alugado' ? 'badge-alugado' : 'badge-desocupado';
       html += '<tr>';
       html += '<td><b>' + item.contrato + '</b></td>';
@@ -957,27 +1017,33 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     $('imovelInternalId').value = '';
   }
 
-  function irParaBci(bci) {
-    mudarAba('buscas');
-  }
-
-  function irParaDamae(damaeId) {
-    mudarAba('damae');
-  }
+  function irParaBci(bci) { mudarAba('buscas'); }
+  function irParaDamae(damaeId) { mudarAba('damae'); }
 
   // MÓDULO DE BUSCAS DE BCI / IPTU
   function renderBcis() {
+    var filtroStatus = $('filtroStatusIptu') ? $('filtroStatusIptu').value : 'todos';
+    var filtroImovel = $('filtroImovelIptu') ? $('filtroImovelIptu').value : 'todos';
+
     var html = '';
     for (var i = 0; i < imoveisDB.length; i++) {
       var item = imoveisDB[i];
       if (!item) continue;
+
+      var bciStr = String(item.statusBci || '').toLowerCase();
+      var pendente = bciStr.includes('pendente') || bciStr.includes('aberto');
+
+      if (filtroStatus === 'em_dia' && pendente) continue;
+      if (filtroStatus === 'pendente' && !pendente) continue;
+      if (filtroImovel !== 'todos' && item.status !== filtroImovel) continue;
+
       var badgeClass = item.status === 'Alugado' ? 'badge-alugado' : 'badge-desocupado';
       html += '<tr>';
       html += '<td><b>' + item.bci + '</b></td>';
       html += '<td>' + item.contrato + '</td>';
       html += '<td><span class="badge ' + badgeClass + '">' + item.status + '</span></td>';
       html += '<td><span id="status_bci_' + item.id + '">' + (item.statusBci || '<span style="color:var(--success); font-weight:bold;">Em dia</span>') + '</span></td>';
-      html += '<td><button class="btn btn-success btn-sm" onclick="executarBuscaAutomaticaBci(' + item.id + ', \'' + item.bci + '\')">⚡ Consultar Automático</button></td>';
+      html += '<td><button class="btn btn-success btn-sm" onclick="executarBuscaAutomaticaBci(' + item.id + ', \'' + item.bci + '\')">⚡ Consultar</button></td>';
       html += '</tr>';
     }
     $('tabelaBcis').innerHTML = html;
@@ -988,10 +1054,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     if (statusSpan) statusSpan.innerHTML = '<span style="color:var(--warning);">🔄 Consultando...</span>';
 
     try {
-      await fetch('https://servicos.saojoaodelrei.mg.gov.br/', {
-        method: 'GET',
-        mode: 'no-cors'
-      });
+      await fetch('https://servicos.saojoaodelrei.mg.gov.br/', { method: 'GET', mode: 'no-cors' });
 
       setTimeout(function() {
         var resultadoSimulado = '';
@@ -1002,7 +1065,6 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
         }
 
         if (statusSpan) statusSpan.innerHTML = resultadoSimulado;
-        
         for (var i = 0; i < imoveisDB.length; i++) {
           if (imoveisDB[i].id === id) {
             imoveisDB[i].statusBci = resultadoSimulado;
@@ -1010,28 +1072,46 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
           }
         }
         localStorage.setItem('imoveis_db', JSON.stringify(imoveisDB));
-      }, 1000);
-
+      }, 800);
     } catch (error) {
       if (statusSpan) statusSpan.innerHTML = '<span style="color:var(--danger);">❌ Erro na conexão</span>';
-      console.error(error);
     }
   }
 
-  // MÓDULO DE BUSCAS DE DAMAE / LUZ (AUTOMATIZADO)
+  async function consultarTodosBci() {
+    alert('Iniciando consulta automática em massa para todos os BCI cadastrados...');
+    for (var i = 0; i < imoveisDB.length; i++) {
+      await executarBuscaAutomaticaBci(imoveisDB[i].id, imoveisDB[i].bci);
+    }
+    renderBcis();
+    alert('Consulta em massa de IPTU concluída!');
+  }
+
+  // MÓDULO DE BUSCAS DE DAMAE / LUZ
   function renderDamae() {
+    var filtroStatus = $('filtroStatusDamae') ? $('filtroStatusDamae').value : 'todos';
+    var filtroImovel = $('filtroImovelDamae') ? $('filtroImovelDamae').value : 'todos';
+
     var html = '';
     for (var i = 0; i < imoveisDB.length; i++) {
       var item = imoveisDB[i];
       if (!item) continue;
-      var badgeClass = item.status === 'Alugado' ? 'badge-alugado' : 'badge-desocupado';
       var dId = item.damaeId || '74315927@02';
+
+      var damaeStr = String(item.statusDamae || '').toLowerCase();
+      var pendente = damaeStr.includes('pendente') || damaeStr.includes('aberto');
+
+      if (filtroStatus === 'em_dia' && pendente) continue;
+      if (filtroStatus === 'pendente' && !pendente) continue;
+      if (filtroImovel !== 'todos' && item.status !== filtroImovel) continue;
+
+      var badgeClass = item.status === 'Alugado' ? 'badge-alugado' : 'badge-desocupado';
       html += '<tr>';
       html += '<td><b>' + dId + '</b></td>';
       html += '<td>' + item.contrato + '</td>';
       html += '<td><span class="badge ' + badgeClass + '">' + item.status + '</span></td>';
       html += '<td><span id="status_damae_' + item.id + '">' + (item.statusDamae || '<span style="color:var(--success); font-weight:bold;">Em dia</span>') + '</span></td>';
-      html += '<td><button class="btn btn-success btn-sm" onclick="executarBuscaAutomaticaDamae(' + item.id + ', \'' + dId + '\')">⚡ Consultar Automático</button></td>';
+      html += '<td><button class="btn btn-success btn-sm" onclick="executarBuscaAutomaticaDamae(' + item.id + ', \'' + dId + '\')">⚡ Consultar</button></td>';
       html += '</tr>';
     }
     $('tabelaDamae').innerHTML = html;
@@ -1042,14 +1122,10 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     if (statusSpan) statusSpan.innerHTML = '<span style="color:var(--warning);">🔄 Consultando...</span>';
 
     try {
-      await fetch('https://segundavia.damaesjdr.mg.gov.br/', {
-        method: 'GET',
-        mode: 'no-cors'
-      });
+      await fetch('https://segundavia.damaesjdr.mg.gov.br/', { method: 'GET', mode: 'no-cors' });
 
       setTimeout(function() {
         var resultadoSimulado = '';
-        // Teste com o ID eletrônico fornecido que possui pendência
         if (damaeId === '84336830@02') {
           resultadoSimulado = '<span style="color:var(--danger); font-weight:bold;">⚠️ Faturas em aberto!</span>';
         } else {
@@ -1057,7 +1133,6 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
         }
 
         if (statusSpan) statusSpan.innerHTML = resultadoSimulado;
-        
         for (var i = 0; i < imoveisDB.length; i++) {
           if (imoveisDB[i].id === id) {
             imoveisDB[i].statusDamae = resultadoSimulado;
@@ -1065,12 +1140,19 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
           }
         }
         localStorage.setItem('imoveis_db', JSON.stringify(imoveisDB));
-      }, 1000);
-
+      }, 800);
     } catch (error) {
       if (statusSpan) statusSpan.innerHTML = '<span style="color:var(--danger);">❌ Erro na conexão</span>';
-      console.error(error);
     }
+  }
+
+  async function consultarTodosDamae() {
+    alert('Iniciando consulta automática em massa para todos os IDs DAMAE cadastrados...');
+    for (var i = 0; i < imoveisDB.length; i++) {
+      await executarBuscaAutomaticaDamae(imoveisDB[i].id, imoveisDB[i].damaeId);
+    }
+    renderDamae();
+    alert('Consulta em massa de DAMAE concluída!');
   }
 
   // CÁLCULOS DE RESCISÃO
@@ -1079,64 +1161,41 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     var dIni = $('rescisaoIptuInicio').value;
     var dFim = $('rescisaoIptuFim').value;
 
-    if (!dIni || !dFim) {
-      alert('Por favor, preencha a data inicial e final do IPTU.');
-      return;
-    }
-
+    if (!dIni || !dFim) { alert('Preencha a data inicial e final.'); return; }
     var diffTime = new Date(dFim).getTime() - new Date(dIni).getTime();
     var diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24)) + 1;
-
-    if (diffDays < 0) {
-      alert('A data final não pode ser anterior à data inicial.');
-      return;
-    }
+    if (diffDays < 0) { alert('Data final inválida.'); return; }
 
     var ano = new Date(dIni).getFullYear();
     var diasAno = ((ano % 4 === 0 && ano % 100 !== 0) || (ano % 400 === 0)) ? 366 : 365;
-
     var valorDia = valAnual / diasAno;
     var parteInquilino = valorDia * diffDays;
     var parteProprietario = valAnual - parteInquilino;
 
     $('resIptuCalc').innerHTML = '<div style="background:var(--primary-light); padding:10px; border-radius:8px;">' +
-      '<b>Período do Inquilino:</b> ' + diffDays + ' dia(s) (Ano de ' + diasAno + ' dias)<br>' +
-      '<span style="color:var(--danger)"><b>Responsabilidade Inquilino:</b> ' + formatarMoeda(parteInquilino) + '</span><br>' +
-      '<span style="color:var(--primary)"><b>Responsabilidade Proprietário:</b> ' + formatarMoeda(parteProprietario) + '</span>' +
+      '<b>Período do Inquilino:</b> ' + diffDays + ' dia(s)<br>' +
+      '<span style="color:var(--danger)"><b>Inquilino:</b> ' + formatarMoeda(parteInquilino) + '</span><br>' +
+      '<span style="color:var(--primary)"><b>Proprietário:</b> ' + formatarMoeda(parteProprietario) + '</span>' +
       '</div>';
   }
 
   function calcularMensaisRescisao() {
     var diasMes = parseFloat($('rescisaoDiasMes').value || 30);
-    
-    var aluguelVal = parseFloat($('rescisaoAluguelVal').value || 0);
-    var aluguelDias = parseFloat($('rescisaoAluguelDias').value || 0);
-
-    var aguaVal = parseFloat($('rescisaoAguaVal').value || 0);
-    var aguaDias = parseFloat($('rescisaoAguaDias').value || 0);
-
-    var luzVal = parseFloat($('rescisaoLuzVal').value || 0);
-    var luzDias = parseFloat($('rescisaoLuzDias').value || 0);
-
-    var propAluguel = (aluguelVal / diasMes) * aluguelDias;
-    var propAgua = (aguaVal / diasMes) * aguaDias;
-    var propLuz = (luzVal / diasMes) * luzDias;
-
+    var propAluguel = (parseFloat($('rescisaoAluguelVal').value || 0) / diasMes) * parseFloat($('rescisaoAluguelDias').value || 0);
+    var propAgua = (parseFloat($('rescisaoAguaVal').value || 0) / diasMes) * parseFloat($('rescisaoAguaDias').value || 0);
+    var propLuz = (parseFloat($('rescisaoLuzVal').value || 0) / diasMes) * parseFloat($('rescisaoLuzDias').value || 0);
     var totalInquilino = propAluguel + propAgua + propLuz;
 
     $('resMensaisCalc').innerHTML = '<div style="background:var(--primary-light); padding:10px; border-radius:8px;">' +
-      '<b>Valores Proporcionais (Inquilino):</b><br>' +
-      '• Aluguel (' + aluguelDias + ' dias): <b>' + formatarMoeda(propAluguel) + '</b><br>' +
-      '• Água (' + aguaDias + ' dias): <b>' + formatarMoeda(propAgua) + '</b><br>' +
-      '• Luz (' + luzDias + ' dias): <b>' + formatarMoeda(propLuz) + '</b><br>' +
+      '• Aluguel: <b>' + formatarMoeda(propAluguel) + '</b><br>' +
+      '• Água: <b>' + formatarMoeda(propAgua) + '</b><br>' +
+      '• Luz: <b>' + formatarMoeda(propLuz) + '</b><br>' +
       '<hr style="margin:6px 0; border:0; border-top:1px solid var(--border)">' +
-      '<b>Total Geral do Inquilino:</b> <span style="color:var(--success); font-size:1.1rem;">' + formatarMoeda(totalInquilino) + '</span>' +
+      '<b>Total Inquilino:</b> <span style="color:var(--success); font-size:1.1rem;">' + formatarMoeda(totalInquilino) + '</span>' +
       '</div>';
   }
 
-  function gerarProximoMes() {
-    alert('Função auto gerar ativa!');
-  }
+  function gerarProximoMes() { alert('Função auto gerar ativa!'); }
 
   // COMISSÕES
   function toggleDataPrevisao() {
@@ -1172,19 +1231,14 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       if (vS !== 'todos' && c.veiculoCapitacao !== vS) continue;
       if (!c.dataFechamento) { filt.push(c); continue; }
       var p = String(c.dataFechamento).split('-');
-      if ((aS === 'todos' || p[0] === aS) && (mS === 'todos' || p[1] === mS)) {
-        filt.push(c);
-      }
+      if ((aS === 'todos' || p[0] === aS) && (mS === 'todos' || p[1] === mS)) { filt.push(c); }
     }
 
     filt.sort(function(a, b) {
-      var tA = (a && a.dataFechamento && !isNaN(new Date(a.dataFechamento).getTime())) ? new Date(a.dataFechamento).getTime() : 0;
-      var tB = (b && b.dataFechamento && !isNaN(new Date(b.dataFechamento).getTime())) ? new Date(b.dataFechamento).getTime() : 0;
-      return tA - tB;
+      return (new Date(a.dataFechamento).getTime() || 0) - (new Date(b.dataFechamento).getTime() || 0);
     });
 
-    var tv = 0, tc = 0, tr = 0, tP = 0;
-    var htmlC = '';
+    var tv = 0, tc = 0, tr = 0, tP = 0, htmlC = '';
     for (var j = 0; j < filt.length; j++) {
       var c = filt[j];
       if (!c) continue;
@@ -1201,20 +1255,15 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       }
 
       var dataFmt = c.dataFechamento ? String(c.dataFechamento).split('-').reverse().join('/') : '-';
-
-      htmlC += '<tr><td>' + dataFmt + '</td>';
-      htmlC += '<td><small>C: <b>' + (c.comprador || '-') + '</b><br>V: ' + (c.vendedor || '-') + '</small></td>';
-      htmlC += '<td><span class="badge badge-capitacao">' + (c.veiculoCapitacao || 'Sem veículo') + '</span></td>';
+      htmlC += '<tr><td>' + dataFmt + '</td><td><small>C: <b>' + (c.comprador || '-') + '</b><br>V: ' + (c.vendedor || '-') + '</small></td>';
+      htmlC += '<td><span class="badge badge-capitacao">' + (c.veiculoCapitacao || '-') + '</span></td>';
       htmlC += '<td><div class="corretor-cell"><img src="' + fot + '" class="corretor-avatar"><span>' + (c.corretor || '-') + '</span></div></td>';
       htmlC += '<td>' + formatarMoeda(c.valorVenda) + '</td><td><b>' + formatarMoeda(cTotal) + '</b></td>';
       htmlC += '<td style="color:var(--success)">' + formatarMoeda(cRec) + '</td>';
       htmlC += '<td style="color:var(--danger)"><b>' + formatarMoeda(falta > 0 ? falta : 0) + '</b></td>';
       htmlC += '<td><small>' + (c.retidoPor && c.retidoPor !== 'Nenhum' ? c.retidoPor : '-') + '</small></td>';
-      htmlC += '<td><small>' + (c.observacoes || '-') + '</small></td><td>' + badge + '</td>';
-      htmlC += '<td>';
-      if (c.status !== 'Recebido') {
-        htmlC += '<button class="btn btn-success btn-sm" onclick="baixarComissao(' + c.id + ')">Baixar</button> ';
-      }
+      htmlC += '<td><small>' + (c.observacoes || '-') + '</small></td><td>' + badge + '</td><td>';
+      if (c.status !== 'Recebido') htmlC += '<button class="btn btn-success btn-sm" onclick="baixarComissao(' + c.id + ')">Baixar</button> ';
       htmlC += '<button class="btn btn-secondary btn-sm" onclick="editarComissao(' + c.id + ')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirComissao(' + c.id + ')">X</button></td></tr>';
     }
     $('tabelaComissoes').innerHTML = htmlC;
@@ -1228,8 +1277,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     e.preventDefault();
     var id = $('comissaoId').value, vt = parseFloat($('valorComissao').value) || 0, vr = parseFloat($('valorRecebido').value) || 0;
     var st = 'A Receber';
-    if (vr >= vt && vt > 0) st = 'Recebido';
-    else if (vr > 0) st = 'Parcial';
+    if (vr >= vt && vt > 0) st = 'Recebido'; else if (vr > 0) st = 'Parcial';
 
     var obj = {
       id: id ? parseInt(id) : Date.now(),
@@ -1248,12 +1296,8 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       status: st
     };
     if (id) {
-      for (var i = 0; i < comissoes.length; i++) {
-        if (comissoes[i] && comissoes[i].id == id) { comissoes[i] = obj; break; }
-      }
-    } else {
-      comissoes.push(obj);
-    }
+      for (var i = 0; i < comissoes.length; i++) { if (comissoes[i] && comissoes[i].id == id) { comissoes[i] = obj; break; } }
+    } else { comissoes.push(obj); }
     localStorage.setItem('comissoes_db', JSON.stringify(comissoes));
     sincronizarCustosMarketing();
     limparFormComissao();
@@ -1272,8 +1316,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
           c.valorRecebido = (c.valorRecebido || 0) + val;
           c.status = c.valorRecebido >= c.valorComissao ? 'Recebido' : 'Parcial';
           var q = prompt('Quem reteve? [1] Imobiliária, [2] Corretor (Deixe em branco se nenhum)');
-          if (q === '1') c.retidoPor = 'Imobiliária';
-          else if (q === '2') c.retidoPor = 'Corretor';
+          if (q === '1') c.retidoPor = 'Imobiliária'; else if (q === '2') c.retidoPor = 'Corretor';
           localStorage.setItem('comissoes_db', JSON.stringify(comissoes));
           renderComissoes();
         }
@@ -1313,27 +1356,19 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     }
   }
 
-  function limparFormComissao() {
-    $('formComissao').reset();
-    $('comissaoId').value = '';
-    toggleDataPrevisao();
-  }
+  function limparFormComissao() { $('formComissao').reset(); $('comissaoId').value = ''; toggleDataPrevisao(); }
 
   // ALUGUEL
   function carregarSelectsAluguel() {
     var htmlC = '<option value="todos">Todos</option>';
     for (var i = 0; i < corretores.length; i++) {
-      if (corretores[i] && corretores[i].nome) {
-        htmlC += '<option value="' + corretores[i].nome + '">' + corretores[i].nome + '</option>';
-      }
+      if (corretores[i] && corretores[i].nome) htmlC += '<option value="' + corretores[i].nome + '">' + corretores[i].nome + '</option>';
     }
     if ($('filtroCorretorAluguel')) $('filtroCorretorAluguel').innerHTML = htmlC;
     if ($('corretorAluguel')) $('corretorAluguel').innerHTML = htmlC.replace('<option value="todos">Todos</option>', '');
 
     var htmlV = '<option value="todos">Todos</option>';
-    for (var j = 0; j < veiculosCapitacao.length; j++) {
-      htmlV += '<option value="' + veiculosCapitacao[j] + '">' + veiculosCapitacao[j] + '</option>';
-    }
+    for (var j = 0; j < veiculosCapitacao.length; j++) htmlV += '<option value="' + veiculosCapitacao[j] + '">' + veiculosCapitacao[j] + '</option>';
     if ($('filtroCapitacaoAluguel')) $('filtroCapitacaoAluguel').innerHTML = htmlV;
     if ($('veiculoCapitacaoAluguel')) $('veiculoCapitacaoAluguel').innerHTML = htmlV.replace('<option value="todos">Todos</option>', '');
   }
@@ -1349,19 +1384,12 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       if (vS !== 'todos' && a.veiculoCapitacao !== vS) continue;
       if (!a.dataFechamento) { filt.push(a); continue; }
       var p = String(a.dataFechamento).split('-');
-      if ((aS === 'todos' || p[0] === aS) && (mS === 'todos' || p[1] === mS)) {
-        filt.push(a);
-      }
+      if ((aS === 'todos' || p[0] === aS) && (mS === 'todos' || p[1] === mS)) filt.push(a);
     }
 
-    filt.sort(function(a, b) {
-      var tA = (a && a.dataFechamento && !isNaN(new Date(a.dataFechamento).getTime())) ? new Date(a.dataFechamento).getTime() : 0;
-      var tB = (b && b.dataFechamento && !isNaN(new Date(b.dataFechamento).getTime())) ? new Date(b.dataFechamento).getTime() : 0;
-      return tA - tB;
-    });
+    filt.sort(function(a, b) { return (new Date(a.dataFechamento).getTime() || 0) - (new Date(b.dataFechamento).getTime() || 0); });
 
-    var totVal = 0, mkt = 0;
-    var htmlA = '';
+    var totVal = 0, mkt = 0, htmlA = '';
     for (var j = 0; j < filt.length; j++) {
       var a = filt[j];
       if (!a) continue;
@@ -1375,9 +1403,8 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       }
 
       var dataFmt = a.dataFechamento ? String(a.dataFechamento).split('-').reverse().join('/') : '-';
-
       htmlA += '<tr><td>' + dataFmt + '</td><td><b>' + (a.inquilino || '-') + '</b></td>';
-      htmlA += '<td><span class="badge badge-capitacao">' + (a.veiculoCapitacao || 'Sem veículo') + '</span></td><td>' + (a.proprietario || '-') + '</td>';
+      htmlA += '<td><span class="badge badge-capitacao">' + (a.veiculoCapitacao || '-') + '</span></td><td>' + (a.proprietario || '-') + '</td>';
       htmlA += '<td><div class="corretor-cell"><img src="' + f + '" class="corretor-avatar"><span>' + (a.corretor || '-') + '</span></div></td>';
       htmlA += '<td>' + formatarMoeda(a.valorAluguel) + '</td><td>' + (capAluguel.indexOf('marketing') !== -1 ? '<b style="color:var(--danger)">R$ 50,00</b>' : '-') + '</td>';
       htmlA += '<td><button class="btn btn-secondary btn-sm" onclick="editarAluguel(' + a.id + ')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirAluguel(' + a.id + ')">X</button></td></tr>';
@@ -1401,12 +1428,8 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       corretor: $('corretorAluguel').value
     };
     if (id) {
-      for (var i = 0; i < alugueis.length; i++) {
-        if (alugueis[i] && alugueis[i].id == id) { alugueis[i] = obj; break; }
-      }
-    } else {
-      alugueis.push(obj);
-    }
+      for (var i = 0; i < alugueis.length; i++) { if (alugueis[i] && alugueis[i].id == id) { alugueis[i] = obj; break; } }
+    } else { alugueis.push(obj); }
     localStorage.setItem('alugueis_db', JSON.stringify(alugueis));
     sincronizarCustosMarketing();
     limparFormAluguel();
@@ -1438,18 +1461,13 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     }
   }
 
-  function limparFormAluguel() {
-    $('formAluguel').reset();
-    $('aluguelId').value = '';
-  }
+  function limparFormAluguel() { $('formAluguel').reset(); $('aluguelId').value = ''; }
 
   // DASHBOARD
   function carregarSelectsDashboard() {
     var htmlC = '<option value="todos">Todos</option>';
     for (var i = 0; i < corretores.length; i++) {
-      if (corretores[i] && corretores[i].nome) {
-        htmlC += '<option value="' + corretores[i].nome + '">' + corretores[i].nome + '</option>';
-      }
+      if (corretores[i] && corretores[i].nome) htmlC += '<option value="' + corretores[i].nome + '">' + corretores[i].nome + '</option>';
     }
     if ($('filtroCorretorDash')) $('filtroCorretorDash').innerHTML = htmlC;
   }
@@ -1464,21 +1482,13 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       if (cS !== 'todos' && c.corretor !== cS) continue;
       if (!c.dataFechamento) { f.push(c); continue; }
       var p = String(c.dataFechamento).split('-');
-      if ((aS === 'todos' || p[0] === aS) && (mS === 'todos' || p[1] === mS)) {
-        f.push(c);
-      }
+      if ((aS === 'todos' || p[0] === aS) && (mS === 'todos' || p[1] === mS)) f.push(c);
     }
 
     var tV = 0, tC = 0, tR = 0, tP = 0, mapa = {};
     for (var k = 0; k < corretores.length; k++) {
       if (corretores[k] && corretores[k].nome) {
-        mapa[corretores[k].nome] = {
-          nome: corretores[k].nome,
-          vol: 0,
-          qtd: 0,
-          com: 0,
-          foto: corretores[k].foto || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'
-        };
+        mapa[corretores[k].nome] = { nome: corretores[k].nome, vol: 0, qtd: 0, com: 0, foto: corretores[k].foto || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png' };
       }
     }
 
@@ -1515,10 +1525,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 
     chartCorretor = new Chart($('chartVendasCorretor'), {
       type: 'bar',
-      data: {
-        labels: labels,
-        datasets: [{ label: 'Volume Vendas (R$)', data: dataVals, backgroundColor: '#2a5045', borderRadius: 6 }]
-      },
+      data: { labels: labels, datasets: [{ label: 'Volume Vendas (R$)', data: dataVals, backgroundColor: '#2a5045', borderRadius: 6 }] },
       options: { responsive: true, maintainAspectRatio: false }
     });
 
@@ -1534,10 +1541,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   }
 
   // CONFIGURAÇÕES CORRETORES
-  function abrirGerenciadorCorretores() {
-    $('modalCorretores').style.display = 'flex';
-    renderListaCorretores();
-  }
+  function abrirGerenciadorCorretores() { $('modalCorretores').style.display = 'flex'; renderListaCorretores(); }
 
   function renderListaCorretores() {
     var html = '';
@@ -1556,9 +1560,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 
   function salvarCorretor(i) {
     var n = $('corr_n_' + i).value.trim();
-    var fileInput = $('corr_f_' + i);
-    var file = fileInput.files[0];
-    
+    var file = $('corr_f_' + i).files[0];
     if (!n) { alert('Insira um nome válido.'); return; }
 
     if (file) {
@@ -1568,17 +1570,14 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
         img.onload = function() {
           var canvas = document.createElement('canvas');
           var scale = 150 / img.width;
-          canvas.width = 150;
-          canvas.height = img.height * scale;
+          canvas.width = 150; canvas.height = img.height * scale;
           var ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          var dataUrl = canvas.toDataURL('image/jpeg', 0.6);
-          
           corretores[i].nome = n;
-          corretores[i].foto = dataUrl;
+          corretores[i].foto = canvas.toDataURL('image/jpeg', 0.6);
           localStorage.setItem('corretores_objs_db', JSON.stringify(corretores));
           renderListaCorretores();
-          alert('Corretor e foto atualizados com sucesso!');
+          alert('Atualizado!');
         };
         img.src = e.target.result;
       };
@@ -1587,7 +1586,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       corretores[i].nome = n;
       localStorage.setItem('corretores_objs_db', JSON.stringify(corretores));
       renderListaCorretores();
-      alert('Nome do corretor atualizado!');
+      alert('Atualizado!');
     }
   }
 
@@ -1596,16 +1595,12 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       corretores.splice(i, 1);
       localStorage.setItem('corretores_objs_db', JSON.stringify(corretores));
       renderListaCorretores();
-    } else {
-      alert('Mantenha pelo menos 1 corretor.');
-    }
+    } else { alert('Mantenha pelo menos 1 corretor.'); }
   }
 
   function adicionarCorretor() {
     var nome = $('novoCorretorNome').value.trim();
-    var fileInput = $('novoCorretorFoto');
-    var file = fileInput.files[0];
-    
+    var file = $('novoCorretorFoto').files[0];
     if (!nome) { alert('Insira um nome válido.'); return; }
     
     for (var i = 0; i < corretores.length; i++) {
@@ -1619,16 +1614,12 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
         img.onload = function() {
           var canvas = document.createElement('canvas');
           var scale = 150 / img.width;
-          canvas.width = 150;
-          canvas.height = img.height * scale;
+          canvas.width = 150; canvas.height = img.height * scale;
           var ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          var dataUrl = canvas.toDataURL('image/jpeg', 0.6);
-          
-          corretores.push({ nome: nome, foto: dataUrl });
+          corretores.push({ nome: nome, foto: canvas.toDataURL('image/jpeg', 0.6) });
           localStorage.setItem('corretores_objs_db', JSON.stringify(corretores));
-          $('novoCorretorNome').value = '';
-          fileInput.value = '';
+          $('novoCorretorNome').value = ''; $('novoCorretorFoto').value = '';
           renderListaCorretores();
         };
         img.src = e.target.result;
@@ -1642,11 +1633,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     }
   }
 
-  function abrirGerenciadorContas() {
-    $('modalOrigens').style.display = 'flex';
-    renderListaOrigens();
-  }
-
+  function abrirGerenciadorContas() { $('modalOrigens').style.display = 'flex'; renderListaOrigens(); }
   function renderListaOrigens() {
     var html = '';
     for (var i = 0; i < origens.length; i++) {
@@ -1656,22 +1643,12 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     }
     $('listaOrigens').innerHTML = html;
   }
-
   function adicionarOrigem() {
     var v = $('novaOrigemNome').value.trim();
-    if (v && origens.indexOf(v) === -1) {
-      origens.push(v);
-      localStorage.setItem('origens_db', JSON.stringify(origens));
-      $('novaOrigemNome').value = '';
-      renderListaOrigens();
-    }
+    if (v && origens.indexOf(v) === -1) { origens.push(v); localStorage.setItem('origens_db', JSON.stringify(origens)); $('novaOrigemNome').value = ''; renderListaOrigens(); }
   }
 
-  function abrirGerenciadorCategorias() {
-    $('modalCategorias').style.display = 'flex';
-    renderListaCategorias();
-  }
-
+  function abrirGerenciadorCategorias() { $('modalCategorias').style.display = 'flex'; renderListaCategorias(); }
   function renderListaCategorias() {
     var html = '';
     for (var i = 0; i < categorias.length; i++) {
@@ -1681,44 +1658,26 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     }
     $('listaCategorias').innerHTML = html;
   }
-
   function adicionarCategoria() {
     var v = $('novaCategoriaNome').value.trim();
-    if (v && categorias.indexOf(v) === -1) {
-      categorias.push(v);
-      localStorage.setItem('categorias_db', JSON.stringify(categorias));
-      $('novaCategoriaNome').value = '';
-      renderListaCategorias();
-    }
+    if (v && categorias.indexOf(v) === -1) { categorias.push(v); localStorage.setItem('categorias_db', JSON.stringify(categorias)); $('novaCategoriaNome').value = ''; renderListaCategorias(); }
   }
 
-  function abrirGerenciadorVeiculos() {
-    $('modalVeiculos').style.display = 'flex';
-    renderListaVeiculos();
-  }
-
+  function abrirGerenciadorVeiculos() { $('modalVeiculos').style.display = 'flex'; renderListaVeiculos(); }
   function renderListaVeiculos() {
     var html = '';
     for (var i = 0; i < veiculosCapitacao.length; i++) {
       var v = veiculosCapitacao[i];
       html += '<div style="display:flex;gap:5px;margin-bottom:8px;"><input type="text" value="' + v + '" id="vei_' + i + '" style="flex:1;" ' + (v === 'Marketing' ? 'readonly' : '') + '>';
       html += '<button class="btn btn-sm" onclick="if($(\'vei_' + i + '\').value){veiculosCapitacao[' + i + ']=\$(\'vei_' + i + '\').value;localStorage.setItem(\'veiculos_db\',JSON.stringify(veiculosCapitacao));renderListaVeiculos();}">Salvar</button>';
-      if (v !== 'Marketing') {
-        html += '<button class="btn btn-danger btn-sm" onclick="veiculosCapitacao.splice(' + i + ',1);localStorage.setItem(\'veiculos_db\',JSON.stringify(veiculosCapitacao));renderListaVeiculos();}">X</button>';
-      }
+      if (v !== 'Marketing') html += '<button class="btn btn-danger btn-sm" onclick="veiculosCapitacao.splice(' + i + ',1);localStorage.setItem(\'veiculos_db\',JSON.stringify(veiculosCapitacao));renderListaVeiculos();}">X</button>';
       html += '</div>';
     }
     $('listaVeiculos').innerHTML = html;
   }
-
   function adicionarVeiculo() {
     var v = $('novoVeiculoNome').value.trim();
-    if (v && veiculosCapitacao.indexOf(v) === -1) {
-      veiculosCapitacao.push(v);
-      localStorage.setItem('veiculos_db', JSON.stringify(veiculosCapitacao));
-      $('novoVeiculoNome').value = '';
-      renderListaVeiculos();
-    }
+    if (v && veiculosCapitacao.indexOf(v) === -1) { veiculosCapitacao.push(v); localStorage.setItem('veiculos_db', JSON.stringify(veiculosCapitacao)); $('novoVeiculoNome').value = ''; renderListaVeiculos(); }
   }
 
   // UTILIZADORES
@@ -1727,47 +1686,36 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     for (var i = 0; i < usuariosDB.length; i++) {
       var u = usuariosDB[i];
       if (!u) continue;
-      var nome = u.usuario || u.u || u.nome || '';
-      var senha = u.senha || u.p || u.pass || '';
-      html += '<tr><td><input type="text" value="' + nome + '" id="u_n_' + i + '"></td>';
-      html += '<td><input type="text" value="' + senha + '" id="u_p_' + i + '"></td>';
+      html += '<tr><td><input type="text" value="' + (u.usuario || u.u || u.nome || '') + '" id="u_n_' + i + '"></td>';
+      html += '<td><input type="text" value="' + (u.senha || u.p || u.pass || '') + '" id="u_p_' + i + '"></td>';
       html += '<td style="display:flex;gap:6px;"><button class="btn btn-sm" onclick="salvarUser(' + i + ')">Salvar</button>';
-      if (usuariosDB.length > 1) {
-        html += '<button class="btn btn-danger btn-sm" onclick="usuariosDB.splice(' + i + ',1);localStorage.setItem(\'usuarios_db\',JSON.stringify(usuariosDB));renderTabelaUsuarios()">X</button>';
-      }
+      if (usuariosDB.length > 1) html += '<button class="btn btn-danger btn-sm" onclick="usuariosDB.splice(' + i + ',1);localStorage.setItem(\'usuarios_db\',JSON.stringify(usuariosDB));renderTabelaUsuarios()">X</button>';
       html += '</td></tr>';
     }
     $('tabelaUsuarios').innerHTML = html;
   }
 
   function adicionarUsuario() {
-    var u = $('novoUserNome').value.trim();
-    var p = $('novoUserPass').value.trim();
-    var existe = false;
+    var u = $('novoUserNome').value.trim(), p = $('novoUserPass').value.trim(), existe = false;
     for (var i = 0; i < usuariosDB.length; i++) {
-      if (!usuariosDB[i]) continue;
-      if ((usuariosDB[i].usuario || usuariosDB[i].u || usuariosDB[i].nome) === u) { existe = true; break; }
+      if (usuariosDB[i] && (usuariosDB[i].usuario || usuariosDB[i].u || usuariosDB[i].nome) === u) { existe = true; break; }
     }
     if (u && p && !existe) {
       usuariosDB.push({ usuario: u, senha: p });
       localStorage.setItem('usuarios_db', JSON.stringify(usuariosDB));
-      $('novoUserNome').value = '';
-      $('novoUserPass').value = '';
+      $('novoUserNome').value = ''; $('novoUserPass').value = '';
       renderTabelaUsuarios();
-      alert('Utilizador cadastrado com sucesso!');
-    } else {
-      alert('Utilizador inválido ou já existente.');
-    }
+      alert('Utilizador cadastrado!');
+    } else { alert('Utilizador inválido ou existente.'); }
   }
 
   function salvarUser(i) {
-    var u = $('u_n_' + i).value.trim();
-    var p = $('u_p_' + i).value.trim();
+    var u = $('u_n_' + i).value.trim(), p = $('u_p_' + i).value.trim();
     if (u && p) {
       usuariosDB[i] = { usuario: u, senha: p };
       localStorage.setItem('usuarios_db', JSON.stringify(usuariosDB));
       renderTabelaUsuarios();
-      alert('Utilizador atualizado!');
+      alert('Atualizado!');
     }
   }
 </script>
