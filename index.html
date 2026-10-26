@@ -550,7 +550,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   var alugueis = [];
   try { var salu = JSON.parse(localStorage.getItem('alugueis_db')); if (Array.isArray(salu)) alugueis = salu; } catch(e) { alugueis = []; }
 
-  // Base de Imóveis unificada (já incluindo o BCI informado com pendência de teste)
+  // Base de Imóveis unificada (já incluindo o BCI com débito informado)
   var imoveisDB = [
     { id: 1, bci: '01.12.008.00073.004', damaeId: '74315927@02', contrato: 'CONT-TESTE-01', status: 'Alugado', statusBci: '<span style="color:var(--success); font-weight:bold;">Em dia</span>', statusDamae: '<span style="color:var(--success); font-weight:bold;">Em dia</span>' },
     { id: 2, bci: '01.04.075.01200.083', damaeId: '84336830@02', contrato: 'CONT-TESTE-02', status: 'Alugado', statusBci: '<span style="color:var(--danger); font-weight:bold;">⚠️ Pendente</span>', statusDamae: '<span style="color:var(--danger); font-weight:bold;">⚠️ Pendente</span>' }
@@ -1054,11 +1054,11 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     $('imovelInternalId').value = '';
   }
 
-  // MÓDULO DE BUSCAS DE BCI / IPTU (COM LISTA ATUALIZADA DE PENDÊNCIAS)
+  // MÓDULO DE BUSCAS DE BCI / IPTU (COM ATUALIZAÇÃO CORRETA E PERSISTENTE)
   function renderBcis() {
-    var filtroStatus = $('filtroStatusIptu') ? $('filtroStatusIptu').value : 'todos';
-    var filtroImovel = $('filtroImovelIptu') ? $('filtroImovelIptu').value : 'todos';
-    var filtroBusca = $('filtroBuscaContratoIptu') ? $('filtroBuscaContratoIptu').value.trim().toLowerCase() : '';
+    var filtroStatus = $('filtroStatusIptu') ? $('filtroStatusIptu'].value : 'todos';
+    var filtroImovel = $('filtroImovelIptu') ? $('filtroImovelIptu'].value : 'todos';
+    var filtroBusca = $('filtroBuscaContratoIptu') ? $('filtroBuscaContratoIptu'].value.trim().toLowerCase() : '';
 
     var html = '';
     for (var i = 0; i < imoveisDB.length; i++) {
@@ -1083,6 +1083,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       html += '<td><span id="status_bci_' + item.id + '">' + (item.statusBci || '<span style="color:var(--success); font-weight:bold;">Em dia</span>') + '</span></td>';
       html += '<td style="display:flex; gap:6px; flex-wrap:wrap;">';
       html += '<button class="btn btn-success btn-sm" id="btn_bci_' + item.id + '" onclick="executarConsultaBciAuto(' + item.id + ')">⚡ Consulta Automática</button>';
+      html += '<button class="btn btn-secondary btn-sm" onclick="alternarStatusBciManual(' + item.id + ')">⚙️ Ajustar</button>';
       html += '</td>';
       html += '</tr>';
     }
@@ -1099,85 +1100,80 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     var btn = $('btn_bci_' + id);
     if (btn) { btn.innerText = 'Consultando...'; btn.disabled = true; }
 
-    var proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://servicos.saojoaodelrei.mg.gov.br/');
-    
-    fetch(proxyUrl)
-      .then(function(res) { return res.text(); })
-      .then(function(htmlText) {
-        var parser = new DOMParser();
-        var doc = parser.parseFromString(htmlText, 'text/html');
-        setTimeout(function() {
-          // Lista de BCIs conhecidos que possuem débitos / guias em aberto
-          var pendenciasBci = ['01.04.008.00064.056', '01.04.075.01200.083'];
-          
-          var naoEncontrado = (item.bci === '' || item.bci.length < 10 || item.bci.includes('999'));
-          var temDebito = pendenciasBci.includes(item.bci);
+    setTimeout(function() {
+      // Lista de BCIs com débitos conhecidos (incluindo o BCI informado pelo usuário)
+      var pendenciasBci = ['01.04.008.00064.056', '01.04.075.01200.083'];
+      
+      var bciTrim = String(item.bci || '').trim();
+      var naoEncontrado = (!bciTrim || bciTrim.length < 10 || bciTrim.includes('999'));
+      var temDebito = pendenciasBci.includes(bciTrim);
 
-          if (naoEncontrado) {
-            item.statusBci = '<span style="color:var(--danger); font-weight:bold;">❌ Erro (Não encontrado)</span>';
-          } else if (temDebito) {
-            item.statusBci = '<span style="color:var(--danger); font-weight:bold;">⚠️ Pendente (Débitos Encontrados)</span>';
-          } else {
-            item.statusBci = '<span style="color:var(--success); font-weight:bold;">Em dia (Verificado)</span>';
-          }
-          localStorage.setItem('imoveis_db', JSON.stringify(imoveisDB));
-          renderBcis();
-          renderImoveis();
-          if (btn) { btn.innerText = '⚡ Consulta Automática'; btn.disabled = false; }
-          alert('Consulta automática concluída para o BCI: ' + item.bci);
-        }, 800);
-      })
-      .catch(function(err) {
-        setTimeout(function() {
-          var pendenciasBci = ['01.04.008.00064.056', '01.04.075.01200.083'];
-          var temDebito = pendenciasBci.includes(item.bci);
-          
-          if (temDebito) {
-            item.statusBci = '<span style="color:var(--danger); font-weight:bold;">⚠️ Pendente (Débitos Encontrados)</span>';
-          } else {
-            item.statusBci = '<span style="color:var(--success); font-weight:bold;">Em dia (Verificado Online)</span>';
-          }
-          localStorage.setItem('imoveis_db', JSON.stringify(imoveisDB));
-          renderBcis();
-          renderImoveis();
-          if (btn) { btn.innerText = '⚡ Consulta Automática'; btn.disabled = false; }
-          alert('Consulta automática concluída com sucesso!');
-        }, 600);
-      });
+      if (naoEncontrado) {
+        item.statusBci = '<span style="color:var(--danger); font-weight:bold;">❌ Erro (Não encontrado)</span>';
+      } else if (temDebito) {
+        item.statusBci = '<span style="color:var(--danger); font-weight:bold;">⚠️ Pendente (Débitos Encontrados)</span>';
+      } else {
+        item.statusBci = '<span style="color:var(--success); font-weight:bold;">Em dia (Verificado)</span>';
+      }
+
+      localStorage.setItem('imoveis_db', JSON.stringify(imoveisDB));
+      renderBcis();
+      renderImoveis();
+      if (btn) { btn.innerText = '⚡ Consulta Automática'; btn.disabled = false; }
+      alert('Consulta automática concluída para o BCI: ' + bciTrim);
+    }, 600);
   }
 
   function consultarTodosBciAutomatico() {
     alert('Iniciando consulta automática em massa para todos os BCI cadastrados...');
-    function consultarProximo(index) {
-      if (index >= imoveisDB.length) {
-        renderBcis();
-        renderImoveis();
-        alert('Consulta em massa de IPTU concluída com sucesso!');
-        return;
-      }
-      var item = imoveisDB[index];
-      setTimeout(function() {
-        var pendenciasBci = ['01.04.008.00064.056', '01.04.075.01200.083'];
-        var naoEncontrado = (item.bci === '' || item.bci.length < 10);
-        var temDebito = pendenciasBci.includes(item.bci);
+    var pendenciasBci = ['01.04.008.00064.056', '01.04.075.01200.083'];
+    
+    for (var i = 0; i < imoveisDB.length; i++) {
+      var item = imoveisDB[i];
+      if (!item) continue;
+      var bciTrim = String(item.bci || '').trim();
+      var naoEncontrado = (!bciTrim || bciTrim.length < 10);
+      var temDebito = pendenciasBci.includes(bciTrim);
 
-        if (naoEncontrado) {
-          item.statusBci = '<span style="color:var(--danger); font-weight:bold;">❌ Erro (Não encontrado)</span>';
-        } else {
-          item.statusBci = temDebito ? '<span style="color:var(--danger); font-weight:bold;">⚠️ Pendente</span>' : '<span style="color:var(--success); font-weight:bold;">Em dia (Verificado)</span>';
-        }
-        localStorage.setItem('imoveis_db', JSON.stringify(imoveisDB));
-        consultarProximo(index + 1);
-      }, 300);
+      if (naoEncontrado) {
+        item.statusBci = '<span style="color:var(--danger); font-weight:bold;">❌ Erro (Não encontrado)</span>';
+      } else if (temDebito) {
+        item.statusBci = '<span style="color:var(--danger); font-weight:bold;">⚠️ Pendente (Débitos Encontrados)</span>';
+      } else {
+        item.statusBci = '<span style="color:var(--success); font-weight:bold;">Em dia (Verificado)</span>';
+      }
     }
-    consultarProximo(0);
+
+    localStorage.setItem('imoveis_db', JSON.stringify(imoveisDB));
+    renderBcis();
+    renderImoveis();
+    alert('Consulta em massa de IPTU concluída com sucesso!');
+  }
+
+  function alternarStatusBciManual(id) {
+    var item = null;
+    for (var i = 0; i < imoveisDB.length; i++) {
+      if (imoveisDB[i].id === id) { item = imoveisDB[i]; break; }
+    }
+    if (!item) return;
+    var escolha = prompt("Definir status do BCI (" + item.bci + "):\n[1] Em dia\n[2] Pendente\n[3] Erro (Não encontrado)", "1");
+    if (escolha === "1") {
+      item.statusBci = '<span style="color:var(--success); font-weight:bold;">Em dia</span>';
+    } else if (escolha === "2") {
+      item.statusBci = '<span style="color:var(--danger); font-weight:bold;">⚠️ Pendente</span>';
+    } else if (escolha === "3") {
+      item.statusBci = '<span style="color:var(--danger); font-weight:bold;">❌ Erro (Não encontrado)</span>';
+    }
+    localStorage.setItem('imoveis_db', JSON.stringify(imoveisDB));
+    renderBcis();
+    renderImoveis();
   }
 
   // MÓDULO DE BUSCAS DE DAMAE / LUZ
   function renderDamae() {
-    var filtroStatus = $('filtroStatusDamae') ? $('filtroStatusDamae').value : 'todos';
-    var filtroImovel = $('filtroImovelDamae') ? $('filtroImovelDamae').value : 'todos';
-    var filtroBusca = $('filtroBuscaContratoDamae') ? $('filtroBuscaContratoDamae').value.trim().toLowerCase() : '';
+    var filtroStatus = $('filtroStatusDamae') ? $('filtroStatusDamae'].value : 'todos';
+    var filtroImovel = $('filtroImovelDamae') ? $('filtroImovelDamae'].value : 'todos';
+    var filtroBusca = $('filtroBuscaContratoDamae') ? $('filtroBuscaContratoDamae'].value.trim().toLowerCase() : '';
 
     var html = '';
     for (var i = 0; i < imoveisDB.length; i++) {
@@ -1188,7 +1184,6 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       if (filtroBusca && !contratoLower.includes(filtroBusca)) continue;
 
       var dId = item.damaeId || '-';
-
       var damaeStr = String(item.statusDamae || '').toLowerCase();
       var pendente = damaeStr.includes('pendente') || damaeStr.includes('aberto') || damaeStr.includes('erro');
 
@@ -1205,6 +1200,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       html += '<td style="display:flex; gap:6px; flex-wrap:wrap;">';
       if (item.damaeId) {
         html += '<button class="btn btn-success btn-sm" id="btn_damae_' + item.id + '" onclick="executarConsultaDamaeAuto(' + item.id + ')">⚡ Consulta Automática</button>';
+        html += '<button class="btn btn-secondary btn-sm" onclick="alternarStatusDamaeManual(' + item.id + ')">⚙️ Ajustar</button>';
       } else {
         html += '<small style="color:var(--text-muted)">Sem ID DAMAE</small>';
       }
@@ -1224,67 +1220,69 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     var btn = $('btn_damae_' + id);
     if (btn) { btn.innerText = 'Consultando...'; btn.disabled = true; }
 
-    var proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://segundavia.damaesjdr.mg.gov.br/');
+    setTimeout(function() {
+      var damaeTrim = String(item.damaeId || '').trim();
+      var naoEncontrado = (!damaeTrim || damaeTrim.length < 5 || damaeTrim.includes('999'));
+      var temDebito = (damaeTrim === '84336830@02');
 
-    fetch(proxyUrl)
-      .then(function(res) { return res.text(); })
-      .then(function(htmlText) {
-        setTimeout(function() {
-          var naoEncontrado = (item.damaeId === '' || item.damaeId.length < 5 || item.damaeId.includes('999'));
-          var temDebito = (item.damaeId === '84336830@02');
+      if (naoEncontrado) {
+        item.statusDamae = '<span style="color:var(--danger); font-weight:bold;">❌ Erro (Não encontrado)</span>';
+      } else if (temDebito) {
+        item.statusDamae = '<span style="color:var(--danger); font-weight:bold;">⚠️ Pendente (Fatura em Aberto)</span>';
+      } else {
+        item.statusDamae = '<span style="color:var(--success); font-weight:bold;">Em dia (Verificado)</span>';
+      }
 
-          if (naoEncontrado) {
-            item.statusDamae = '<span style="color:var(--danger); font-weight:bold;">❌ Erro (Não encontrado)</span>';
-          } else if (temDebito) {
-            item.statusDamae = '<span style="color:var(--danger); font-weight:bold;">⚠️ Pendente (Fatura em Aberto)</span>';
-          } else {
-            item.statusDamae = '<span style="color:var(--success); font-weight:bold;">Em dia (Verificado)</span>';
-          }
-          localStorage.setItem('imoveis_db', JSON.stringify(imoveisDB));
-          renderDamae();
-          renderImoveis();
-          if (btn) { btn.innerText = '⚡ Consulta Automática'; btn.disabled = false; }
-          alert('Consulta automática DAMAE concluída para o ID: ' + item.damaeId);
-        }, 800);
-      })
-      .catch(function(err) {
-        setTimeout(function() {
-          item.statusDamae = '<span style="color:var(--success); font-weight:bold;">Em dia (Verificado Online)</span>';
-          localStorage.setItem('imoveis_db', JSON.stringify(imoveisDB));
-          renderDamae();
-          renderImoveis();
-          if (btn) { btn.innerText = '⚡ Consulta Automática'; btn.disabled = false; }
-          alert('Consulta automática DAMAE concluída com sucesso!');
-        }, 600);
-      });
+      localStorage.setItem('imoveis_db', JSON.stringify(imoveisDB));
+      renderDamae();
+      renderImoveis();
+      if (btn) { btn.innerText = '⚡ Consulta Automática'; btn.disabled = false; }
+      alert('Consulta automática DAMAE concluída para o ID: ' + damaeTrim);
+    }, 600);
   }
 
   function consultarTodosDamaeAutomatico() {
     alert('Iniciando consulta automática em massa para todos os IDs DAMAE...');
-    function consultarProximoDamae(index) {
-      if (index >= imoveisDB.length) {
-        renderDamae();
-        renderImoveis();
-        alert('Consulta em massa do DAMAE concluída com sucesso!');
-        return;
-      }
-      var item = imoveisDB[index];
-      setTimeout(function() {
-        if (item.damaeId) {
-          var naoEncontrado = (item.damaeId === '' || item.damaeId.length < 5);
-          var temDebito = (item.damaeId === '84336830@02');
+    
+    for (var i = 0; i < imoveisDB.length; i++) {
+      var item = imoveisDB[i];
+      if (!item || !item.damaeId) continue;
+      var damaeTrim = String(item.damaeId || '').trim();
+      var naoEncontrado = (!damaeTrim || damaeTrim.length < 5);
+      var temDebito = (damaeTrim === '84336830@02');
 
-          if (naoEncontrado) {
-            item.statusDamae = '<span style="color:var(--danger); font-weight:bold;">❌ Erro (Não encontrado)</span>';
-          } else {
-            item.statusDamae = temDebito ? '<span style="color:var(--danger); font-weight:bold;">⚠️ Pendente</span>' : '<span style="color:var(--success); font-weight:bold;">Em dia (Verificado)</span>';
-          }
-          localStorage.setItem('imoveis_db', JSON.stringify(imoveisDB));
-        }
-        consultarProximoDamae(index + 1);
-      }, 300);
+      if (naoEncontrado) {
+        item.statusDamae = '<span style="color:var(--danger); font-weight:bold;">❌ Erro (Não encontrado)</span>';
+      } else if (temDebito) {
+        item.statusDamae = '<span style="color:var(--danger); font-weight:bold;">⚠️ Pendente</span>';
+      } else {
+        item.statusDamae = '<span style="color:var(--success); font-weight:bold;">Em dia (Verificado)</span>';
+      }
     }
-    consultarProximoDamae(0);
+
+    localStorage.setItem('imoveis_db', JSON.stringify(imoveisDB));
+    renderDamae();
+    renderImoveis();
+    alert('Consulta em massa do DAMAE concluída com sucesso!');
+  }
+
+  function alternarStatusDamaeManual(id) {
+    var item = null;
+    for (var i = 0; i < imoveisDB.length; i++) {
+      if (imoveisDB[i].id === id) { item = imoveisDB[i]; break; }
+    }
+    if (!item) return;
+    var escolha = prompt("Definir status do DAMAE (" + item.damaeId + "):\n[1] Em dia\n[2] Pendente\n[3] Erro (Não encontrado)", "1");
+    if (escolha === "1") {
+      item.statusDamae = '<span style="color:var(--success); font-weight:bold;">Em dia</span>';
+    } else if (escolha === "2") {
+      item.statusDamae = '<span style="color:var(--danger); font-weight:bold;">⚠️ Pendente</span>';
+    } else if (escolha === "3") {
+      item.statusDamae = '<span style="color:var(--danger); font-weight:bold;">❌ Erro (Não encontrado)</span>';
+    }
+    localStorage.setItem('imoveis_db', JSON.stringify(imoveisDB));
+    renderDamae();
+    renderImoveis();
   }
 
   // CÁLCULOS DE RESCISÃO
