@@ -963,7 +963,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     var contratoVal = $('imovelContratoInput').value.trim();
     var statusVal = $('imovelStatusInput').value;
 
-    // Verificar se já existe um imóvel com o mesmo número de contrato (exceto ao editar o próprio registro)
+    // 1. Validação de Contrato Duplicado
     for (var k = 0; k < imoveisDB.length; k++) {
       if (imoveisDB[k] && imoveisDB[k].contrato.toLowerCase() === contratoVal.toLowerCase()) {
         if (!id || imoveisDB[k].id != id) {
@@ -973,16 +973,38 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       }
     }
 
+    // 2. Validação de BCI Duplicado
+    for (var i = 0; i < imoveisDB.length; i++) {
+      if (imoveisDB[i] && imoveisDB[i].bci.toLowerCase() === bciVal.toLowerCase()) {
+        if (!id || imoveisDB[i].id != id) {
+          alert('Erro: O número de BCI "' + bciVal + '" já está cadastrado e pertence ao contrato "' + imoveisDB[i].contrato + '"!');
+          return;
+        }
+      }
+    }
+
+    // 3. Validação de ID DAMAE Duplicado (se preenchido)
+    if (damaeVal !== '') {
+      for (var j = 0; j < imoveisDB.length; j++) {
+        if (imoveisDB[j] && imoveisDB[j].damaeId && imoveisDB[j].damaeId.toLowerCase() === damaeVal.toLowerCase()) {
+          if (!id || imoveisDB[j].id != id) {
+            alert('Erro: O ID Eletrônico DAMAE "' + damaeVal + '" já está cadastrado e pertence ao contrato "' + imoveisDB[j].contrato + '"!');
+            return;
+          }
+        }
+      }
+    }
+
     var statusBciDefault = (bciVal === '01.04.008.00064.056') ? '<span style="color:var(--danger); font-weight:bold;">Pendente</span>' : '<span style="color:var(--success); font-weight:bold;">Em dia</span>';
     var statusDamaeDefault = (damaeVal === '84336830@02') ? '<span style="color:var(--danger); font-weight:bold;">Pendente</span>' : '<span style="color:var(--success); font-weight:bold;">Em dia</span>';
 
     if (id) {
-      for (var i = 0; i < imoveisDB.length; i++) {
-        if (imoveisDB[i] && imoveisDB[i].id == id) {
-          imoveisDB[i].bci = bciVal;
-          imoveisDB[i].damaeId = damaeVal;
-          imoveisDB[i].contrato = contratoVal;
-          imoveisDB[i].status = statusVal;
+      for (var l = 0; l < imoveisDB.length; l++) {
+        if (imoveisDB[l] && imoveisDB[l].id == id) {
+          imoveisDB[l].bci = bciVal;
+          imoveisDB[l].damaeId = damaeVal;
+          imoveisDB[l].contrato = contratoVal;
+          imoveisDB[l].status = statusVal;
           break;
         }
       }
