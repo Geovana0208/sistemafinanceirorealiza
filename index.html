@@ -70,8 +70,8 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   <div class="login-box">
     <h2>Realiza Imóveis</h2><p>Painel de Gestão Financeira</p>
     <form id="formLogin">
-      <div class="form-group" style="margin-bottom:12px;"><label>Utilizador</label><input type="text" id="loginUser" required placeholder="Ex: admin"></div>
-      <div class="form-group" style="margin-bottom:20px;"><label>Palavra-passe</label><input type="password" id="loginPass" required placeholder="Ex: 123"></div>
+      <div class="form-group" style="margin-bottom:12px;"><label>Utilizador</label><input type="text" id="loginUser" required placeholder="Ex: admin" autocomplete="username"></div>
+      <div class="form-group" style="margin-bottom:20px;"><label>Palavra-passe</label><input type="password" id="loginPass" required placeholder="Ex: 123" autocomplete="current-password"></div>
       <button type="submit" class="btn" style="width:100%; justify-content:center;">Entrar no Sistema</button>
     </form>
     <div id="loginError" style="color:var(--danger); font-size:0.8rem; margin-top:12px; font-weight:600;"></div>
@@ -470,8 +470,8 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       <div class="card" style="margin-bottom: 20px;">
         <h3 style="color: var(--primary); margin-bottom: 12px;">Cadastrar Novo Utilizador</h3>
         <form id="formNovoUser" onsubmit="event.preventDefault(); adicionarUsuario();" style="grid-template-columns: 1fr 1fr auto;">
-          <div class="form-group"><label>Utilizador</label><input type="text" id="novoUserNome" required></div>
-          <div class="form-group"><label>Palavra-passe</label><input type="password" id="novoUserPass" required></div>
+          <div class="form-group"><label>Utilizador</label><input type="text" id="novoUserNome" required autocomplete="username"></div>
+          <div class="form-group"><label>Palavra-passe</label><input type="password" id="novoUserPass" required autocomplete="new-password"></div>
           <div style="display:flex; align-items:flex-end;"><button type="submit" class="btn">Cadastrar</button></div>
         </form>
       </div>
@@ -550,7 +550,6 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   var alugueis = [];
   try { var salu = JSON.parse(localStorage.getItem('alugueis_db')); if (Array.isArray(salu)) alugueis = salu; } catch(e) { alugueis = []; }
 
-  // Base de Imóveis unificada (já incluindo o BCI com débito informado)
   var imoveisDB = [
     { id: 1, bci: '01.12.008.00073.004', damaeId: '74315927@02', contrato: 'CONT-TESTE-01', status: 'Alugado', statusBci: '<span style="color:var(--success); font-weight:bold;">Em dia</span>', statusDamae: '<span style="color:var(--success); font-weight:bold;">Em dia</span>' },
     { id: 2, bci: '01.04.075.01200.083', damaeId: '84336830@02', contrato: 'CONT-TESTE-02', status: 'Alugado', statusBci: '<span style="color:var(--danger); font-weight:bold;">⚠️ Pendente</span>', statusDamae: '<span style="color:var(--danger); font-weight:bold;">⚠️ Pendente</span>' }
@@ -562,39 +561,41 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 
   var chartCorretor;
 
-  $('formLogin').onsubmit = function(e) {
-    e.preventDefault();
-    var u = $('loginUser').value.trim(); 
-    var p = $('loginPass').value.trim();
-    
-    // Login universal de segurança: admin / 123 sempre funciona
-    if (u === 'admin' && p === '123') {
-      localStorage.setItem('sessao_ativa', u);
-      entrarSistema(u);
-      return;
+  document.addEventListener('DOMContentLoaded', function() {
+    var formLogin = $('formLogin');
+    if (formLogin) {
+      formLogin.addEventListener('submit', function(e) {
+        e.preventDefault();
+        var u = $('loginUser').value.trim(); 
+        var p = $('loginPass').value.trim();
+        
+        if (u === 'admin' && p === '123') {
+          localStorage.setItem('sessao_ativa', u);
+          entrarSistema(u);
+          return;
+        }
+
+        var valido = false;
+        for (var i = 0; i < usuariosDB.length; i++) {
+          var item = usuariosDB[i];
+          if (!item) continue;
+          var usr = String(item.usuario || item.u || item.nome || '').trim();
+          var pwd = String(item.senha || item.p || item.pass || '').trim();
+          if (usr === u && pwd === p) {
+            valido = true;
+            break;
+          }
+        }
+
+        if (valido) {
+          localStorage.setItem('sessao_ativa', u);
+          entrarSistema(u);
+        } else { 
+          $('loginError').innerText = 'Utilizador ou palavra-passe incorretos!'; 
+        }
+      });
     }
 
-    var valido = false;
-    for (var i = 0; i < usuariosDB.length; i++) {
-      var item = usuariosDB[i];
-      if (!item) continue;
-      var usr = String(item.usuario || item.u || item.nome || '').trim();
-      var pwd = String(item.senha || item.p || item.pass || '').trim();
-      if (usr === u && pwd === p) {
-        valido = true;
-        break;
-      }
-    }
-
-    if (valido) {
-      localStorage.setItem('sessao_ativa', u);
-      entrarSistema(u);
-    } else { 
-      $('loginError').innerText = 'Utilizador ou palavra-passe incorretos!'; 
-    }
-  };
-
-  window.onload = function() {
     try {
       var sessao = localStorage.getItem('sessao_ativa');
       if (sessao) {
@@ -603,7 +604,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     } catch(err) {
       console.error("Erro ao carregar sessão:", err);
     }
-  };
+  });
 
   function entrarSistema(user) {
     $('loginScreen').style.display = 'none';
@@ -840,40 +841,43 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     $('totalVariacao').style.color = v >= 0 ? 'var(--success)' : 'var(--danger)';
   }
 
-  $('formConta').onsubmit = function(e) {
-    e.preventDefault();
-    var id = $('contaId').value, p = parseFloat($('valorPrevisto').value) || 0, r = parseFloat($('valorReal').value) || 0;
-    var isAuto = false;
-    if (id) {
-      for (var i = 0; i < contas.length; i++) {
-        if (contas[i] && contas[i].id == id) { isAuto = contas[i].isAutoMkt; break; }
+  var formContaEl = $('formConta');
+  if (formContaEl) {
+    formContaEl.onsubmit = function(e) {
+      e.preventDefault();
+      var id = $('contaId').value, p = parseFloat($('valorPrevisto').value) || 0, r = parseFloat($('valorReal').value) || 0;
+      var isAuto = false;
+      if (id) {
+        for (var i = 0; i < contas.length; i++) {
+          if (contas[i] && contas[i].id == id) { isAuto = contas[i].isAutoMkt; break; }
+        }
       }
-    }
-    var obj = {
-      id: id ? parseInt(id) : Date.now(),
-      descricao: $('descricao').value,
-      valorPrevisto: p,
-      valorReal: r,
-      vencimento: $('vencimento').value,
-      origem: $('contaOrigem').value,
-      tipo: $('tipoConta').value,
-      parcAtual: parseInt($('parcAtual').value) || 1,
-      parcTotal: parseInt($('parcTotal').value) || 1,
-      categoria: $('categoria').value,
-      status: r > 0 ? 'Pago' : 'Pendente',
-      isAutoMkt: isAuto
+      var obj = {
+        id: id ? parseInt(id) : Date.now(),
+        descricao: $('descricao').value,
+        valorPrevisto: p,
+        valorReal: r,
+        vencimento: $('vencimento').value,
+        origem: $('contaOrigem').value,
+        tipo: $('tipoConta').value,
+        parcAtual: parseInt($('parcAtual').value) || 1,
+        parcTotal: parseInt($('parcTotal').value) || 1,
+        categoria: $('categoria').value,
+        status: r > 0 ? 'Pago' : 'Pendente',
+        isAutoMkt: isAuto
+      };
+      if (id) {
+        for (var j = 0; j < contas.length; j++) {
+          if (contas[j] && contas[j].id == id) { contas[j] = obj; break; }
+        }
+      } else {
+        contas.push(obj);
+      }
+      localStorage.setItem('contas_db', JSON.stringify(contas));
+      limparFormConta();
+      renderContas();
     };
-    if (id) {
-      for (var j = 0; j < contas.length; j++) {
-        if (contas[j] && contas[j].id == id) { contas[j] = obj; break; }
-      }
-    } else {
-      contas.push(obj);
-    }
-    localStorage.setItem('contas_db', JSON.stringify(contas));
-    limparFormConta();
-    renderContas();
-  };
+  }
 
   function baixarConta(id) {
     var c = null;
@@ -918,7 +922,8 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   }
 
   function limparFormConta() {
-    $('formConta').reset();
+    var fc = $('formConta');
+    if (fc) fc.reset();
     $('contaId').value = '';
     toggleParcelas();
   }
@@ -931,9 +936,9 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 
   // MÓDULO DE IMÓVEIS
   function renderImoveis() {
-    var filtroStatus = $('filtroStatusImoveis') ? $('filtroStatusImoveis'].value : 'todos';
-    var filtroImovel = $('filtroImovelStatus') ? $('filtroImovelStatus'].value : 'todos';
-    var filtroBusca = $('filtroBuscaContratoImoveis') ? $('filtroBuscaContratoImoveis'].value.trim().toLowerCase() : '';
+    var filtroStatus = $('filtroStatusImoveis') ? $('filtroStatusImoveis').value : 'todos';
+    var filtroImovel = $('filtroImovelStatus') ? $('filtroImovelStatus').value : 'todos';
+    var filtroBusca = $('filtroBuscaContratoImoveis') ? $('filtroBuscaContratoImoveis').value.trim().toLowerCase() : '';
 
     var html = '';
     for (var i = 0; i < imoveisDB.length; i++) {
@@ -961,7 +966,8 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       html += '</td>';
       html += '</tr>';
     }
-    $('tabelaImoveisResumo').innerHTML = html;
+    var tabImv = $('tabelaImoveisResumo');
+    if (tabImv) tabImv.innerHTML = html;
   }
 
   function salvarImovelForm() {
@@ -1057,15 +1063,16 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   }
 
   function limparFormImovel() {
-    $('formImovel').reset();
+    var fi = $('formImovel');
+    if (fi) fi.reset();
     $('imovelInternalId').value = '';
   }
 
   // MÓDULO DE BUSCAS DE BCI / IPTU
   function renderBcis() {
-    var filtroStatus = $('filtroStatusIptu') ? $('filtroStatusIptu'].value : 'todos';
-    var filtroImovel = $('filtroImovelIptu') ? $('filtroImovelIptu'].value : 'todos';
-    var filtroBusca = $('filtroBuscaContratoIptu') ? $('filtroBuscaContratoIptu'].value.trim().toLowerCase() : '';
+    var filtroStatus = $('filtroStatusIptu') ? $('filtroStatusIptu').value : 'todos';
+    var filtroImovel = $('filtroImovelIptu') ? $('filtroImovelIptu').value : 'todos';
+    var filtroBusca = $('filtroBuscaContratoIptu') ? $('filtroBuscaContratoIptu').value.trim().toLowerCase() : '';
 
     var html = '';
     for (var i = 0; i < imoveisDB.length; i++) {
@@ -1094,7 +1101,8 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       html += '</td>';
       html += '</tr>';
     }
-    $('tabelaBcis').innerHTML = html;
+    var tabBci = $('tabelaBcis');
+    if (tabBci) tabBci.innerHTML = html;
   }
 
   function executarConsultaBciAuto(id) {
@@ -1176,9 +1184,9 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 
   // MÓDULO DE BUSCAS DE DAMAE / LUZ
   function renderDamae() {
-    var filtroStatus = $('filtroStatusDamae') ? $('filtroStatusDamae'].value : 'todos';
-    var filtroImovel = $('filtroImovelDamae') ? $('filtroImovelDamae'].value : 'todos';
-    var filtroBusca = $('filtroBuscaContratoDamae') ? $('filtroBuscaContratoDamae'].value.trim().toLowerCase() : '';
+    var filtroStatus = $('filtroStatusDamae') ? $('filtroStatusDamae').value : 'todos';
+    var filtroImovel = $('filtroImovelDamae') ? $('filtroImovelDamae').value : 'todos';
+    var filtroBusca = $('filtroBuscaContratoDamae') ? $('filtroBuscaContratoDamae').value.trim().toLowerCase() : '';
 
     var html = '';
     for (var i = 0; i < imoveisDB.length; i++) {
@@ -1212,7 +1220,8 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       html += '</td>';
       html += '</tr>';
     }
-    $('tabelaDamae').innerHTML = html;
+    var tabDam = $('tabelaDamae');
+    if (tabDam) tabDam.innerHTML = html;
   }
 
   function executarConsultaDamaeAuto(id) {
@@ -1401,43 +1410,47 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       if (c.status !== 'Recebido') htmlC += '<button class="btn btn-success btn-sm" onclick="baixarComissao(' + c.id + ')">Baixar</button> ';
       htmlC += '<button class="btn btn-secondary btn-sm" onclick="editarComissao(' + c.id + ')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirComissao(' + c.id + ')">X</button></td></tr>';
     }
-    $('tabelaComissoes').innerHTML = htmlC;
+    var tabCom = $('tabelaComissoes');
+    if (tabCom) tabCom.innerHTML = htmlC;
     $('totalVendasComissao').innerText = formatarMoeda(tv);
     $('totalComissaoGeral').innerText = formatarMoeda(tc);
     $('totalComissaoAReceber').innerText = formatarMoeda(tP);
     $('totalComissaoRecebida').innerText = formatarMoeda(tr);
   }
 
-  $('formComissao').onsubmit = function(e) {
-    e.preventDefault();
-    var id = $('comissaoId').value, vt = parseFloat($('valorComissao').value) || 0, vr = parseFloat($('valorRecebido').value) || 0;
-    var st = 'A Receber';
-    if (vr >= vt && vt > 0) st = 'Recebido'; else if (vr > 0) st = 'Parcial';
+  var formComissaoEl = $('formComissao');
+  if (formComissaoEl) {
+    formComissaoEl.onsubmit = function(e) {
+      e.preventDefault();
+      var id = $('comissaoId').value, vt = parseFloat($('valorComissao').value) || 0, vr = parseFloat($('valorRecebido').value) || 0;
+      var st = 'A Receber';
+      if (vr >= vt && vt > 0) st = 'Recebido'; else if (vr > 0) st = 'Parcial';
 
-    var obj = {
-      id: id ? parseInt(id) : Date.now(),
-      comprador: $('comprador').value,
-      veiculoCapitacao: $('veiculoCapitacao').value,
-      vendedor: $('vendedor').value,
-      corretor: $('corretor').value,
-      dataFechamento: $('dataFechamentoComissao').value,
-      valorVenda: parseFloat($('valorVenda').value) || 0,
-      valorComissao: vt,
-      valorRecebido: vr,
-      retidoPor: $('retidoPor').value,
-      tipoPrevisao: $('tipoPrevisao').value,
-      dataPrevisao: $('tipoPrevisao').value === 'com_data' ? $('dataPrevisao').value : '',
-      observacoes: $('observacoesComissao').value.trim(),
-      status: st
+      var obj = {
+        id: id ? parseInt(id) : Date.now(),
+        comprador: $('comprador').value,
+        veiculoCapitacao: $('veiculoCapitacao').value,
+        vendedor: $('vendedor').value,
+        corretor: $('corretor').value,
+        dataFechamento: $('dataFechamentoComissao').value,
+        valorVenda: parseFloat($('valorVenda').value) || 0,
+        valorComissao: vt,
+        valorRecebido: vr,
+        retidoPor: $('retidoPor').value,
+        tipoPrevisao: $('tipoPrevisao').value,
+        dataPrevisao: $('tipoPrevisao').value === 'com_data' ? $('dataPrevisao').value : '',
+        observacoes: $('observacoesComissao').value.trim(),
+        status: st
+      };
+      if (id) {
+        for (var i = 0; i < comissoes.length; i++) { if (comissoes[i] && comissoes[i].id == id) { comissoes[i] = obj; break; } }
+      } else { comissoes.push(obj); }
+      localStorage.setItem('comissoes_db', JSON.stringify(comissoes));
+      sincronizarCustosMarketing();
+      limparFormComissao();
+      renderComissoes();
     };
-    if (id) {
-      for (var i = 0; i < comissoes.length; i++) { if (comissoes[i] && comissoes[i].id == id) { comissoes[i] = obj; break; } }
-    } else { comissoes.push(obj); }
-    localStorage.setItem('comissoes_db', JSON.stringify(comissoes));
-    sincronizarCustosMarketing();
-    limparFormComissao();
-    renderComissoes();
-  };
+  }
 
   function baixarComissao(id) {
     var c = null;
@@ -1491,7 +1504,12 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     }
   }
 
-  function limparFormComissao() { $('formComissao').reset(); $('comissaoId').value = ''; toggleDataPrevisao(); }
+  function limparFormComissao() {
+    var fc = $('formComissao');
+    if (fc) fc.reset();
+    $('comissaoId').value = '';
+    toggleDataPrevisao();
+  }
 
   // ALUGUEL
   function carregarSelectsAluguel() {
@@ -1544,32 +1562,36 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       htmlA += '<td>' + formatarMoeda(a.valorAluguel) + '</td><td>' + (capAluguel.indexOf('marketing') !== -1 ? '<b style="color:var(--danger)">R$ 50,00</b>' : '-') + '</td>';
       htmlA += '<td><button class="btn btn-secondary btn-sm" onclick="editarAluguel(' + a.id + ')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirAluguel(' + a.id + ')">X</button></td></tr>';
     }
-    $('tabelaAlugueis').innerHTML = htmlA;
+    var tabAlu = $('tabelaAlugueis');
+    if (tabAlu) tabAlu.innerHTML = htmlA;
     $('qtdAlugueisFechados').innerText = filt.length;
     $('totalValorAlugueis').innerText = formatarMoeda(totVal);
     $('totalAluguelMarketing').innerText = mkt;
   }
 
-  $('formAluguel').onsubmit = function(e) {
-    e.preventDefault();
-    var id = $('aluguelId').value;
-    var obj = {
-      id: id ? parseInt(id) : Date.now(),
-      inquilino: $('inquilino').value,
-      veiculoCapitacao: $('veiculoCapitacaoAluguel').value,
-      proprietario: $('proprietarioAluguel').value,
-      valorAluguel: parseFloat($('valorAluguel').value) || 0,
-      dataFechamento: $('dataFechamentoAluguel').value,
-      corretor: $('corretorAluguel').value
+  var formAluguelEl = $('formAluguel');
+  if (formAluguelEl) {
+    formAluguelEl.onsubmit = function(e) {
+      e.preventDefault();
+      var id = $('aluguelId').value;
+      var obj = {
+        id: id ? parseInt(id) : Date.now(),
+        inquilino: $('inquilino').value,
+        veiculoCapitacao: $('veiculoCapitacaoAluguel').value,
+        proprietario: $('proprietarioAluguel').value,
+        valorAluguel: parseFloat($('valorAluguel').value) || 0,
+        dataFechamento: $('dataFechamentoAluguel').value,
+        corretor: $('corretorAluguel').value
+      };
+      if (id) {
+        for (var i = 0; i < alugueis.length; i++) { if (alugueis[i] && alugueis[i].id == id) { alugueis[i] = obj; break; } }
+      } else { alugueis.push(obj); }
+      localStorage.setItem('alugueis_db', JSON.stringify(alugueis));
+      sincronizarCustosMarketing();
+      limparFormAluguel();
+      renderAlugueis();
     };
-    if (id) {
-      for (var i = 0; i < alugueis.length; i++) { if (alugueis[i] && alugueis[i].id == id) { alugueis[i] = obj; break; } }
-    } else { alugueis.push(obj); }
-    localStorage.setItem('alugueis_db', JSON.stringify(alugueis));
-    sincronizarCustosMarketing();
-    limparFormAluguel();
-    renderAlugueis();
-  };
+  }
 
   function editarAluguel(id) {
     var a = null;
@@ -1596,7 +1618,11 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     }
   }
 
-  function limparFormAluguel() { $('formAluguel').reset(); $('aluguelId').value = ''; }
+  function limparFormAluguel() {
+    var fa = $('formAluguel');
+    if (fa) fa.reset();
+    $('aluguelId').value = '';
+  }
 
   // DASHBOARD
   function carregarSelectsDashboard() {
@@ -1773,10 +1799,28 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     var html = '';
     for (var i = 0; i < origens.length; i++) {
       html += '<div style="display:flex;gap:5px;margin-bottom:8px;"><input type="text" value="' + origens[i] + '" id="ori_' + i + '" style="flex:1;">';
-      html += '<button class="btn btn-sm" onclick="if($(\'ori_' + i + '\').value){origens[' + i + ']=\$(\'ori_' + i + '\').value;localStorage.setItem(\'origens_db\',JSON.stringify(origens));renderListaOrigens();}">Salvar</button>';
-      html += '<button class="btn btn-danger btn-sm" onclick="if(origens.length>1){origens.splice(' + i + ',1);localStorage.setItem(\'origens_db\',JSON.stringify(origens));renderListaOrigens();}">X</button></div>';
+      html += '<button class="btn btn-sm" onclick="salvarOrigemItem(' + i + ')">Salvar</button>';
+      html += '<button class="btn btn-danger btn-sm" onclick="removerOrigemItem(' + i + ')">X</button></div>';
     }
     $('listaOrigens').innerHTML = html;
+  }
+  function salvarOrigemItem(i) {
+    var val = $('ori_' + i).value.trim();
+    if (val) {
+      origens[i] = val;
+      localStorage.setItem('origens_db', JSON.stringify(origens));
+      renderListaOrigens();
+      alert('Atualizado!');
+    }
+  }
+  function removerOrigemItem(i) {
+    if (origens.length > 1) {
+      origens.splice(i, 1);
+      localStorage.setItem('origens_db', JSON.stringify(origens));
+      renderListaOrigens();
+    } else {
+      alert('Mantenha pelo menos 1 conta de saída.');
+    }
   }
   function adicionarOrigem() {
     var v = $('novaOrigemNome').value.trim();
@@ -1788,10 +1832,28 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     var html = '';
     for (var i = 0; i < categorias.length; i++) {
       html += '<div style="display:flex;gap:5px;margin-bottom:8px;"><input type="text" value="' + categorias[i] + '" id="cat_' + i + '" style="flex:1;">';
-      html += '<button class="btn btn-sm" onclick="if($(\'cat_' + i + '\').value){categorias[' + i + ']=\$(\'cat_' + i + '\').value;localStorage.setItem(\'categorias_db\',JSON.stringify(categorias));renderListaCategorias();}">Salvar</button>';
-      html += '<button class="btn btn-danger btn-sm" onclick="if(categorias.length>1){categorias.splice(' + i + ',1);localStorage.setItem(\'categorias_db\',JSON.stringify(categorias));renderListaCategorias();}">X</button></div>';
+      html += '<button class="btn btn-sm" onclick="salvarCategoriaItem(' + i + ')">Salvar</button>';
+      html += '<button class="btn btn-danger btn-sm" onclick="removerCategoriaItem(' + i + ')">X</button></div>';
     }
     $('listaCategorias').innerHTML = html;
+  }
+  function salvarCategoriaItem(i) {
+    var val = $('cat_' + i).value.trim();
+    if (val) {
+      categorias[i] = val;
+      localStorage.setItem('categorias_db', JSON.stringify(categorias));
+      renderListaCategorias();
+      alert('Atualizado!');
+    }
+  }
+  function removerCategoriaItem(i) {
+    if (categorias.length > 1) {
+      categorias.splice(i, 1);
+      localStorage.setItem('categorias_db', JSON.stringify(categorias));
+      renderListaCategorias();
+    } else {
+      alert('Mantenha pelo menos 1 categoria.');
+    }
   }
   function adicionarCategoria() {
     var v = $('novaCategoriaNome').value.trim();
@@ -1804,11 +1866,27 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     for (var i = 0; i < veiculosCapitacao.length; i++) {
       var v = veiculosCapitacao[i];
       html += '<div style="display:flex;gap:5px;margin-bottom:8px;"><input type="text" value="' + v + '" id="vei_' + i + '" style="flex:1;" ' + (v === 'Marketing' ? 'readonly' : '') + '>';
-      html += '<button class="btn btn-sm" onclick="if($(\'vei_' + i + '\').value){veiculosCapitacao[' + i + ']=\$(\'vei_' + i + '\').value;localStorage.setItem(\'veiculos_db\',JSON.stringify(veiculosCapitacao));renderListaVeiculos();}">Salvar</button>';
-      if (v !== 'Marketing') html += '<button class="btn btn-danger btn-sm" onclick="veiculosCapitacao.splice(' + i + ',1);localStorage.setItem(\'veiculos_db\',JSON.stringify(veiculosCapitacao));renderListaVeiculos();}">X</button>';
+      html += '<button class="btn btn-sm" onclick="salvarVeiculoItem(' + i + ')">Salvar</button>';
+      if (v !== 'Marketing') {
+        html += '<button class="btn btn-danger btn-sm" onclick="removerVeiculoItem(' + i + ')">X</button>';
+      }
       html += '</div>';
     }
     $('listaVeiculos').innerHTML = html;
+  }
+  function salvarVeiculoItem(i) {
+    var val = $('vei_' + i).value.trim();
+    if (val) {
+      veiculosCapitacao[i] = val;
+      localStorage.setItem('veiculos_db', JSON.stringify(veiculosCapitacao));
+      renderListaVeiculos();
+      alert('Atualizado!');
+    }
+  }
+  function removerVeiculoItem(i) {
+    veiculosCapitacao.splice(i, 1);
+    localStorage.setItem('veiculos_db', JSON.stringify(veiculosCapitacao));
+    renderListaVeiculos();
   }
   function adicionarVeiculo() {
     var v = $('novoVeiculoNome').value.trim();
@@ -1824,10 +1902,19 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       html += '<tr><td><input type="text" value="' + (u.usuario || u.u || u.nome || '') + '" id="u_n_' + i + '"></td>';
       html += '<td><input type="text" value="' + (u.senha || u.p || u.pass || '') + '" id="u_p_' + i + '"></td>';
       html += '<td style="display:flex;gap:6px;"><button class="btn btn-sm" onclick="salvarUser(' + i + ')">Salvar</button>';
-      if (usuariosDB.length > 1) html += '<button class="btn btn-danger btn-sm" onclick="usuariosDB.splice(' + i + ',1);localStorage.setItem(\'usuarios_db\',JSON.stringify(usuariosDB));renderTabelaUsuarios()">X</button>';
+      if (usuariosDB.length > 1) {
+        html += '<button class="btn btn-danger btn-sm" onclick="removerUserItem(' + i + ')">X</button>';
+      }
       html += '</td></tr>';
     }
-    $('tabelaUsuarios').innerHTML = html;
+    var tabUsr = $('tabelaUsuarios');
+    if (tabUsr) tabUsr.innerHTML = html;
+  }
+
+  function removerUserItem(i) {
+    usuariosDB.splice(i, 1);
+    localStorage.setItem('usuarios_db', JSON.stringify(usuariosDB));
+    renderTabelaUsuarios();
   }
 
   function adicionarUsuario() {
