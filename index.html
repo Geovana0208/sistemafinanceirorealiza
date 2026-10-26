@@ -28,7 +28,7 @@ body{background-color:var(--bg-color);color:var(--text-main);display:flex;height
 .tab-content{display:none} .tab-content.active{display:block}
 .filter-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .filter-bar label{color:var(--text-muted);font-size:.85rem;font-weight:600}
-.grid-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;margin-bottom:20px}
+.grid-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:15px;margin-bottom:20px}
 .card{background:var(--card-bg);padding:18px;border-radius:12px;border:1px solid var(--border);box-shadow:0 2px 4px rgba(0,0,0,.03)}
 .card-title{font-size:.85rem;font-weight:600;color:var(--text-muted);text-transform:uppercase}
 .card-val{font-size:1.5rem;font-weight:700;margin-top:5px}
@@ -97,6 +97,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
         <button class="nav-btn" onclick="mudarAba('dashboard')">📊 Dashboard</button>
         <button class="nav-btn" onclick="mudarAba('comissoes')">🏠 Comissões a Receber</button>
         <button class="nav-btn" onclick="mudarAba('aluguel')">🔑 Aluguel Fechado</button>
+        <button class="nav-btn" onclick="mudarAba('rescisao')">📄 Rescisão</button>
         <button class="nav-btn" onclick="mudarAba('usuarios')">👤 Gerir Utilizadores</button>
       </nav>
     </div>
@@ -134,31 +135,20 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
         <div class="card"><div class="card-title">Vencem Hoje</div><div class="card-val" id="totalVencemHoje" style="color: var(--warning);">R$ 0,00</div></div>
         <div class="card"><div class="card-title">Próximos 7 Dias</div><div class="card-val" id="totalProximosDias" style="color: var(--primary);">R$ 0,00</div></div>
       </div>
-      <div class="grid-main">
-        <div class="card">
-          <h3 style="color: var(--primary); margin-bottom: 12px;">Cadastrar / Editar Conta</h3>
-          <form id="formConta">
-            <input type="hidden" id="contaId">
-            <div class="form-group" style="grid-column: 1 / -1;"><label>Descrição / Fornecedor</label><input type="text" id="descricao" required></div>
-            <div class="form-group"><label>Valor Previsto (R$)</label><input type="number" step="0.01" id="valorPrevisto" required></div>
-            <div class="form-group"><label>Valor Pago (R$)</label><input type="number" step="0.01" id="valorReal"></div>
-            <div class="form-group"><label>Vencimento</label><input type="date" id="vencimento" required></div>
-            <div class="form-group"><label>Conta de Saída</label><select id="contaOrigem" required></select></div>
-            <div class="form-group"><label>Tipo</label><select id="tipoConta" onchange="toggleParcelas()"><option value="Fixa">Fixa</option><option value="Variável">Variável</option><option value="Parcelada">Parcelada</option></select></div>
-            <div class="form-group" id="groupParcelas" style="display:none;"><label>Parcela / Total</label><div style="display:flex;gap:5px;"><input type="number" id="parcAtual" value="1"><input type="number" id="parcTotal" value="12"></div></div>
-            <div class="form-group"><label>Categoria</label><select id="categoria" required></select></div>
-            <div style="grid-column: 1 / -1; display:flex; gap:10px;"><button type="submit" class="btn" style="flex:1;">Salvar</button><button type="button" class="btn btn-secondary" onclick="limparFormConta()">Limpar</button></div>
-          </form>
-        </div>
-        <div class="card">
-          <h3 style="color: var(--primary); margin-bottom: 12px;">Calculadora Proporcional por Dias</h3>
-          <div class="form-group" style="margin-bottom:8px;"><label>Valor Total Mensal (R$)</label><input type="number" step="0.01" id="calcVal"></div>
-          <div class="form-group" style="margin-bottom:8px;"><label>Data Início</label><input type="date" id="calcDataInicio"></div>
-          <div class="form-group" style="margin-bottom:8px;"><label>Data Fim</label><input type="date" id="calcDataFim"></div>
-          <div class="form-group" style="margin-bottom:8px;"><label>Dias Totais do Mês</label><input type="number" id="calcDiasTotais" value="30"></div>
-          <button class="btn btn-success" style="width:100%; margin-top:5px;" onclick="calcularProporcionalPorDias()">Calcular Proporcional</button>
-          <div id="resCalc" style="margin-top:12px; font-weight:bold; font-size:0.95rem; color: var(--primary);"></div>
-        </div>
+      <div class="card" style="margin-bottom: 20px;">
+        <h3 style="color: var(--primary); margin-bottom: 12px;">Cadastrar / Editar Conta</h3>
+        <form id="formConta">
+          <input type="hidden" id="contaId">
+          <div class="form-group" style="grid-column: 1 / -1;"><label>Descrição / Fornecedor</label><input type="text" id="descricao" required></div>
+          <div class="form-group"><label>Valor Previsto (R$)</label><input type="number" step="0.01" id="valorPrevisto" required></div>
+          <div class="form-group"><label>Valor Pago (R$)</label><input type="number" step="0.01" id="valorReal"></div>
+          <div class="form-group"><label>Vencimento</label><input type="date" id="vencimento" required></div>
+          <div class="form-group"><label>Conta de Saída</label><select id="contaOrigem" required></select></div>
+          <div class="form-group"><label>Tipo</label><select id="tipoConta" onchange="toggleParcelas()"><option value="Fixa">Fixa</option><option value="Variável">Variável</option><option value="Parcelada">Parcelada</option></select></div>
+          <div class="form-group" id="groupParcelas" style="display:none;"><label>Parcela / Total</label><div style="display:flex;gap:5px;"><input type="number" id="parcAtual" value="1"><input type="number" id="parcTotal" value="12"></div></div>
+          <div class="form-group"><label>Categoria</label><select id="categoria" required></select></div>
+          <div style="grid-column: 1 / -1; display:flex; gap:10px;"><button type="submit" class="btn" style="flex:1;">Salvar</button><button type="button" class="btn btn-secondary" onclick="limparFormConta()">Limpar</button></div>
+        </form>
       </div>
       <div class="card">
         <div class="table-container">
@@ -278,6 +268,56 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
             <thead><tr><th>Fechamento</th><th>Inquilino</th><th>Captação</th><th>Proprietário</th><th>Corretor</th><th>Valor</th><th>Custo Mkt</th><th>Ações</th></tr></thead>
             <tbody id="tabelaAlugueis"></tbody>
           </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- RESCISÃO -->
+    <div id="tab-rescisao" class="tab-content">
+      <div class="grid-main" style="grid-template-columns: 1fr 1fr;">
+        <!-- IPTU Proporcional -->
+        <div class="card">
+          <h3 style="color: var(--primary); margin-bottom: 12px;">Cálculo Proporcional de IPTU (Anual)</h3>
+          <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 12px;">Calcula com base nos dias do ano. O período informado é de responsabilidade do inquilino; o restante do ano fica para o proprietário.</p>
+          <div class="form-group" style="margin-bottom:8px;"><label>Valor Anual do IPTU (R$)</label><input type="number" step="0.01" id="rescisaoIptuValor" placeholder="Ex: 1200.00"></div>
+          <div class="form-group" style="margin-bottom:8px;"><label>Data Inicial (Inquilino)</label><input type="date" id="rescisaoIptuInicio"></div>
+          <div class="form-group" style="margin-bottom:8px;"><label>Data Final (Inquilino)</label><input type="date" id="rescisaoIptuFim"></div>
+          <button class="btn btn-success" style="width:100%; margin-top:5px;" onclick="calcularIPTURescisao()">Calcular IPTU Proporcional</button>
+          <div id="resIptuCalc" style="margin-top:12px; font-size:0.9rem; color: var(--text-main);"></div>
+        </div>
+
+        <!-- Aluguel, Água e Luz Proporcional -->
+        <div class="card">
+          <h3 style="color: var(--primary); margin-bottom: 12px;">Proporcional Mensal (Aluguel, Água e Luz)</h3>
+          <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 12px;">Insira o valor mensal e os dias proporcionais de responsabilidade do inquilino.</p>
+          <div class="form-group" style="margin-bottom:10px;"><label>Dias Totais do Mês de Referência</label><input type="number" id="rescisaoDiasMes" value="30"></div>
+          
+          <div style="border-top:1px solid var(--border); padding-top:8px; margin-top:8px;">
+            <label style="color:var(--primary); font-weight:bold;">Aluguel</label>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px; margin-top:4px;">
+              <input type="number" step="0.01" id="rescisaoAluguelVal" placeholder="Valor Mensal">
+              <input type="number" id="rescisaoAluguelDias" placeholder="Dias Inquilino">
+            </div>
+          </div>
+
+          <div style="border-top:1px solid var(--border); padding-top:8px; margin-top:8px;">
+            <label style="color:var(--primary); font-weight:bold;">Água</label>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px; margin-top:4px;">
+              <input type="number" step="0.01" id="rescisaoAguaVal" placeholder="Valor Mensal">
+              <input type="number" id="rescisaoAguaDias" placeholder="Dias Inquilino">
+            </div>
+          </div>
+
+          <div style="border-top:1px solid var(--border); padding-top:8px; margin-top:8px;">
+            <label style="color:var(--primary); font-weight:bold;">Luz</label>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px; margin-top:4px;">
+              <input type="number" step="0.01" id="rescisaoLuzVal" placeholder="Valor Mensal">
+              <input type="number" id="rescisaoLuzDias" placeholder="Dias Inquilino">
+            </div>
+          </div>
+
+          <button class="btn btn-success" style="width:100%; margin-top:12px;" onclick="calcularMensaisRescisao()">Calcular Proporcionais Mensais</button>
+          <div id="resMensaisCalc" style="margin-top:12px; font-size:0.9rem; color: var(--text-main);"></div>
         </div>
       </div>
     </div>
@@ -434,8 +474,10 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       btns[2].classList.add('active'); $('tab-comissoes').classList.add('active'); renderComissoes();
     } else if (aba === 'aluguel') {
       btns[3].classList.add('active'); $('tab-aluguel').classList.add('active'); renderAlugueis();
+    } else if (aba === 'rescisao') {
+      btns[4].classList.add('active'); $('tab-rescisao').classList.add('active');
     } else if (aba === 'usuarios') {
-      btns[4].classList.add('active'); $('tab-usuarios').classList.add('active'); renderTabelaUsuarios();
+      btns[5].classList.add('active'); $('tab-usuarios').classList.add('active'); renderTabelaUsuarios();
     }
   }
 
@@ -715,14 +757,14 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     toggleParcelas();
   }
 
-  function calcularProporcionalPorDias() {
-    var val = parseFloat($('calcVal').value || 0);
-    var dIni = $('calcDataInicio').value;
-    var dFim = $('calcDataFim').value;
-    var diasTotais = parseFloat($('calcDiasTotais').value || 30);
+  // CÁLCULOS DE RESCISÃO
+  function calcularIPTURescisao() {
+    var valAnual = parseFloat($('rescisaoIptuValor').value || 0);
+    var dIni = $('rescisaoIptuInicio').value;
+    var dFim = $('rescisaoIptuFim').value;
 
     if (!dIni || !dFim) {
-      alert('Por favor, preencha a data de início e a data de fim.');
+      alert('Por favor, preencha a data inicial e final do IPTU.');
       return;
     }
 
@@ -734,8 +776,46 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       return;
     }
 
-    var res = (val / diasTotais) * diffDays;
-    $('resCalc').innerHTML = 'Período: ' + diffDays + ' dia(s)<br>Proporcional: ' + formatarMoeda(res);
+    var ano = new Date(dIni).getFullYear();
+    var diasAno = ((ano % 4 === 0 && ano % 100 !== 0) || (ano % 400 === 0)) ? 366 : 365;
+
+    var valorDia = valAnual / diasAno;
+    var parteInquilino = valorDia * diffDays;
+    var parteProprietario = valAnual - parteInquilino;
+
+    $('resIptuCalc').innerHTML = '<div style="background:var(--primary-light); padding:10px; border-radius:8px;">' +
+      '<b>Período do Inquilino:</b> ' + diffDays + ' dia(s) (Ano de ' + diasAno + ' dias)<br>' +
+      '<span style="color:var(--danger)"><b>Responsabilidade Inquilino:</b> ' + formatarMoeda(parteInquilino) + '</span><br>' +
+      '<span style="color:var(--primary)"><b>Responsabilidade Proprietário:</b> ' + formatarMoeda(parteProprietario) + '</span>' +
+      '</div>';
+  }
+
+  function calcularMensaisRescisao() {
+    var diasMes = parseFloat($('rescisaoDiasMes').value || 30);
+    
+    var aluguelVal = parseFloat($('rescisaoAluguelVal').value || 0);
+    var aluguelDias = parseFloat($('rescisaoAluguelDias').value || 0);
+
+    var aguaVal = parseFloat($('rescisaoAguaVal').value || 0);
+    var aguaDias = parseFloat($('rescisaoAguaDias').value || 0);
+
+    var luzVal = parseFloat($('rescisaoLuzVal').value || 0);
+    var luzDias = parseFloat($('rescisaoLuzDias').value || 0);
+
+    var propAluguel = (aluguelVal / diasMes) * aluguelDias;
+    var propAgua = (aguaVal / diasMes) * aguaDias;
+    var propLuz = (luzVal / diasMes) * luzDias;
+
+    var totalInquilino = propAluguel + propAgua + propLuz;
+
+    $('resMensaisCalc').innerHTML = '<div style="background:var(--primary-light); padding:10px; border-radius:8px;">' +
+      '<b>Valores Proporcionais (Inquilino):</b><br>' +
+      '• Aluguel (' + aluguelDias + ' dias): <b>' + formatarMoeda(propAluguel) + '</b><br>' +
+      '• Água (' + aguaDias + ' dias): <b>' + formatarMoeda(propAgua) + '</b><br>' +
+      '• Luz (' + luzDias + ' dias): <b>' + formatarMoeda(propLuz) + '</b><br>' +
+      '<hr style="margin:6px 0; border:0; border-top:1px solid var(--border)">' +
+      '<b>Total Geral do Inquilino:</b> <span style="color:var(--success); font-size:1.1rem;">' + formatarMoeda(totalInquilino) + '</span>' +
+      '</div>';
   }
 
   function gerarProximoMes() {
