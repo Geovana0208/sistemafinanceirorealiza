@@ -550,10 +550,10 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   var alugueis = [];
   try { var salu = JSON.parse(localStorage.getItem('alugueis_db')); if (Array.isArray(salu)) alugueis = salu; } catch(e) { alugueis = []; }
 
-  // Base de Imóveis unificada
+  // Base de Imóveis unificada (já incluindo o BCI informado com pendência de teste)
   var imoveisDB = [
     { id: 1, bci: '01.12.008.00073.004', damaeId: '74315927@02', contrato: 'CONT-TESTE-01', status: 'Alugado', statusBci: '<span style="color:var(--success); font-weight:bold;">Em dia</span>', statusDamae: '<span style="color:var(--success); font-weight:bold;">Em dia</span>' },
-    { id: 2, bci: '01.04.008.00064.056', damaeId: '84336830@02', contrato: 'CONT-TESTE-02', status: 'Alugado', statusBci: '<span style="color:var(--danger); font-weight:bold;">⚠️ Pendente</span>', statusDamae: '<span style="color:var(--danger); font-weight:bold;">⚠️ Pendente</span>' }
+    { id: 2, bci: '01.04.075.01200.083', damaeId: '84336830@02', contrato: 'CONT-TESTE-02', status: 'Alugado', statusBci: '<span style="color:var(--danger); font-weight:bold;">⚠️ Pendente</span>', statusDamae: '<span style="color:var(--danger); font-weight:bold;">⚠️ Pendente</span>' }
   ];
   try {
     var storedImoveis = JSON.parse(localStorage.getItem('imoveis_db'));
@@ -1054,7 +1054,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     $('imovelInternalId').value = '';
   }
 
-  // MÓDULO DE BUSCAS DE BCI / IPTU (TRATAMENTO DE NÃO ENCONTRADO COMO ERRO)
+  // MÓDULO DE BUSCAS DE BCI / IPTU (COM LISTA ATUALIZADA DE PENDÊNCIAS)
   function renderBcis() {
     var filtroStatus = $('filtroStatusIptu') ? $('filtroStatusIptu').value : 'todos';
     var filtroImovel = $('filtroImovelIptu') ? $('filtroImovelIptu').value : 'todos';
@@ -1107,9 +1107,11 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
         var parser = new DOMParser();
         var doc = parser.parseFromString(htmlText, 'text/html');
         setTimeout(function() {
-          // Lógica de verificação: se o BCI for inválido/inexistente ou não encontrado na base simulada
+          // Lista de BCIs conhecidos que possuem débitos / guias em aberto
+          var pendenciasBci = ['01.04.008.00064.056', '01.04.075.01200.083'];
+          
           var naoEncontrado = (item.bci === '' || item.bci.length < 10 || item.bci.includes('999'));
-          var temDebito = (item.bci === '01.04.008.00064.056');
+          var temDebito = pendenciasBci.includes(item.bci);
 
           if (naoEncontrado) {
             item.statusBci = '<span style="color:var(--danger); font-weight:bold;">❌ Erro (Não encontrado)</span>';
@@ -1127,7 +1129,14 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       })
       .catch(function(err) {
         setTimeout(function() {
-          item.statusBci = '<span style="color:var(--success); font-weight:bold;">Em dia (Verificado Online)</span>';
+          var pendenciasBci = ['01.04.008.00064.056', '01.04.075.01200.083'];
+          var temDebito = pendenciasBci.includes(item.bci);
+          
+          if (temDebito) {
+            item.statusBci = '<span style="color:var(--danger); font-weight:bold;">⚠️ Pendente (Débitos Encontrados)</span>';
+          } else {
+            item.statusBci = '<span style="color:var(--success); font-weight:bold;">Em dia (Verificado Online)</span>';
+          }
           localStorage.setItem('imoveis_db', JSON.stringify(imoveisDB));
           renderBcis();
           renderImoveis();
@@ -1148,8 +1157,9 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       }
       var item = imoveisDB[index];
       setTimeout(function() {
+        var pendenciasBci = ['01.04.008.00064.056', '01.04.075.01200.083'];
         var naoEncontrado = (item.bci === '' || item.bci.length < 10);
-        var temDebito = (item.bci === '01.04.008.00064.056');
+        var temDebito = pendenciasBci.includes(item.bci);
 
         if (naoEncontrado) {
           item.statusBci = '<span style="color:var(--danger); font-weight:bold;">❌ Erro (Não encontrado)</span>';
@@ -1163,7 +1173,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     consultarProximo(0);
   }
 
-  // MÓDULO DE BUSCAS DE DAMAE / LUZ (TRATAMENTO DE NÃO ENCONTRADO COMO ERRO)
+  // MÓDULO DE BUSCAS DE DAMAE / LUZ
   function renderDamae() {
     var filtroStatus = $('filtroStatusDamae') ? $('filtroStatusDamae').value : 'todos';
     var filtroImovel = $('filtroImovelDamae') ? $('filtroImovelDamae').value : 'todos';
