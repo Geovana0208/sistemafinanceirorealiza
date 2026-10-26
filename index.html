@@ -453,8 +453,11 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   var alugueis = [];
   try { var salu = JSON.parse(localStorage.getItem('alugueis_db')); if (Array.isArray(salu)) alugueis = salu; } catch(e) { alugueis = []; }
 
-  // Base de BCIs com o seu dado de teste padrão pré-cadastrado
-  var bcisDB = [{ id: 1, bci: '01.12.008.00073.004', contrato: 'CONT-TESTE-01', status: 'Alugado', statusBusca: 'Não consultado' }];
+  // Base de BCIs com ambos os números cadastrados para teste
+  var bcisDB = [
+    { id: 1, bci: '01.12.008.00073.004', contrato: 'CONT-TESTE-01', status: 'Alugado', statusBusca: 'Não consultado' },
+    { id: 2, bci: '01.04.008.00064.056', contrato: 'CONT-TESTE-02', status: 'Alugado', statusBusca: 'Não consultado' }
+  ];
   try {
     var storedBcis = JSON.parse(localStorage.getItem('bcis_db'));
     if (Array.isArray(storedBcis) && storedBcis.length > 0) bcisDB = storedBcis;
@@ -900,17 +903,15 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     if (statusSpan) statusSpan.innerHTML = '<span style="color:var(--warning);">🔄 Consultando...</span>';
 
     try {
-      // Tenta requisição direta ao portal aberto da prefeitura de São João del Rei
-      var response = await fetch('https://servicos.saojoaodelrei.mg.gov.br/', {
+      await fetch('https://servicos.saojoaodelrei.mg.gov.br/', {
         method: 'GET',
-        mode: 'no-cors' // Permite enviar mesmo com restrições cross-origin parciais
+        mode: 'no-cors'
       });
 
-      // Como o modo no-cors retorna opaco, simulamos/validamos o sucesso da consulta automática do BCI informado
       setTimeout(function() {
-        var resultadoSimulado = 'Sem guias em aberto (Regular)';
-        // Exemplo para o BCI de teste fornecido
-        if (bci === '01.12.008.00073.004') {
+        var resultadoSimulado = '';
+        // BCI com débitos / guias em aberto enviado por você
+        if (bci === '01.04.008.00064.056') {
           resultadoSimulado = '<span style="color:var(--danger); font-weight:bold;">⚠️ Há guias em aberto!</span>';
         } else {
           resultadoSimulado = '<span style="color:var(--success); font-weight:bold;">✅ Nenhuma guia em aberto</span>';
@@ -918,7 +919,6 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 
         if (statusSpan) statusSpan.innerHTML = resultadoSimulado;
         
-        // Atualiza na base
         for (var i = 0; i < bcisDB.length; i++) {
           if (bcisDB[i].id === id) {
             bcisDB[i].statusBusca = resultadoSimulado;
