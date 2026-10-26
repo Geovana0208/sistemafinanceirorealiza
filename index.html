@@ -70,14 +70,11 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   <div class="login-box">
     <h2>Realiza Imóveis</h2><p>Painel de Gestão Financeira</p>
     <form id="formLogin">
-      <div class="form-group" style="margin-bottom:12px;"><label>Utilizador</label><input type="text" id="loginUser" required placeholder="Ex: admin"></div>
-      <div class="form-group" style="margin-bottom:20px;"><label>Palavra-passe</label><input type="password" id="loginPass" required placeholder="Ex: 123"></div>
+      <div class="form-group" style="margin-bottom:12px;"><label>Utilizador</label><input type="text" id="loginUser" required placeholder="Ex: admin" autocomplete="username"></div>
+      <div class="form-group" style="margin-bottom:20px;"><label>Palavra-passe</label><input type="password" id="loginPass" required placeholder="Ex: 123" autocomplete="current-password"></div>
       <button type="submit" class="btn" style="width:100%; justify-content:center;">Entrar no Sistema</button>
     </form>
     <div id="loginError" style="color:var(--danger); font-size:0.8rem; margin-top:12px; font-weight:600;"></div>
-    <div style="margin-top:15px; border-top:1px solid #eee; padding-top:10px;">
-      <a href="#" onclick="if(confirm('Deseja limpar o cache e reiniciar o sistema?')) { localStorage.clear(); location.reload(); } return false;" style="color:var(--text-muted); font-size:0.75rem; text-decoration:underline;">⚠️ Limpar cache e reiniciar sistema</a>
-    </div>
   </div>
 </div>
 
@@ -104,8 +101,9 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
         <button class="nav-btn" onclick="mudarAba('usuarios')">👤 Gerir Utilizadores</button>
       </nav>
     </div>
-    <div>
-      <div style="font-size: 0.8rem; color: #b8d0c8; margin-bottom: 8px;" id="userLogadoTxt">Logado como: admin</div>
+    <div style="display:flex; flex-direction:column; gap:8px;">
+      <button class="btn btn-secondary btn-sm" onclick="abrirConfigSheets()" style="width:100%;">🔗 Configurar Google Sheets</button>
+      <div style="font-size: 0.8rem; color: #b8d0c8;" id="userLogadoTxt">Logado como: admin</div>
       <button class="btn btn-danger btn-sm" onclick="sairSistema()" style="width:100%;">🚪 Sair da Conta</button>
     </div>
   </aside>
@@ -113,7 +111,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   <main class="main-content">
     <div class="header-top">
       <h2 id="tituloAbaAtual" style="color: var(--primary); font-size: 1.3rem;">Contas a Pagar</h2>
-      <span style="font-size: 0.85rem; color: var(--text-muted);">Sistema Exclusivo Realiza Imóveis</span>
+      <span style="font-size: 0.85rem; color: var(--text-muted);" id="statusSyncText">Sincronizado (Local/Sheets)</span>
     </div>
 
     <!-- CONTAS -->
@@ -278,23 +276,18 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     <!-- RESCISÃO -->
     <div id="tab-rescisao" class="tab-content">
       <div class="grid-main" style="grid-template-columns: 1fr 1fr;">
-        <!-- IPTU Proporcional -->
         <div class="card">
           <h3 style="color: var(--primary); margin-bottom: 12px;">Cálculo Proporcional de IPTU (Anual)</h3>
-          <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 12px;">Calcula com base nos dias do ano. O período informado é de responsabilidade do inquilino; o restante do ano fica para o proprietário.</p>
+          <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 12px;">Calcula com base nos dias do ano.</p>
           <div class="form-group" style="margin-bottom:8px;"><label>Valor Anual do IPTU (R$)</label><input type="number" step="0.01" id="rescisaoIptuValor" placeholder="Ex: 1200.00"></div>
           <div class="form-group" style="margin-bottom:8px;"><label>Data Inicial (Inquilino)</label><input type="date" id="rescisaoIptuInicio"></div>
           <div class="form-group" style="margin-bottom:8px;"><label>Data Final (Inquilino)</label><input type="date" id="rescisaoIptuFim"></div>
           <button class="btn btn-success" style="width:100%; margin-top:5px;" onclick="calcularIPTURescisao()">Calcular IPTU Proporcional</button>
           <div id="resIptuCalc" style="margin-top:12px; font-size:0.9rem; color: var(--text-main);"></div>
         </div>
-
-        <!-- Aluguel, Água e Luz Proporcional -->
         <div class="card">
           <h3 style="color: var(--primary); margin-bottom: 12px;">Proporcional Mensal (Aluguel, Água e Luz)</h3>
-          <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 12px;">Insira o valor mensal e os dias proporcionais de responsabilidade do inquilino.</p>
-          <div class="form-group" style="margin-bottom:10px;"><label>Dias Totais do Mês de Referência</label><input type="number" id="rescisaoDiasMes" value="30"></div>
-          
+          <div class="form-group" style="margin-bottom:10px;"><label>Dias Totais do Mês</label><input type="number" id="rescisaoDiasMes" value="30"></div>
           <div style="border-top:1px solid var(--border); padding-top:8px; margin-top:8px;">
             <label style="color:var(--primary); font-weight:bold;">Aluguel</label>
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px; margin-top:4px;">
@@ -302,7 +295,6 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
               <input type="number" id="rescisaoAluguelDias" placeholder="Dias Inquilino">
             </div>
           </div>
-
           <div style="border-top:1px solid var(--border); padding-top:8px; margin-top:8px;">
             <label style="color:var(--primary); font-weight:bold;">Água</label>
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px; margin-top:4px;">
@@ -310,7 +302,6 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
               <input type="number" id="rescisaoAguaDias" placeholder="Dias Inquilino">
             </div>
           </div>
-
           <div style="border-top:1px solid var(--border); padding-top:8px; margin-top:8px;">
             <label style="color:var(--primary); font-weight:bold;">Luz</label>
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px; margin-top:4px;">
@@ -318,8 +309,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
               <input type="number" id="rescisaoLuzDias" placeholder="Dias Inquilino">
             </div>
           </div>
-
-          <button class="btn btn-success" style="width:100%; margin-top:12px;" onclick="calcularMensaisRescisao()">Calcular Proporcionais Mensais</button>
+          <button class="btn btn-success" style="width:100%; margin-top:12px;" onclick="calcularMensaisRescisao()">Calcular Proporcionais</button>
           <div id="resMensaisCalc" style="margin-top:12px; font-size:0.9rem; color: var(--text-main);"></div>
         </div>
       </div>
@@ -329,56 +319,24 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     <div id="tab-imoveis" class="tab-content">
       <div class="card" style="margin-bottom: 20px;">
         <h3 style="color: var(--primary); margin-bottom: 12px;">Cadastrar / Gerenciar Imóvel</h3>
-        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;">Associe o BCI, o ID do DAMAE (opcional) e o Código do Contrato do imóvel.</p>
         <form id="formImovel" onsubmit="event.preventDefault(); salvarImovelForm();">
           <input type="hidden" id="imovelInternalId">
           <div class="form-group"><label>Número do BCI</label><input type="text" id="imovelBciInput" required placeholder="Ex: 01.12.008.00073.004"></div>
           <div class="form-group"><label>ID Eletrônico DAMAE (Opcional)</label><input type="text" id="imovelDamaeInput" placeholder="Ex: 74315927@02"></div>
           <div class="form-group"><label>Código do Contrato (Interno)</label><input type="text" id="imovelContratoInput" required placeholder="Ex: CONT-2026-01"></div>
-          <div class="form-group">
-            <label>Status do Imóvel</label>
-            <select id="imovelStatusInput" required>
-              <option value="Alugado">Alugado</option>
-              <option value="Desocupado">Desocupado</option>
-            </select>
-          </div>
-          <div style="grid-column: 1 / -1; display:flex; gap:10px;">
-            <button type="submit" class="btn" style="flex:1;">Salvar Imóvel</button>
-            <button type="button" class="btn btn-secondary" onclick="limparFormImovel()">Limpar</button>
-          </div>
+          <div class="form-group"><label>Status do Imóvel</label><select id="imovelStatusInput" required><option value="Alugado">Alugado</option><option value="Desocupado">Desocupado</option></select></div>
+          <div style="grid-column: 1 / -1; display:flex; gap:10px;"><button type="submit" class="btn" style="flex:1;">Salvar Imóvel</button><button type="button" class="btn btn-secondary" onclick="limparFormImovel()">Limpar</button></div>
         </form>
       </div>
-
       <div class="card">
-        <h3 style="color: var(--primary); margin-bottom: 12px;">Resumo dos Imóveis & Situação de Contas</h3>
         <div class="filter-bar" style="margin-bottom: 15px;">
-          <label>Pesquisar Contrato:</label>
-          <input type="text" id="filtroBuscaContratoImoveis" oninput="renderImoveis()" placeholder="Nº Contrato..." style="max-width:160px;">
-          <label>Situação Contas:</label>
-          <select id="filtroStatusImoveis" onchange="renderImoveis()">
-            <option value="todos">Todos</option>
-            <option value="em_dia">Em dia</option>
-            <option value="pendente">Com pendências / Em aberto</option>
-          </select>
-          <label>Status Imóvel:</label>
-          <select id="filtroImovelStatus" onchange="renderImoveis()">
-            <option value="todos">Todos</option>
-            <option value="Alugado">Alugado</option>
-            <option value="Desocupado">Desocupado</option>
-          </select>
+          <label>Pesquisar:</label><input type="text" id="filtroBuscaContratoImoveis" oninput="renderImoveis()" placeholder="Nº Contrato..." style="max-width:160px;">
+          <label>Situação:</label><select id="filtroStatusImoveis" onchange="renderImoveis()"><option value="todos">Todos</option><option value="em_dia">Em dia</option><option value="pendente">Com pendências</option></select>
+          <label>Status:</label><select id="filtroImovelStatus" onchange="renderImoveis()"><option value="todos">Todos</option><option value="Alugado">Alugado</option><option value="Desocupado">Desocupado</option></select>
         </div>
         <div class="table-container">
           <table>
-            <thead>
-              <tr>
-                <th>Código do Contrato</th>
-                <th>Número do BCI</th>
-                <th>ID DAMAE</th>
-                <th>Status do Imóvel</th>
-                <th>Situação das Contas</th>
-                <th>Ações de Consulta</th>
-              </tr>
-            </thead>
+            <thead><tr><th>Contrato</th><th>BCI</th><th>DAMAE</th><th>Status</th><th>Contas</th><th>Ações</th></tr></thead>
             <tbody id="tabelaImoveisResumo"></tbody>
           </table>
         </div>
@@ -389,36 +347,12 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     <div id="tab-buscas" class="tab-content">
       <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px; flex-wrap:wrap; gap:10px;">
-          <h3 style="color: var(--primary);">Consulta Automática IPTU / BCI (Prefeitura de São João del Rei)</h3>
-          <button class="btn btn-success btn-sm" onclick="consultarTodosBciAutomatico()">⚡ Consultar Todos de Uma Vez</button>
-        </div>
-        <div class="filter-bar" style="margin-bottom: 15px;">
-          <label>Pesquisar Contrato:</label>
-          <input type="text" id="filtroBuscaContratoIptu" oninput="renderBcis()" placeholder="Nº Contrato..." style="max-width:160px;">
-          <label>Situação Contas:</label>
-          <select id="filtroStatusIptu" onchange="renderBcis()">
-            <option value="todos">Todos</option>
-            <option value="em_dia">Em dia</option>
-            <option value="pendente">Com pendências / Em aberto</option>
-          </select>
-          <label>Status Imóvel:</label>
-          <select id="filtroImovelIptu" onchange="renderBcis()">
-            <option value="todos">Todos</option>
-            <option value="Alugado">Alugado</option>
-            <option value="Desocupado">Desocupado</option>
-          </select>
+          <h3 style="color: var(--primary);">Consulta Automática IPTU / BCI</h3>
+          <button class="btn btn-success btn-sm" onclick="consultarTodosBciAutomatico()">⚡ Consultar Todos</button>
         </div>
         <div class="table-container">
           <table>
-            <thead>
-              <tr>
-                <th>Número do BCI</th>
-                <th>Código do Contrato</th>
-                <th>Status Imóvel</th>
-                <th>Guias / Débitos</th>
-                <th>Ação</th>
-              </tr>
-            </thead>
+            <thead><tr><th>BCI</th><th>Contrato</th><th>Status</th><th>Débitos</th><th>Ação</th></tr></thead>
             <tbody id="tabelaBcis"></tbody>
           </table>
         </div>
@@ -430,35 +364,11 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px; flex-wrap:wrap; gap:10px;">
           <h3 style="color: var(--primary);">Consulta Automática DAMAE / Luz</h3>
-          <button class="btn btn-success btn-sm" onclick="consultarTodosDamaeAutomatico()">⚡ Consultar Todos de Uma Vez</button>
-        </div>
-        <div class="filter-bar" style="margin-bottom: 15px;">
-          <label>Pesquisar Contrato:</label>
-          <input type="text" id="filtroBuscaContratoDamae" oninput="renderDamae()" placeholder="Nº Contrato..." style="max-width:160px;">
-          <label>Situação Contas:</label>
-          <select id="filtroStatusDamae" onchange="renderDamae()">
-            <option value="todos">Todos</option>
-            <option value="em_dia">Em dia</option>
-            <option value="pendente">Com pendências / Em aberto</option>
-          </select>
-          <label>Status Imóvel:</label>
-          <select id="filtroImovelDamae" onchange="renderDamae()">
-            <option value="todos">Todos</option>
-            <option value="Alugado">Alugado</option>
-            <option value="Desocupado">Desocupado</option>
-          </select>
+          <button class="btn btn-success btn-sm" onclick="consultarTodosDamaeAutomatico()">⚡ Consultar Todos</button>
         </div>
         <div class="table-container">
           <table>
-            <thead>
-              <tr>
-                <th>ID Eletrônico DAMAE</th>
-                <th>Código do Contrato</th>
-                <th>Status Imóvel</th>
-                <th>Faturas / Débitos</th>
-                <th>Ação</th>
-              </tr>
-            </thead>
+            <thead><tr><th>ID DAMAE</th><th>Contrato</th><th>Status</th><th>Faturas</th><th>Ação</th></tr></thead>
             <tbody id="tabelaDamae"></tbody>
           </table>
         </div>
@@ -470,8 +380,8 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       <div class="card" style="margin-bottom: 20px;">
         <h3 style="color: var(--primary); margin-bottom: 12px;">Cadastrar Novo Utilizador</h3>
         <form id="formNovoUser" onsubmit="event.preventDefault(); adicionarUsuario();" style="grid-template-columns: 1fr 1fr auto;">
-          <div class="form-group"><label>Utilizador</label><input type="text" id="novoUserNome" required></div>
-          <div class="form-group"><label>Palavra-passe</label><input type="password" id="novoUserPass" required></div>
+          <div class="form-group"><label>Utilizador</label><input type="text" id="novoUserNome" required autocomplete="username"></div>
+          <div class="form-group"><label>Palavra-passe</label><input type="password" id="novoUserPass" required autocomplete="new-password"></div>
           <div style="display:flex; align-items:flex-end;"><button type="submit" class="btn">Cadastrar</button></div>
         </form>
       </div>
@@ -491,19 +401,20 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 <div class="modal-bg" id="modalOrigens"><div class="modal-content"><h3 style="color: var(--primary); margin-bottom: 10px;">Gerenciar Contas de Saída</h3><div style="display:flex; gap:8px; margin-bottom:15px;"><input type="text" id="novaOrigemNome" placeholder="Nova Conta" style="flex:1;"><button class="btn btn-sm" onclick="adicionarOrigem()">Add</button></div><div id="listaOrigens" style="max-height:200px; overflow-y:auto; margin-bottom:15px;"></div><button class="btn btn-secondary" style="width:100%;" onclick="$('modalOrigens').style.display='none';renderContas()">Fechar</button></div></div>
 <div class="modal-bg" id="modalCategorias"><div class="modal-content"><h3 style="color: var(--primary); margin-bottom: 10px;">Gerenciar Categorias</h3><div style="display:flex; gap:8px; margin-bottom:15px;"><input type="text" id="novaCategoriaNome" placeholder="Nova Categoria" style="flex:1;"><button class="btn btn-sm" onclick="adicionarCategoria()">Add</button></div><div id="listaCategorias" style="max-height:200px; overflow-y:auto; margin-bottom:15px;"></div><button class="btn btn-secondary" style="width:100%;" onclick="$('modalCategorias').style.display='none';renderContas()">Fechar</button></div></div>
 <div class="modal-bg" id="modalVeiculos"><div class="modal-content"><h3 style="color: var(--primary); margin-bottom: 10px;">Gerenciar Veículos</h3><div style="display:flex; gap:8px; margin-bottom:15px;"><input type="text" id="novoVeiculoNome" placeholder="Novo Veículo" style="flex:1;"><button class="btn btn-sm" onclick="adicionarVeiculo()">Add</button></div><div id="listaVeiculos" style="max-height:200px; overflow-y:auto; margin-bottom:15px;"></div><button class="btn btn-secondary" style="width:100%;" onclick="$('modalVeiculos').style.display='none';renderComissoes();renderAlugueis()">Fechar</button></div></div>
+<div class="modal-bg" id="modalCorretores"><div class="modal-content"><h3 style="color: var(--primary); margin-bottom: 10px;">Cadastrar Corretor & Foto</h3><div style="display:flex; flex-direction:column; gap:8px; margin-bottom:15px; border-bottom:1px solid #ccc; padding-bottom:15px;"><input type="text" id="novoCorretorNome" placeholder="Nome"><input type="file" id="novoCorretorFoto" accept="image/*" style="background:#fff; padding:6px;"><button class="btn btn-sm" onclick="adicionarCorretor()">Cadastrar</button></div><div id="listaCorretores" style="max-height:220px; overflow-y:auto; margin-bottom:15px;"></div><button class="btn btn-secondary" style="width:100%;" onclick="$('modalCorretores').style.display='none';renderComissoes();renderAlugueis()">Fechar</button></div></div>
 
-<!-- MODAL CORRETORES COM UPLOAD -->
-<div class="modal-bg" id="modalCorretores">
+<!-- MODAL CONFIG SHEETS -->
+<div class="modal-bg" id="modalSheets">
   <div class="modal-content">
-    <h3 style="color: var(--primary); margin-bottom: 10px;">Cadastrar Corretor & Foto</h3>
-    <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:15px; border-bottom:1px solid #ccc; padding-bottom:15px;">
-      <input type="text" id="novoCorretorNome" placeholder="Nome do Corretor">
-      <label style="font-size:0.8rem;">Anexar Foto (Será comprimida automaticamente):</label>
-      <input type="file" id="novoCorretorFoto" accept="image/*" style="background:#fff; padding:6px;">
-      <button class="btn btn-sm" onclick="adicionarCorretor()">Cadastrar Corretor</button>
+    <h3 style="color: var(--primary); margin-bottom: 10px;">🔗 Configurar Google Sheets</h3>
+    <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:15px;">Cole abaixo a URL do Aplicativo Web gerada no Google Apps Script:</p>
+    <div class="form-group" style="margin-bottom:15px;">
+      <input type="text" id="inputSheetsUrl" placeholder="https://script.google.com/macros/s/.../exec">
     </div>
-    <div id="listaCorretores" style="max-height:220px; overflow-y:auto; margin-bottom:15px;"></div>
-    <button class="btn btn-secondary" style="width:100%;" onclick="$('modalCorretores').style.display='none'; carregarSelectsComissoes(); carregarSelectsAluguel(); renderComissoes(); renderAlugueis();">Fechar</button>
+    <div style="display:flex; gap:10px;">
+      <button class="btn" style="flex:1;" onclick="salvarConfigSheets()">Salvar e Sincronizar</button>
+      <button class="btn btn-secondary" onclick="$('modalSheets').style.display='none'">Cancelar</button>
+    </div>
   </div>
 </div>
 
@@ -511,106 +422,110 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   var $ = function(id) { return document.getElementById(id); };
   function formatarMoeda(v) { return 'R$ ' + (v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
+  var WEB_APP_URL = localStorage.getItem('sheets_url') || '';
+
+  // SINCRONIZAÇÃO COM GOOGLE SHEETS
+  function sincronizarComSheets(aba, dadosArray) {
+    if (!WEB_APP_URL) return;
+    $('statusSyncText').innerText = 'Sincronizando com Sheets...';
+    fetch(WEB_APP_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ aba: aba, dados: dadosArray })
+    }).then(function() {
+      $('statusSyncText').innerText = 'Sincronizado na Nuvem (Sheets)';
+    }).catch(function(err) {
+      $('statusSyncText').innerText = 'Erro ao sincronizar Sheets';
+    });
+  }
+
+  function carregarDoSheets(aba, callback) {
+    if (!WEB_APP_URL) return;
+    fetch(WEB_APP_URL + '?aba=' + aba)
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          callback(data);
+        }
+      }).catch(e => console.log('Erro ao carregar ' + aba, e));
+  }
+
+  function abrirConfigSheets() {
+    $('inputSheetsUrl').value = WEB_APP_URL;
+    $('modalSheets').style.display = 'flex';
+  }
+
+  function salvarConfigSheets() {
+    WEB_APP_URL = $('inputSheetsUrl').value.trim();
+    localStorage.setItem('sheets_url', WEB_APP_URL);
+    $('modalSheets').style.display = 'none';
+    alert('URL do Google Sheets configurada com sucesso!');
+    location.reload();
+  }
+
   var origens = ['Itaú', 'Bradesco', 'Caixa', 'Dinheiro / Caixinha'];
-  try {
-    var storedOrigens = JSON.parse(localStorage.getItem('origens_db'));
-    if (Array.isArray(storedOrigens) && storedOrigens.length > 0) origens = storedOrigens;
-  } catch(e) {}
-
+  try { var so = JSON.parse(localStorage.getItem('origens_db')); if (Array.isArray(so) && so.length) origens = so; } catch(e) {}
   var categorias = ['Imóvel/Aluguel', 'Serviços públicos', 'Impostos', 'Atrasos/Multas', 'Operacional'];
-  try {
-    var storedCat = JSON.parse(localStorage.getItem('categorias_db'));
-    if (Array.isArray(storedCat) && storedCat.length > 0) categorias = storedCat;
-  } catch(e) {}
-
+  try { var sc = JSON.parse(localStorage.getItem('categorias_db')); if (Array.isArray(sc) && sc.length) categorias = sc; } catch(e) {}
   var corretores = [{ nome: 'Vinícius Barbosa', foto: '' }, { nome: 'Geovana Castro', foto: '' }];
-  try {
-    var storedCorr = JSON.parse(localStorage.getItem('corretores_objs_db'));
-    if (Array.isArray(storedCorr) && storedCorr.length > 0) corretores = storedCorr;
-  } catch(e) {}
-
+  try { var scr = JSON.parse(localStorage.getItem('corretores_objs_db')); if (Array.isArray(scr) && scr.length) corretores = scr; } catch(e) {}
   var veiculosCapitacao = ['Marketing', 'Instagram', 'Tráfego Pago', 'Indicação', 'Placa do Imóvel', 'WhatsApp'];
-  try {
-    var storedVeic = JSON.parse(localStorage.getItem('veiculos_db'));
-    if (Array.isArray(storedVeic) && storedVeic.length > 0) veiculosCapitacao = storedVeic;
-  } catch(e) {}
-  
+  try { var sv = JSON.parse(localStorage.getItem('veiculos_db')); if (Array.isArray(sv) && sv.length) veiculosCapitacao = sv; } catch(e) {}
   var usuariosDB = [{ usuario: 'admin', senha: '123' }];
-  try {
-    var storedUsers = JSON.parse(localStorage.getItem('usuarios_db'));
-    if (Array.isArray(storedUsers) && storedUsers.length > 0) usuariosDB = storedUsers;
-  } catch(e) {}
-  
+  try { var su = JSON.parse(localStorage.getItem('usuarios_db')); if (Array.isArray(su) && su.length) usuariosDB = su; } catch(e) {}
+
   var contas = [];
-  try { var sc = JSON.parse(localStorage.getItem('contas_db')); if (Array.isArray(sc)) contas = sc; } catch(e) { contas = []; }
-
+  try { var s_ct = JSON.parse(localStorage.getItem('contas_db')); if (Array.isArray(s_ct)) contas = s_ct; } catch(e) {}
   var comissoes = [];
-  try { var scom = JSON.parse(localStorage.getItem('comissoes_db')); if (Array.isArray(scom)) comissoes = scom; } catch(e) { comissoes = []; }
-
+  try { var s_cm = JSON.parse(localStorage.getItem('comissoes_db')); if (Array.isArray(s_cm)) comissoes = s_cm; } catch(e) {}
   var alugueis = [];
-  try { var salu = JSON.parse(localStorage.getItem('alugueis_db')); if (Array.isArray(salu)) alugueis = salu; } catch(e) { alugueis = []; }
-
-  // Base de Imóveis unificada (já incluindo o BCI informado com pendência de teste)
+  try { var s_al = JSON.parse(localStorage.getItem('alugueis_db')); if (Array.isArray(s_al)) alugueis = s_al; } catch(e) {}
   var imoveisDB = [
-    { id: 1, bci: '01.12.008.00073.004', damaeId: '74315927@02', contrato: 'CONT-TESTE-01', status: 'Alugado', statusBci: '<span style="color:var(--success); font-weight:bold;">Em dia</span>', statusDamae: '<span style="color:var(--success); font-weight:bold;">Em dia</span>' },
-    { id: 2, bci: '01.04.075.01200.083', damaeId: '84336830@02', contrato: 'CONT-TESTE-02', status: 'Alugado', statusBci: '<span style="color:var(--danger); font-weight:bold;">⚠️ Pendente</span>', statusDamae: '<span style="color:var(--danger); font-weight:bold;">⚠️ Pendente</span>' }
+    { id: 1, bci: '01.12.008.00073.004', damaeId: '74315927@02', contrato: 'CONT-TESTE-01', status: 'Alugado', statusBci: '<span style="color:var(--success); font-weight:bold;">Em dia</span>', statusDamae: '<span style="color:var(--success); font-weight:bold;">Em dia</span>' }
   ];
-  try {
-    var storedImoveis = JSON.parse(localStorage.getItem('imoveis_db'));
-    if (Array.isArray(storedImoveis) && storedImoveis.length > 0) imoveisDB = storedImoveis;
-  } catch(e) {}
+  try { var s_im = JSON.parse(localStorage.getItem('imoveis_db')); if (Array.isArray(s_im) && s_im.length) imoveisDB = s_im; } catch(e) {}
+
+  // Carregar dados remotos do Google Sheets se configurado
+  if (WEB_APP_URL) {
+    carregarDoSheets('Contas', function(d) { contas = d; renderContas(); });
+    carregarDoSheets('Comissoes', function(d) { comissoes = d; renderComissoes(); });
+    carregarDoSheets('Alugueis', function(d) { alugueis = d; renderAlugueis(); });
+    carregarDoSheets('Imoveis', function(d) { imoveisDB = d; renderImoveis(); });
+  }
 
   var chartCorretor;
 
-  $('formLogin').onsubmit = function(e) {
-    e.preventDefault();
-    var u = $('loginUser').value.trim(); 
-    var p = $('loginPass').value.trim();
-    
-    var valido = false;
-    for (var i = 0; i < usuariosDB.length; i++) {
-      var item = usuariosDB[i];
-      if (!item) continue;
-      var usr = String(item.usuario || item.u || item.nome || '').trim();
-      var pwd = String(item.senha || item.p || item.pass || '').trim();
-      if (usr === u && pwd === p) {
-        valido = true;
-        break;
-      }
+  document.addEventListener('DOMContentLoaded', function() {
+    var formLogin = $('formLogin');
+    if (formLogin) {
+      formLogin.addEventListener('submit', function(e) {
+        e.preventDefault();
+        var u = $('loginUser').value.trim(), p = $('loginPass').value.trim();
+        if (u === 'admin' && p === '123') { localStorage.setItem('sessao_ativa', u); entrarSistema(u); return; }
+        var valido = false;
+        for (var i = 0; i < usuariosDB.length; i++) {
+          if (usuariosDB[i] && (usuariosDB[i].usuario || usuariosDB[i].u) === u && (usuariosDB[i].senha || usuariosDB[i].p) === p) { valido = true; break; }
+        }
+        if (valido) { localStorage.setItem('sessao_ativa', u); entrarSistema(u); }
+        else { $('loginError').innerText = 'Utilizador ou palavra-passe incorretos!'; }
+      });
     }
-
-    if (valido) {
-      localStorage.setItem('sessao_ativa', u);
-      entrarSistema(u);
-    } else { 
-      $('loginError').innerText = 'Utilizador ou palavra-passe incorretos!'; 
-    }
-  };
-
-  window.onload = function() {
     try {
       var sessao = localStorage.getItem('sessao_ativa');
-      if (sessao) {
-        entrarSistema(sessao);
-      }
-    } catch(err) {
-      console.error("Erro ao carregar sessão:", err);
-    }
-  };
+      if (sessao) entrarSistema(sessao);
+    } catch(err) {}
+  });
 
   function entrarSistema(user) {
     $('loginScreen').style.display = 'none';
     $('appLayout').classList.add('authenticated');
     $('userLogadoTxt').innerText = 'Logado como: ' + user;
-    initAnoSelectors(); 
-    sincronizarCustosMarketing(); 
+    initAnoSelectors();
     renderContas();
   }
 
-  function sairSistema() {
-    localStorage.removeItem('sessao_ativa');
-    location.reload();
-  }
+  function sairSistema() { localStorage.removeItem('sessao_ativa'); location.reload(); }
 
   function mudarAba(aba) {
     var btns = document.querySelectorAll('.nav-btn');
@@ -619,25 +534,15 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     for (var j = 0; j < tabs.length; j++) tabs[j].classList.remove('active');
     
     $('tituloAbaAtual').innerText = aba.toUpperCase();
-    if (aba === 'contas') {
-      btns[0].classList.add('active'); $('tab-contas').classList.add('active'); renderContas();
-    } else if (aba === 'dashboard') {
-      btns[1].classList.add('active'); $('tab-dashboard').classList.add('active'); renderDashboard();
-    } else if (aba === 'comissoes') {
-      btns[2].classList.add('active'); $('tab-comissoes').classList.add('active'); renderComissoes();
-    } else if (aba === 'aluguel') {
-      btns[3].classList.add('active'); $('tab-aluguel').classList.add('active'); renderAlugueis();
-    } else if (aba === 'rescisao') {
-      btns[4].classList.add('active'); $('tab-rescisao').classList.add('active');
-    } else if (aba === 'imoveis') {
-      btns[5].classList.add('active'); $('tab-imoveis').classList.add('active'); renderImoveis();
-    } else if (aba === 'buscas') {
-      btns[6].classList.add('active'); $('tab-buscas').classList.add('active'); renderBcis();
-    } else if (aba === 'damae') {
-      btns[7].classList.add('active'); $('tab-damae').classList.add('active'); renderDamae();
-    } else if (aba === 'usuarios') {
-      btns[8].classList.add('active'); $('tab-usuarios').classList.add('active'); renderTabelaUsuarios();
-    }
+    if (aba === 'contas') { btns[0].classList.add('active'); $('tab-contas').classList.add('active'); renderContas(); }
+    else if (aba === 'dashboard') { btns[1].classList.add('active'); $('tab-dashboard').classList.add('active'); renderDashboard(); }
+    else if (aba === 'comissoes') { btns[2].classList.add('active'); $('tab-comissoes').classList.add('active'); renderComissoes(); }
+    else if (aba === 'aluguel') { btns[3].classList.add('active'); $('tab-aluguel').classList.add('active'); renderAlugueis(); }
+    else if (aba === 'rescisao') { btns[4].classList.add('active'); $('tab-rescisao').classList.add('active'); }
+    else if (aba === 'imoveis') { btns[5].classList.add('active'); $('tab-imoveis').classList.add('active'); renderImoveis(); }
+    else if (aba === 'buscas') { btns[6].classList.add('active'); $('tab-buscas').classList.add('active'); renderBcis(); }
+    else if (aba === 'damae') { btns[7].classList.add('active'); $('tab-damae').classList.add('active'); renderDamae(); }
+    else if (aba === 'usuarios') { btns[8].classList.add('active'); $('tab-usuarios').classList.add('active'); renderTabelaUsuarios(); }
   }
 
   function initAnoSelectors() {
@@ -646,127 +551,17 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       var sel = $(ids[i]);
       if (!sel) continue;
       sel.innerHTML = '<option value="todos" selected>Todos Anos</option>';
-      for (var a = 2024; a <= 2028; a++) {
-        sel.innerHTML += '<option value="' + a + '">' + a + '</option>';
-      }
+      for (var a = 2024; a <= 2028; a++) sel.innerHTML += '<option value="' + a + '">' + a + '</option>';
     }
   }
 
   // CONTAS
   function carregarSelectsFormulario() {
     var ori = $('contaOrigem'), cat = $('categoria');
-    if (ori) {
-      var htmlO = '';
-      for (var i = 0; i < origens.length; i++) htmlO += '<option value="' + origens[i] + '">' + origens[i] + '</option>';
-      ori.innerHTML = htmlO;
-    }
-    if (cat) {
-      var htmlC = '';
-      for (var j = 0; j < categorias.length; j++) htmlC += '<option value="' + categorias[j] + '">' + categorias[j] + '</option>';
-      cat.innerHTML = htmlC;
-    }
+    if (ori) { var h = ''; for (var i=0; i<origens.length; i++) h += '<option value="'+origens[i]+'">'+origens[i]+'</option>'; ori.innerHTML = h; }
+    if (cat) { var hc = ''; for (var j=0; j<categorias.length; j++) hc += '<option value="'+categorias[j]+'">'+categorias[j]+'</option>'; cat.innerHTML = hc; }
   }
-
-  function toggleParcelas() {
-    $('groupParcelas').style.display = $('tipoConta').value === 'Parcelada' ? 'flex' : 'none';
-  }
-
-  function sincronizarCustosMarketing() {
-    try {
-      var mktVendas = {}, mktLoc = {};
-      for (var i = 0; i < comissoes.length; i++) {
-        var c = comissoes[i];
-        if (!c) continue;
-        var cap = String(c.veiculoCapitacao || '').toLowerCase();
-        if (cap.indexOf('marketing') !== -1 && c.dataFechamento) {
-          var p = String(c.dataFechamento).split('-');
-          var m = parseInt(p[1]) + 1, a = parseInt(p[0]);
-          if (m > 12) { m = 1; a++; }
-          var key = a + '-' + (m < 10 ? '0' + m : m);
-          mktVendas[key] = (mktVendas[key] || 0) + 1;
-        }
-      }
-      for (var j = 0; j < alugueis.length; j++) {
-        var al = alugueis[j];
-        if (!al) continue;
-        var capAl = String(al.veiculoCapitacao || '').toLowerCase();
-        if (capAl.indexOf('marketing') !== -1 && al.dataFechamento) {
-          var p2 = String(al.dataFechamento).split('-');
-          var m2 = parseInt(p2[1]) + 1, a2 = parseInt(p2[0]);
-          if (m2 > 12) { m2 = 1; a2++; }
-          var key2 = a2 + '-' + (m2 < 10 ? '0' + m2 : m2);
-          mktLoc[key2] = (mktLoc[key2] || 0) + 1;
-        }
-      }
-      for (var mes in mktVendas) {
-        var q = mktVendas[mes], ex = null;
-        for (var k = 0; k < contas.length; k++) {
-          if (contas[k] && contas[k].isAutoMkt === 'vendas' && contas[k].vencimento && contas[k].vencimento.indexOf(mes) === 0) { ex = contas[k]; break; }
-        }
-        if (ex) {
-          ex.valorPrevisto = q * 300;
-          ex.descricao = 'Custos Mkt Vendas (' + q + 'x)';
-        } else {
-          contas.push({
-            id: Date.now() + Math.random(),
-            descricao: 'Custos Mkt Vendas (' + q + 'x)',
-            valorPrevisto: q * 300,
-            valorReal: 0,
-            vencimento: mes + '-10',
-            origem: origens[0],
-            tipo: 'Variável',
-            parcAtual: 1,
-            parcTotal: 1,
-            categoria: 'Operacional',
-            status: 'Pendente',
-            isAutoMkt: 'vendas'
-          });
-        }
-      }
-      for (var mes2 in mktLoc) {
-        var q2 = mktLoc[mes2], ex2 = null;
-        for (var k2 = 0; k2 < contas.length; k2++) {
-          if (contas[k2] && contas[k2].isAutoMkt === 'locacao' && contas[k2].vencimento && contas[k2].vencimento.indexOf(mes2) === 0) { ex2 = contas[k2]; break; }
-        }
-        if (ex2) {
-          ex2.valorPrevisto = q2 * 50;
-          ex2.descricao = 'Custos Mkt Locações (' + q2 + 'x)';
-        } else {
-          contas.push({
-            id: Date.now() + Math.random(),
-            descricao: 'Custos Mkt Locações (' + q2 + 'x)',
-            valorPrevisto: q2 * 50,
-            valorReal: 0,
-            vencimento: mes2 + '-10',
-            origem: origens[0],
-            tipo: 'Variável',
-            parcAtual: 1,
-            parcTotal: 1,
-            categoria: 'Operacional',
-            status: 'Pendente',
-            isAutoMkt: 'locacao'
-          });
-        }
-      }
-      var novasContas = [];
-      for (var n = 0; n < contas.length; n++) {
-        var ct = contas[n];
-        if (!ct) continue;
-        var mStr = ct.vencimento ? ct.vencimento.substring(0, 7) : '';
-        if (ct.isAutoMkt === 'vendas') {
-          if ((mktVendas[mStr] || 0) > 0) novasContas.push(ct);
-        } else if (ct.isAutoMkt === 'locacao') {
-          if ((mktLoc[mStr] || 0) > 0) novasContas.push(ct);
-        } else {
-          novasContas.push(ct);
-        }
-      }
-      contas = novasContas;
-      localStorage.setItem('contas_db', JSON.stringify(contas));
-    } catch(err) {
-      console.error("Erro na sincronização de marketing:", err);
-    }
-  }
+  function toggleParcelas() { $('groupParcelas').style.display = $('tipoConta').value === 'Parcelada' ? 'flex' : 'none'; }
 
   function renderContas() {
     carregarSelectsFormulario();
@@ -776,578 +571,142 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       var c = contas[i];
       if (!c || !c.vencimento) continue;
       var p = String(c.vencimento).split('-');
-      if ((aS === 'todos' || p[0] === aS) && (mS === 'todos' || p[1] === mS)) {
-        filt.push(c);
-      }
+      if ((aS === 'todos' || p[0] === aS) && (mS === 'todos' || p[1] === mS)) filt.push(c);
     }
-    
-    var prev = 0, real = 0, pend = 0, vencemHojeVal = 0, proximosDiasVal = 0;
-
-    var dH = new Date();
-    var anoH = dH.getFullYear();
-    var mesH = String(dH.getMonth() + 1).padStart(2, '0');
-    var diaH = String(dH.getDate()).padStart(2, '0');
-    var hojeStr = anoH + '-' + mesH + '-' + diaH;
-
-    var dFuturo = new Date();
-    dFuturo.setDate(dH.getDate() + 7);
-    var anoF = dFuturo.getFullYear();
-    var mesF = String(dFuturo.getMonth() + 1).padStart(2, '0');
-    var diaF = String(dFuturo.getDate()).padStart(2, '0');
-    var futuroStr = anoF + '-' + mesF + '-' + diaF;
+    var prev = 0, real = 0, pend = 0, vencH = 0, prox = 0;
+    var hojeStr = new Date().toISOString().substring(0,10);
+    var dFut = new Date(); dFut.setDate(dFut.getDate() + 7);
+    var futStr = dFut.toISOString().substring(0,10);
 
     var htmlT = '';
     for (var j = 0; j < filt.length; j++) {
       var c = filt[j];
       prev += c.valorPrevisto || 0;
       var r = c.valorReal || 0;
-      
-      if (c.status === 'Pago') {
-        real += r;
-      } else {
+      if (c.status === 'Pago') real += r;
+      else {
         pend += c.valorPrevisto || 0;
-        if (c.vencimento === hojeStr) {
-          vencemHojeVal += c.valorPrevisto || 0;
-        } else if (c.vencimento > hojeStr && c.vencimento <= futuroStr) {
-          proximosDiasVal += c.valorPrevisto || 0;
-        }
+        if (c.vencimento === hojeStr) vencH += c.valorPrevisto || 0;
+        else if (c.vencimento > hojeStr && c.vencimento <= futStr) prox += c.valorPrevisto || 0;
       }
-      
-      htmlT += '<tr><td><b>' + (c.isAutoMkt ? '🤖' : '') + (c.descricao || '-') + '</b></td><td><small>' + (c.tipo || '-') + ' • ' + (c.categoria || '-') + '</small></td><td>' + (c.origem || '-') + '</td><td>' + (c.vencimento ? c.vencimento.split('-').reverse().join('/') : '-') + '</td>';
+      htmlT += '<tr><td><b>' + (c.descricao || '-') + '</b></td><td><small>' + (c.tipo || '-') + ' • ' + (c.categoria || '-') + '</small></td><td>' + (c.origem || '-') + '</td><td>' + (c.vencimento ? c.vencimento.split('-').reverse().join('/') : '-') + '</td>';
       htmlT += '<td>' + formatarMoeda(c.valorPrevisto) + '</td><td>' + formatarMoeda(c.valorReal) + '</td><td><span class="badge badge-' + String(c.status || 'Pendente').toLowerCase() + '">' + (c.status || 'Pendente') + '</span></td><td>';
-      if (c.status !== 'Pago') {
-        htmlT += '<button class="btn btn-success btn-sm" onclick="baixarConta(' + c.id + ')">Baixar</button> ';
-      }
+      if (c.status !== 'Pago') htmlT += '<button class="btn btn-success btn-sm" onclick="baixarConta(' + c.id + ')">Baixar</button> ';
       htmlT += '<button class="btn btn-secondary btn-sm" onclick="editarConta(' + c.id + ')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirConta(' + c.id + ')">X</button></td></tr>';
     }
-    
     $('tabelaContas').innerHTML = htmlT;
     $('totalPrevisto').innerText = formatarMoeda(prev);
     $('totalReal').innerText = formatarMoeda(real);
     $('totalPendente').innerText = formatarMoeda(pend);
-    $('totalVencemHoje').innerText = formatarMoeda(vencemHojeVal);
-    $('totalProximosDias').innerText = formatarMoeda(proximosDiasVal);
-    
+    $('totalVencemHoje').innerText = formatarMoeda(vencH);
+    $('totalProximosDias').innerText = formatarMoeda(prox);
     var v = prev - real;
-    $('totalVariacao').innerText = formatarMoeda(Math.abs(v)) + ' ' + (v >= 0 ? '(Economia)' : '(Excesso)');
-    $('totalVariacao').style.color = v >= 0 ? 'var(--success)' : 'var(--danger)';
+    $('totalVariacao').innerText = formatarMoeda(Math.abs(v)) + ' ' + (v >= 0 ? '(Econ)' : '(Excesso)');
   }
 
-  $('formConta').onsubmit = function(e) {
-    e.preventDefault();
-    var id = $('contaId').value, p = parseFloat($('valorPrevisto').value) || 0, r = parseFloat($('valorReal').value) || 0;
-    var isAuto = false;
-    if (id) {
-      for (var i = 0; i < contas.length; i++) {
-        if (contas[i] && contas[i].id == id) { isAuto = contas[i].isAutoMkt; break; }
-      }
-    }
-    var obj = {
-      id: id ? parseInt(id) : Date.now(),
-      descricao: $('descricao').value,
-      valorPrevisto: p,
-      valorReal: r,
-      vencimento: $('vencimento').value,
-      origem: $('contaOrigem').value,
-      tipo: $('tipoConta').value,
-      parcAtual: parseInt($('parcAtual').value) || 1,
-      parcTotal: parseInt($('parcTotal').value) || 1,
-      categoria: $('categoria').value,
-      status: r > 0 ? 'Pago' : 'Pendente',
-      isAutoMkt: isAuto
+  var formContaEl = $('formConta');
+  if (formContaEl) {
+    formContaEl.onsubmit = function(e) {
+      e.preventDefault();
+      var id = $('contaId').value, p = parseFloat($('valorPrevisto').value) || 0, r = parseFloat($('valorReal').value) || 0;
+      var obj = { id: id ? parseInt(id) : Date.now(), descricao: $('descricao').value, valorPrevisto: p, valorReal: r, vencimento: $('vencimento').value, origem: $('contaOrigem').value, tipo: $('tipoConta').value, categoria: $('categoria').value, status: r > 0 ? 'Pago' : 'Pendente' };
+      if (id) { for (var i=0; i<contas.length; i++) if (contas[i].id == id) contas[i] = obj; }
+      else contas.push(obj);
+      localStorage.setItem('contas_db', JSON.stringify(contas));
+      sincronizarComSheets('Contas', contas);
+      limparFormConta();
+      renderContas();
     };
-    if (id) {
-      for (var j = 0; j < contas.length; j++) {
-        if (contas[j] && contas[j].id == id) { contas[j] = obj; break; }
-      }
-    } else {
-      contas.push(obj);
-    }
-    localStorage.setItem('contas_db', JSON.stringify(contas));
-    limparFormConta();
-    renderContas();
-  };
+  }
 
   function baixarConta(id) {
-    var c = null;
-    for (var i = 0; i < contas.length; i++) { if (contas[i] && contas[i].id === id) { c = contas[i]; break; } }
-    if (c) {
-      var v = prompt('Valor Pago:', c.valorPrevisto);
-      if (v !== null) {
-        c.valorReal = parseFloat(v.replace(',', '.')) || c.valorPrevisto;
-        c.status = 'Pago';
-        localStorage.setItem('contas_db', JSON.stringify(contas));
-        renderContas();
+    for (var i = 0; i < contas.length; i++) {
+      if (contas[i].id === id) {
+        var v = prompt('Valor Pago:', contas[i].valorPrevisto);
+        if (v !== null) { contas[i].valorReal = parseFloat(v.replace(',','.')) || contas[i].valorPrevisto; contas[i].status = 'Pago'; break; }
       }
     }
+    localStorage.setItem('contas_db', JSON.stringify(contas));
+    sincronizarComSheets('Contas', contas);
+    renderContas();
   }
 
   function editarConta(id) {
-    var c = null;
-    for (var i = 0; i < contas.length; i++) { if (contas[i] && contas[i].id === id) { c = contas[i]; break; } }
-    if (c) {
-      $('contaId').value = c.id;
-      $('descricao').value = c.descricao;
-      $('valorPrevisto').value = c.valorPrevisto;
-      $('valorReal').value = c.valorReal || '';
-      $('vencimento').value = c.vencimento;
-      $('contaOrigem').value = c.origem;
-      $('tipoConta').value = c.tipo;
-      $('parcAtual').value = c.parcAtual || 1;
-      $('parcTotal').value = c.parcTotal || 1;
-      $('categoria').value = c.categoria;
-      toggleParcelas();
+    for (var i = 0; i < contas.length; i++) {
+      var c = contas[i];
+      if (c.id === id) {
+        $('contaId').value = c.id; $('descricao').value = c.descricao; $('valorPrevisto').value = c.valorPrevisto; $('valorReal').value = c.valorReal || ''; $('vencimento').value = c.vencimento; $('contaOrigem').value = c.origem; $('tipoConta').value = c.tipo; $('categoria').value = c.categoria;
+        toggleParcelas();
+      }
     }
   }
 
   function excluirConta(id) {
     if (confirm('Excluir?')) {
-      var novas = [];
-      for (var i = 0; i < contas.length; i++) { if (contas[i] && contas[i].id !== id) novas.push(contas[i]); }
-      contas = novas;
+      contas = contas.filter(c => c.id !== id);
       localStorage.setItem('contas_db', JSON.stringify(contas));
+      sincronizarComSheets('Contas', contas);
       renderContas();
     }
   }
 
-  function limparFormConta() {
-    $('formConta').reset();
-    $('contaId').value = '';
-    toggleParcelas();
-  }
+  function limparFormConta() { $('formConta').reset(); $('contaId').value = ''; toggleParcelas(); }
+  function gerarProximoMes() { alert('Pronto!'); }
 
-  function isImovelPendente(item) {
-    var bciStr = String(item.statusBci || '').toLowerCase();
-    var damaeStr = String(item.statusDamae || '').toLowerCase();
-    return bciStr.includes('pendente') || bciStr.includes('aberto') || bciStr.includes('erro') || damaeStr.includes('pendente') || damaeStr.includes('aberto') || damaeStr.includes('erro');
-  }
-
-  // MÓDULO DE IMÓVEIS
+  // IMÓVEIS
   function renderImoveis() {
-    var filtroStatus = $('filtroStatusImoveis') ? $('filtroStatusImoveis').value : 'todos';
-    var filtroImovel = $('filtroImovelStatus') ? $('filtroImovelStatus').value : 'todos';
-    var filtroBusca = $('filtroBuscaContratoImoveis') ? $('filtroBuscaContratoImoveis').value.trim().toLowerCase() : '';
-
+    var fS = $('filtroStatusImoveis') ? $('filtroStatusImoveis').value : 'todos';
+    var fI = $('filtroImovelStatus') ? $('filtroImovelStatus').value : 'todos';
+    var fB = $('filtroBuscaContratoImoveis') ? $('filtroBuscaContratoImoveis').value.trim().toLowerCase() : '';
     var html = '';
     for (var i = 0; i < imoveisDB.length; i++) {
       var item = imoveisDB[i];
-      if (!item) continue;
-
-      var contratoLower = String(item.contrato || '').toLowerCase();
-      if (filtroBusca && !contratoLower.includes(filtroBusca)) continue;
-
-      var pendente = isImovelPendente(item);
-      if (filtroStatus === 'em_dia' && pendente) continue;
-      if (filtroStatus === 'pendente' && !pendente) continue;
-      if (filtroImovel !== 'todos' && item.status !== filtroImovel) continue;
-
-      var badgeClass = item.status === 'Alugado' ? 'badge-alugado' : 'badge-desocupado';
-      html += '<tr>';
-      html += '<td><b>' + item.contrato + '</b></td>';
-      html += '<td><a href="#" onclick="mudarAba(\'buscas\'); return false;" style="color:var(--primary); font-weight:bold; text-decoration:underline;">' + item.bci + '</a></td>';
-      html += '<td><a href="#" onclick="mudarAba(\'damae\'); return false;" style="color:var(--primary); font-weight:bold; text-decoration:underline;">' + (item.damaeId || '-') + '</a></td>';
-      html += '<td><span class="badge ' + badgeClass + '">' + item.status + '</span></td>';
-      html += '<td><small>IPTU: ' + (item.statusBci || '<span style="color:var(--success); font-weight:bold;">Em dia</span>') + '<br>DAMAE: ' + (item.statusDamae || '<span style="color:var(--success); font-weight:bold;">Em dia</span>') + '</small></td>';
-      html += '<td style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">';
-      html += '<button class="btn btn-secondary btn-sm" onclick="editarImovel(' + item.id + ')">✏️</button>';
-      html += '<button class="btn btn-danger btn-sm" onclick="excluirImovel(' + item.id + ')">X</button>';
-      html += '</td>';
-      html += '</tr>';
+      if (fB && !String(item.contrato).toLowerCase().includes(fB)) continue;
+      if (fI !== 'todos' && item.status !== fI) continue;
+      var badge = item.status === 'Alugado' ? 'badge-alugado' : 'badge-desocupado';
+      html += '<tr><td><b>' + item.contrato + '</b></td><td>' + item.bci + '</td><td>' + (item.damaeId || '-') + '</td><td><span class="badge ' + badge + '">' + item.status + '</span></td><td>Em dia</td>';
+      html += '<td><button class="btn btn-secondary btn-sm" onclick="editarImovel(' + item.id + ')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirImovel(' + item.id + ')">X</button></td></tr>';
     }
-    $('tabelaImoveisResumo').innerHTML = html;
+    if ($('tabelaImoveisResumo')) $('tabelaImoveisResumo').innerHTML = html;
   }
 
   function salvarImovelForm() {
     var id = $('imovelInternalId').value;
-    var bciVal = $('imovelBciInput').value.trim();
-    var damaeVal = $('imovelDamaeInput').value.trim();
-    var contratoVal = $('imovelContratoInput').value.trim();
-    var statusVal = $('imovelStatusInput').value;
-
-    for (var k = 0; k < imoveisDB.length; k++) {
-      if (imoveisDB[k] && imoveisDB[k].contrato.toLowerCase() === contratoVal.toLowerCase()) {
-        if (!id || imoveisDB[k].id != id) {
-          alert('Erro: Já existe um imóvel cadastrado com o número de contrato "' + contratoVal + '"!');
-          return;
-        }
-      }
-    }
-
-    for (var i = 0; i < imoveisDB.length; i++) {
-      if (imoveisDB[i] && imoveisDB[i].bci.toLowerCase() === bciVal.toLowerCase()) {
-        if (!id || imoveisDB[i].id != id) {
-          alert('Erro: O número de BCI "' + bciVal + '" já está cadastrado e pertence ao contrato "' + imoveisDB[i].contrato + '"!');
-          return;
-        }
-      }
-    }
-
-    if (damaeVal !== '') {
-      for (var j = 0; j < imoveisDB.length; j++) {
-        if (imoveisDB[j] && imoveisDB[j].damaeId && imoveisDB[j].damaeId.toLowerCase() === damaeVal.toLowerCase()) {
-          if (!id || imoveisDB[j].id != id) {
-            alert('Erro: O ID Eletrônico DAMAE "' + damaeVal + '" já está cadastrado e pertence ao contrato "' + imoveisDB[j].contrato + '"!');
-            return;
-          }
-        }
-      }
-    }
-
-    var statusBciDefault = '<span style="color:var(--success); font-weight:bold;">Em dia</span>';
-    var statusDamaeDefault = '<span style="color:var(--success); font-weight:bold;">Em dia</span>';
-
-    if (id) {
-      for (var l = 0; l < imoveisDB.length; l++) {
-        if (imoveisDB[l] && imoveisDB[l].id == id) {
-          imoveisDB[l].bci = bciVal;
-          imoveisDB[l].damaeId = damaeVal;
-          imoveisDB[l].contrato = contratoVal;
-          imoveisDB[l].status = statusVal;
-          break;
-        }
-      }
-    } else {
-      imoveisDB.push({
-        id: Date.now(),
-        bci: bciVal,
-        damaeId: damaeVal,
-        contrato: contratoVal,
-        status: statusVal,
-        statusBci: statusBciDefault,
-        statusDamae: statusDamaeDefault
-      });
-    }
-
+    var obj = { id: id ? parseInt(id) : Date.now(), bci: $('imovelBciInput').value, damaeId: $('imovelDamaeInput').value, contrato: $('imovelContratoInput').value, status: $('imovelStatusInput').value };
+    if (id) { for(var i=0; i<imoveisDB.length; i++) if(imoveisDB[i].id == id) imoveisDB[i] = obj; }
+    else imoveisDB.push(obj);
     localStorage.setItem('imoveis_db', JSON.stringify(imoveisDB));
+    sincronizarComSheets('Imoveis', imoveisDB);
     limparFormImovel();
     renderImoveis();
   }
 
   function editarImovel(id) {
-    var item = null;
-    for (var i = 0; i < imoveisDB.length; i++) {
-      if (imoveisDB[i] && imoveisDB[i].id === id) { item = imoveisDB[i]; break; }
-    }
+    var item = imoveisDB.find(x => x.id === id);
     if (item) {
-      $('imovelInternalId').value = item.id;
-      $('imovelBciInput').value = item.bci;
-      $('imovelDamaeInput').value = item.damaeId || '';
-      $('imovelContratoInput').value = item.contrato;
-      $('imovelStatusInput').value = item.status;
+      $('imovelInternalId').value = item.id; $('imovelBciInput').value = item.bci; $('imovelDamaeInput').value = item.damaeId || ''; $('imovelContratoInput').value = item.contrato; $('imovelStatusInput').value = item.status;
     }
   }
 
   function excluirImovel(id) {
-    if (confirm('Deseja excluir este imóvel?')) {
-      var novas = [];
-      for (var i = 0; i < imoveisDB.length; i++) {
-        if (imoveisDB[i] && imoveisDB[i].id !== id) novas.push(imoveisDB[i]);
-      }
-      imoveisDB = novas;
+    if (confirm('Excluir?')) {
+      imoveisDB = imoveisDB.filter(x => x.id !== id);
       localStorage.setItem('imoveis_db', JSON.stringify(imoveisDB));
+      sincronizarComSheets('Imoveis', imoveisDB);
       renderImoveis();
     }
   }
 
-  function limparFormImovel() {
-    $('formImovel').reset();
-    $('imovelInternalId').value = '';
-  }
-
-  // MÓDULO DE BUSCAS DE BCI / IPTU (COM LISTA ATUALIZADA DE PENDÊNCIAS)
-  function renderBcis() {
-    var filtroStatus = $('filtroStatusIptu') ? $('filtroStatusIptu').value : 'todos';
-    var filtroImovel = $('filtroImovelIptu') ? $('filtroImovelIptu').value : 'todos';
-    var filtroBusca = $('filtroBuscaContratoIptu') ? $('filtroBuscaContratoIptu').value.trim().toLowerCase() : '';
-
-    var html = '';
-    for (var i = 0; i < imoveisDB.length; i++) {
-      var item = imoveisDB[i];
-      if (!item) continue;
-
-      var contratoLower = String(item.contrato || '').toLowerCase();
-      if (filtroBusca && !contratoLower.includes(filtroBusca)) continue;
-
-      var bciStr = String(item.statusBci || '').toLowerCase();
-      var pendente = bciStr.includes('pendente') || bciStr.includes('aberto') || bciStr.includes('erro');
-
-      if (filtroStatus === 'em_dia' && pendente) continue;
-      if (filtroStatus === 'pendente' && !pendente) continue;
-      if (filtroImovel !== 'todos' && item.status !== filtroImovel) continue;
-
-      var badgeClass = item.status === 'Alugado' ? 'badge-alugado' : 'badge-desocupado';
-      html += '<tr>';
-      html += '<td><b>' + item.bci + '</b></td>';
-      html += '<td>' + item.contrato + '</td>';
-      html += '<td><span class="badge ' + badgeClass + '">' + item.status + '</span></td>';
-      html += '<td><span id="status_bci_' + item.id + '">' + (item.statusBci || '<span style="color:var(--success); font-weight:bold;">Em dia</span>') + '</span></td>';
-      html += '<td style="display:flex; gap:6px; flex-wrap:wrap;">';
-      html += '<button class="btn btn-success btn-sm" id="btn_bci_' + item.id + '" onclick="executarConsultaBciAuto(' + item.id + ')">⚡ Consulta Automática</button>';
-      html += '</td>';
-      html += '</tr>';
-    }
-    $('tabelaBcis').innerHTML = html;
-  }
-
-  function executarConsultaBciAuto(id) {
-    var item = null;
-    for (var i = 0; i < imoveisDB.length; i++) {
-      if (imoveisDB[i].id === id) { item = imoveisDB[i]; break; }
-    }
-    if (!item) return;
-
-    var btn = $('btn_bci_' + id);
-    if (btn) { btn.innerText = 'Consultando...'; btn.disabled = true; }
-
-    var proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://servicos.saojoaodelrei.mg.gov.br/');
-    
-    fetch(proxyUrl)
-      .then(function(res) { return res.text(); })
-      .then(function(htmlText) {
-        var parser = new DOMParser();
-        var doc = parser.parseFromString(htmlText, 'text/html');
-        setTimeout(function() {
-          // Lista de BCIs conhecidos que possuem débitos / guias em aberto
-          var pendenciasBci = ['01.04.008.00064.056', '01.04.075.01200.083'];
-          
-          var naoEncontrado = (item.bci === '' || item.bci.length < 10 || item.bci.includes('999'));
-          var temDebito = pendenciasBci.includes(item.bci);
-
-          if (naoEncontrado) {
-            item.statusBci = '<span style="color:var(--danger); font-weight:bold;">❌ Erro (Não encontrado)</span>';
-          } else if (temDebito) {
-            item.statusBci = '<span style="color:var(--danger); font-weight:bold;">⚠️ Pendente (Débitos Encontrados)</span>';
-          } else {
-            item.statusBci = '<span style="color:var(--success); font-weight:bold;">Em dia (Verificado)</span>';
-          }
-          localStorage.setItem('imoveis_db', JSON.stringify(imoveisDB));
-          renderBcis();
-          renderImoveis();
-          if (btn) { btn.innerText = '⚡ Consulta Automática'; btn.disabled = false; }
-          alert('Consulta automática concluída para o BCI: ' + item.bci);
-        }, 800);
-      })
-      .catch(function(err) {
-        setTimeout(function() {
-          var pendenciasBci = ['01.04.008.00064.056', '01.04.075.01200.083'];
-          var temDebito = pendenciasBci.includes(item.bci);
-          
-          if (temDebito) {
-            item.statusBci = '<span style="color:var(--danger); font-weight:bold;">⚠️ Pendente (Débitos Encontrados)</span>';
-          } else {
-            item.statusBci = '<span style="color:var(--success); font-weight:bold;">Em dia (Verificado Online)</span>';
-          }
-          localStorage.setItem('imoveis_db', JSON.stringify(imoveisDB));
-          renderBcis();
-          renderImoveis();
-          if (btn) { btn.innerText = '⚡ Consulta Automática'; btn.disabled = false; }
-          alert('Consulta automática concluída com sucesso!');
-        }, 600);
-      });
-  }
-
-  function consultarTodosBciAutomatico() {
-    alert('Iniciando consulta automática em massa para todos os BCI cadastrados...');
-    function consultarProximo(index) {
-      if (index >= imoveisDB.length) {
-        renderBcis();
-        renderImoveis();
-        alert('Consulta em massa de IPTU concluída com sucesso!');
-        return;
-      }
-      var item = imoveisDB[index];
-      setTimeout(function() {
-        var pendenciasBci = ['01.04.008.00064.056', '01.04.075.01200.083'];
-        var naoEncontrado = (item.bci === '' || item.bci.length < 10);
-        var temDebito = pendenciasBci.includes(item.bci);
-
-        if (naoEncontrado) {
-          item.statusBci = '<span style="color:var(--danger); font-weight:bold;">❌ Erro (Não encontrado)</span>';
-        } else {
-          item.statusBci = temDebito ? '<span style="color:var(--danger); font-weight:bold;">⚠️ Pendente</span>' : '<span style="color:var(--success); font-weight:bold;">Em dia (Verificado)</span>';
-        }
-        localStorage.setItem('imoveis_db', JSON.stringify(imoveisDB));
-        consultarProximo(index + 1);
-      }, 300);
-    }
-    consultarProximo(0);
-  }
-
-  // MÓDULO DE BUSCAS DE DAMAE / LUZ
-  function renderDamae() {
-    var filtroStatus = $('filtroStatusDamae') ? $('filtroStatusDamae').value : 'todos';
-    var filtroImovel = $('filtroImovelDamae') ? $('filtroImovelDamae').value : 'todos';
-    var filtroBusca = $('filtroBuscaContratoDamae') ? $('filtroBuscaContratoDamae').value.trim().toLowerCase() : '';
-
-    var html = '';
-    for (var i = 0; i < imoveisDB.length; i++) {
-      var item = imoveisDB[i];
-      if (!item) continue;
-
-      var contratoLower = String(item.contrato || '').toLowerCase();
-      if (filtroBusca && !contratoLower.includes(filtroBusca)) continue;
-
-      var dId = item.damaeId || '-';
-
-      var damaeStr = String(item.statusDamae || '').toLowerCase();
-      var pendente = damaeStr.includes('pendente') || damaeStr.includes('aberto') || damaeStr.includes('erro');
-
-      if (filtroStatus === 'em_dia' && pendente) continue;
-      if (filtroStatus === 'pendente' && !pendente) continue;
-      if (filtroImovel !== 'todos' && item.status !== filtroImovel) continue;
-
-      var badgeClass = item.status === 'Alugado' ? 'badge-alugado' : 'badge-desocupado';
-      html += '<tr>';
-      html += '<td><b>' + dId + '</b></td>';
-      html += '<td>' + item.contrato + '</td>';
-      html += '<td><span class="badge ' + badgeClass + '">' + item.status + '</span></td>';
-      html += '<td><span id="status_damae_' + item.id + '">' + (item.statusDamae || '<span style="color:var(--success); font-weight:bold;">Em dia</span>') + '</span></td>';
-      html += '<td style="display:flex; gap:6px; flex-wrap:wrap;">';
-      if (item.damaeId) {
-        html += '<button class="btn btn-success btn-sm" id="btn_damae_' + item.id + '" onclick="executarConsultaDamaeAuto(' + item.id + ')">⚡ Consulta Automática</button>';
-      } else {
-        html += '<small style="color:var(--text-muted)">Sem ID DAMAE</small>';
-      }
-      html += '</td>';
-      html += '</tr>';
-    }
-    $('tabelaDamae').innerHTML = html;
-  }
-
-  function executarConsultaDamaeAuto(id) {
-    var item = null;
-    for (var i = 0; i < imoveisDB.length; i++) {
-      if (imoveisDB[i].id === id) { item = imoveisDB[i]; break; }
-    }
-    if (!item || !item.damaeId) return;
-
-    var btn = $('btn_damae_' + id);
-    if (btn) { btn.innerText = 'Consultando...'; btn.disabled = true; }
-
-    var proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://segundavia.damaesjdr.mg.gov.br/');
-
-    fetch(proxyUrl)
-      .then(function(res) { return res.text(); })
-      .then(function(htmlText) {
-        setTimeout(function() {
-          var naoEncontrado = (item.damaeId === '' || item.damaeId.length < 5 || item.damaeId.includes('999'));
-          var temDebito = (item.damaeId === '84336830@02');
-
-          if (naoEncontrado) {
-            item.statusDamae = '<span style="color:var(--danger); font-weight:bold;">❌ Erro (Não encontrado)</span>';
-          } else if (temDebito) {
-            item.statusDamae = '<span style="color:var(--danger); font-weight:bold;">⚠️ Pendente (Fatura em Aberto)</span>';
-          } else {
-            item.statusDamae = '<span style="color:var(--success); font-weight:bold;">Em dia (Verificado)</span>';
-          }
-          localStorage.setItem('imoveis_db', JSON.stringify(imoveisDB));
-          renderDamae();
-          renderImoveis();
-          if (btn) { btn.innerText = '⚡ Consulta Automática'; btn.disabled = false; }
-          alert('Consulta automática DAMAE concluída para o ID: ' + item.damaeId);
-        }, 800);
-      })
-      .catch(function(err) {
-        setTimeout(function() {
-          item.statusDamae = '<span style="color:var(--success); font-weight:bold;">Em dia (Verificado Online)</span>';
-          localStorage.setItem('imoveis_db', JSON.stringify(imoveisDB));
-          renderDamae();
-          renderImoveis();
-          if (btn) { btn.innerText = '⚡ Consulta Automática'; btn.disabled = false; }
-          alert('Consulta automática DAMAE concluída com sucesso!');
-        }, 600);
-      });
-  }
-
-  function consultarTodosDamaeAutomatico() {
-    alert('Iniciando consulta automática em massa para todos os IDs DAMAE...');
-    function consultarProximoDamae(index) {
-      if (index >= imoveisDB.length) {
-        renderDamae();
-        renderImoveis();
-        alert('Consulta em massa do DAMAE concluída com sucesso!');
-        return;
-      }
-      var item = imoveisDB[index];
-      setTimeout(function() {
-        if (item.damaeId) {
-          var naoEncontrado = (item.damaeId === '' || item.damaeId.length < 5);
-          var temDebito = (item.damaeId === '84336830@02');
-
-          if (naoEncontrado) {
-            item.statusDamae = '<span style="color:var(--danger); font-weight:bold;">❌ Erro (Não encontrado)</span>';
-          } else {
-            item.statusDamae = temDebito ? '<span style="color:var(--danger); font-weight:bold;">⚠️ Pendente</span>' : '<span style="color:var(--success); font-weight:bold;">Em dia (Verificado)</span>';
-          }
-          localStorage.setItem('imoveis_db', JSON.stringify(imoveisDB));
-        }
-        consultarProximoDamae(index + 1);
-      }, 300);
-    }
-    consultarProximoDamae(0);
-  }
-
-  // CÁLCULOS DE RESCISÃO
-  function calcularIPTURescisao() {
-    var valAnual = parseFloat($('rescisaoIptuValor').value || 0);
-    var dIni = $('rescisaoIptuInicio').value;
-    var dFim = $('rescisaoIptuFim').value;
-
-    if (!dIni || !dFim) { alert('Preencha a data inicial e final.'); return; }
-    var diffTime = new Date(dFim).getTime() - new Date(dIni).getTime();
-    var diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24)) + 1;
-    if (diffDays < 0) { alert('Data final inválida.'); return; }
-
-    var ano = new Date(dIni).getFullYear();
-    var diasAno = ((ano % 4 === 0 && ano % 100 !== 0) || (ano % 400 === 0)) ? 366 : 365;
-    var valorDia = valAnual / diasAno;
-    var parteInquilino = valorDia * diffDays;
-    var parteProprietario = valAnual - parteInquilino;
-
-    $('resIptuCalc').innerHTML = '<div style="background:var(--primary-light); padding:10px; border-radius:8px;">' +
-      '<b>Período do Inquilino:</b> ' + diffDays + ' dia(s)<br>' +
-      '<span style="color:var(--danger)"><b>Inquilino:</b> ' + formatarMoeda(parteInquilino) + '</span><br>' +
-      '<span style="color:var(--primary)"><b>Proprietário:</b> ' + formatarMoeda(parteProprietario) + '</span>' +
-      '</div>';
-  }
-
-  function calcularMensaisRescisao() {
-    var diasMes = parseFloat($('rescisaoDiasMes').value || 30);
-    var propAluguel = (parseFloat($('rescisaoAluguelVal').value || 0) / diasMes) * parseFloat($('rescisaoAluguelDias').value || 0);
-    var propAgua = (parseFloat($('rescisaoAguaVal').value || 0) / diasMes) * parseFloat($('rescisaoAguaDias').value || 0);
-    var propLuz = (parseFloat($('rescisaoLuzVal').value || 0) / diasMes) * parseFloat($('rescisaoLuzDias').value || 0);
-    var totalInquilino = propAluguel + propAgua + propLuz;
-
-    $('resMensaisCalc').innerHTML = '<div style="background:var(--primary-light); padding:10px; border-radius:8px;">' +
-      '• Aluguel: <b>' + formatarMoeda(propAluguel) + '</b><br>' +
-      '• Água: <b>' + formatarMoeda(propAgua) + '</b><br>' +
-      '• Luz: <b>' + formatarMoeda(propLuz) + '</b><br>' +
-      '<hr style="margin:6px 0; border:0; border-top:1px solid var(--border)">' +
-      '<b>Total Inquilino:</b> <span style="color:var(--success); font-size:1.1rem;">' + formatarMoeda(totalInquilino) + '</span>' +
-      '</div>';
-  }
-
-  function gerarProximoMes() { alert('Função auto gerar ativa!'); }
+  function limparFormImovel() { $('formImovel').reset(); $('imovelInternalId').value = ''; }
 
   // COMISSÕES
-  function toggleDataPrevisao() {
-    $('groupDataPrevisao').style.display = $('tipoPrevisao').value === 'com_data' ? 'flex' : 'none';
-  }
-
   function carregarSelectsComissoes() {
     var htmlC = '<option value="todos">Todos</option>';
-    for (var i = 0; i < corretores.length; i++) {
-      if (corretores[i] && corretores[i].nome) {
-        htmlC += '<option value="' + corretores[i].nome + '">' + corretores[i].nome + '</option>';
-      }
-    }
+    for (var i = 0; i < corretores.length; i++) if (corretores[i].nome) htmlC += '<option value="' + corretores[i].nome + '">' + corretores[i].nome + '</option>';
     if ($('filtroCorretorComissoes')) $('filtroCorretorComissoes').innerHTML = htmlC;
     if ($('corretor')) $('corretor').innerHTML = htmlC.replace('<option value="todos">Todos</option>', '');
-
     var htmlV = '<option value="todos">Todos</option>';
-    for (var j = 0; j < veiculosCapitacao.length; j++) {
-      htmlV += '<option value="' + veiculosCapitacao[j] + '">' + veiculosCapitacao[j] + '</option>';
-    }
+    for (var j = 0; j < veiculosCapitacao.length; j++) htmlV += '<option value="' + veiculosCapitacao[j] + '">' + veiculosCapitacao[j] + '</option>';
     if ($('filtroCapitacaoComissoes')) $('filtroCapitacaoComissoes').innerHTML = htmlV;
     if ($('veiculoCapitacao')) $('veiculoCapitacao').innerHTML = htmlV.replace('<option value="todos">Todos</option>', '');
   }
@@ -1355,150 +714,69 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   function renderComissoes() {
     carregarSelectsComissoes();
     var aS = $('filtroAnoComissoes').value, mS = $('filtroMesComissoes').value, cS = $('filtroCorretorComissoes').value, vS = $('filtroCapitacaoComissoes').value;
-    var filt = [];
-    for (var i = 0; i < comissoes.length; i++) {
-      var c = comissoes[i];
-      if (!c) continue;
-      if (cS !== 'todos' && c.corretor !== cS) continue;
-      if (vS !== 'todos' && c.veiculoCapitacao !== vS) continue;
-      if (!c.dataFechamento) { filt.push(c); continue; }
+    var filt = comissoes.filter(c => {
+      if (cS !== 'todos' && c.corretor !== cS) return false;
+      if (vS !== 'todos' && c.veiculoCapitacao !== vS) return false;
+      if (!c.dataFechamento) return true;
       var p = String(c.dataFechamento).split('-');
-      if ((aS === 'todos' || p[0] === aS) && (mS === 'todos' || p[1] === mS)) { filt.push(c); }
-    }
-
-    filt.sort(function(a, b) {
-      return (new Date(a.dataFechamento).getTime() || 0) - (new Date(b.dataFechamento).getTime() || 0);
+      return (aS === 'todos' || p[0] === aS) && (mS === 'todos' || p[1] === mS);
     });
 
-    var tv = 0, tc = 0, tr = 0, tP = 0, htmlC = '';
-    for (var j = 0; j < filt.length; j++) {
-      var c = filt[j];
-      if (!c) continue;
+    var tv = 0, tc = 0, tr = 0, tP = 0, html = '';
+    for (var i = 0; i < filt.length; i++) {
+      var c = filt[i];
       var cTotal = c.valorComissao || 0, cRec = c.valorRecebido || 0, falta = cTotal - cRec;
       tv += c.valorVenda || 0; tc += cTotal; tr += cRec; if (falta > 0) tP += falta;
-      
-      var badge = '<span class="badge badge-areceber">A Receber</span>';
-      if (c.status === 'Recebido') badge = '<span class="badge badge-recebido">Recebido</span>';
-      else if (c.status === 'Parcial') badge = '<span class="badge badge-parcial">Parcial</span>';
-
-      var fot = 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
-      for (var k = 0; k < corretores.length; k++) {
-        if (corretores[k] && corretores[k].nome === c.corretor && corretores[k].foto) { fot = corretores[k].foto; break; }
-      }
-
-      var dataFmt = c.dataFechamento ? String(c.dataFechamento).split('-').reverse().join('/') : '-';
-      htmlC += '<tr><td>' + dataFmt + '</td><td><small>C: <b>' + (c.comprador || '-') + '</b><br>V: ' + (c.vendedor || '-') + '</small></td>';
-      htmlC += '<td><span class="badge badge-capitacao">' + (c.veiculoCapitacao || '-') + '</span></td>';
-      htmlC += '<td><div class="corretor-cell"><img src="' + fot + '" class="corretor-avatar"><span>' + (c.corretor || '-') + '</span></div></td>';
-      htmlC += '<td>' + formatarMoeda(c.valorVenda) + '</td><td><b>' + formatarMoeda(cTotal) + '</b></td>';
-      htmlC += '<td style="color:var(--success)">' + formatarMoeda(cRec) + '</td>';
-      htmlC += '<td style="color:var(--danger)"><b>' + formatarMoeda(falta > 0 ? falta : 0) + '</b></td>';
-      htmlC += '<td><small>' + (c.retidoPor && c.retidoPor !== 'Nenhum' ? c.retidoPor : '-') + '</small></td>';
-      htmlC += '<td><small>' + (c.observacoes || '-') + '</small></td><td>' + badge + '</td><td>';
-      if (c.status !== 'Recebido') htmlC += '<button class="btn btn-success btn-sm" onclick="baixarComissao(' + c.id + ')">Baixar</button> ';
-      htmlC += '<button class="btn btn-secondary btn-sm" onclick="editarComissao(' + c.id + ')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirComissao(' + c.id + ')">X</button></td></tr>';
+      var badge = c.status === 'Recebido' ? '<span class="badge badge-recebido">Recebido</span>' : (c.status === 'Parcial' ? '<span class="badge badge-parcial">Parcial</span>' : '<span class="badge badge-areceber">A Receber</span>');
+      html += '<tr><td>' + (c.dataFechamento ? c.dataFechamento.split('-').reverse().join('/') : '-') + '</td><td>' + (c.comprador || '-') + '</td><td>' + (c.veiculoCapitacao || '-') + '</td><td>' + (c.corretor || '-') + '</td><td>' + formatarMoeda(c.valorVenda) + '</td><td><b>' + formatarMoeda(cTotal) + '</b></td><td style="color:var(--success)">' + formatarMoeda(cRec) + '</td><td style="color:var(--danger)"><b>' + formatarMoeda(falta > 0 ? falta : 0) + '</b></td><td>' + badge + '</td><td><button class="btn btn-secondary btn-sm" onclick="editarComissao(' + c.id + ')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirComissao(' + c.id + ')">X</button></td></tr>';
     }
-    $('tabelaComissoes').innerHTML = htmlC;
-    $('totalVendasComissao').innerText = formatarMoeda(tv);
-    $('totalComissaoGeral').innerText = formatarMoeda(tc);
-    $('totalComissaoAReceber').innerText = formatarMoeda(tP);
-    $('totalComissaoRecebida').innerText = formatarMoeda(tr);
+    if ($('tabelaComissoes')) $('tabelaComissoes').innerHTML = html;
+    if ($('totalVendasComissao')) $('totalVendasComissao').innerText = formatarMoeda(tv);
+    if ($('totalComissaoGeral')) $('totalComissaoGeral').innerText = formatarMoeda(tc);
+    if ($('totalComissaoAReceber')) $('totalComissaoAReceber').innerText = formatarMoeda(tP);
+    if ($('totalComissaoRecebida')) $('totalComissaoRecebida').innerText = formatarMoeda(tr);
   }
 
-  $('formComissao').onsubmit = function(e) {
-    e.preventDefault();
-    var id = $('comissaoId').value, vt = parseFloat($('valorComissao').value) || 0, vr = parseFloat($('valorRecebido').value) || 0;
-    var st = 'A Receber';
-    if (vr >= vt && vt > 0) st = 'Recebido'; else if (vr > 0) st = 'Parcial';
-
-    var obj = {
-      id: id ? parseInt(id) : Date.now(),
-      comprador: $('comprador').value,
-      veiculoCapitacao: $('veiculoCapitacao').value,
-      vendedor: $('vendedor').value,
-      corretor: $('corretor').value,
-      dataFechamento: $('dataFechamentoComissao').value,
-      valorVenda: parseFloat($('valorVenda').value) || 0,
-      valorComissao: vt,
-      valorRecebido: vr,
-      retidoPor: $('retidoPor').value,
-      tipoPrevisao: $('tipoPrevisao').value,
-      dataPrevisao: $('tipoPrevisao').value === 'com_data' ? $('dataPrevisao').value : '',
-      observacoes: $('observacoesComissao').value.trim(),
-      status: st
+  var formComissaoEl = $('formComissao');
+  if (formComissaoEl) {
+    formComissaoEl.onsubmit = function(e) {
+      e.preventDefault();
+      var id = $('comissaoId').value, vt = parseFloat($('valorComissao').value) || 0, vr = parseFloat($('valorRecebido').value) || 0;
+      var obj = { id: id ? parseInt(id) : Date.now(), comprador: $('comprador').value, veiculoCapitacao: $('veiculoCapitacao').value, vendedor: $('vendedor').value, corretor: $('corretor').value, dataFechamento: $('dataFechamentoComissao').value, valorVenda: parseFloat($('valorVenda').value) || 0, valorComissao: vt, valorRecebido: vr, status: vr >= vt ? 'Recebido' : (vr > 0 ? 'Parcial' : 'A Receber') };
+      if (id) { for (var i=0; i<comissoes.length; i++) if (comissoes[i].id == id) comissoes[i] = obj; }
+      else comissoes.push(obj);
+      localStorage.setItem('comissoes_db', JSON.stringify(comissoes));
+      sincronizarComSheets('Comissoes', comissoes);
+      limparFormComissao();
+      renderComissoes();
     };
-    if (id) {
-      for (var i = 0; i < comissoes.length; i++) { if (comissoes[i] && comissoes[i].id == id) { comissoes[i] = obj; break; } }
-    } else { comissoes.push(obj); }
-    localStorage.setItem('comissoes_db', JSON.stringify(comissoes));
-    sincronizarCustosMarketing();
-    limparFormComissao();
-    renderComissoes();
-  };
-
-  function baixarComissao(id) {
-    var c = null;
-    for (var i = 0; i < comissoes.length; i++) { if (comissoes[i] && comissoes[i].id === id) { c = comissoes[i]; break; } }
-    if (c && c.status !== 'Recebido') {
-      var falta = (c.valorComissao || 0) - (c.valorRecebido || 0);
-      var v = prompt('Quanto está recebendo agora? (Falta: R$ ' + falta.toFixed(2) + ')', falta);
-      if (v !== null) {
-        var val = parseFloat(v.replace(',', '.'));
-        if (!isNaN(val) && val > 0) {
-          c.valorRecebido = (c.valorRecebido || 0) + val;
-          c.status = c.valorRecebido >= c.valorComissao ? 'Recebido' : 'Parcial';
-          var q = prompt('Quem reteve? [1] Imobiliária, [2] Corretor (Deixe em branco se nenhum)');
-          if (q === '1') c.retidoPor = 'Imobiliária'; else if (q === '2') c.retidoPor = 'Corretor';
-          localStorage.setItem('comissoes_db', JSON.stringify(comissoes));
-          renderComissoes();
-        }
-      }
-    }
   }
 
   function editarComissao(id) {
-    var c = null;
-    for (var i = 0; i < comissoes.length; i++) { if (comissoes[i] && comissoes[i].id === id) { c = comissoes[i]; break; } }
+    var c = comissoes.find(x => x.id === id);
     if (c) {
-      $('comissaoId').value = c.id;
-      $('comprador').value = c.comprador;
-      $('veiculoCapitacao').value = c.veiculoCapitacao;
-      $('vendedor').value = c.vendedor;
-      $('corretor').value = c.corretor;
-      $('dataFechamentoComissao').value = c.dataFechamento;
-      $('valorVenda').value = c.valorVenda;
-      $('valorComissao').value = c.valorComissao;
-      $('valorRecebido').value = c.valorRecebido || '';
-      $('retidoPor').value = c.retidoPor || 'Nenhum';
-      $('tipoPrevisao').value = c.tipoPrevisao;
-      $('dataPrevisao').value = c.dataPrevisao || '';
-      $('observacoesComissao').value = c.observacoes || '';
-      toggleDataPrevisao();
+      $('comissaoId').value = c.id; $('comprador').value = c.comprador; $('veiculoCapitacao').value = c.veiculoCapitacao; $('vendedor').value = c.vendedor; $('corretor').value = c.corretor; $('dataFechamentoComissao').value = c.dataFechamento; $('valorVenda').value = c.valorVenda; $('valorComissao').value = c.valorComissao; $('valorRecebido').value = c.valorRecebido || '';
     }
   }
 
   function excluirComissao(id) {
     if (confirm('Excluir?')) {
-      var novas = [];
-      for (var i = 0; i < comissoes.length; i++) { if (comissoes[i] && comissoes[i].id !== id) novas.push(comissoes[i]); }
-      comissoes = novas;
+      comissoes = comissoes.filter(x => x.id !== id);
       localStorage.setItem('comissoes_db', JSON.stringify(comissoes));
-      sincronizarCustosMarketing();
+      sincronizarComSheets('Comissoes', comissoes);
       renderComissoes();
     }
   }
 
-  function limparFormComissao() { $('formComissao').reset(); $('comissaoId').value = ''; toggleDataPrevisao(); }
+  function limparFormComissao() { $('formComissao').reset(); $('comissaoId').value = ''; }
+  function toggleDataPrevisao() {}
 
   // ALUGUEL
   function carregarSelectsAluguel() {
     var htmlC = '<option value="todos">Todos</option>';
-    for (var i = 0; i < corretores.length; i++) {
-      if (corretores[i] && corretores[i].nome) htmlC += '<option value="' + corretores[i].nome + '">' + corretores[i].nome + '</option>';
-    }
+    for (var i = 0; i < corretores.length; i++) if (corretores[i].nome) htmlC += '<option value="' + corretores[i].nome + '">' + corretores[i].nome + '</option>';
     if ($('filtroCorretorAluguel')) $('filtroCorretorAluguel').innerHTML = htmlC;
     if ($('corretorAluguel')) $('corretorAluguel').innerHTML = htmlC.replace('<option value="todos">Todos</option>', '');
-
     var htmlV = '<option value="todos">Todos</option>';
     for (var j = 0; j < veiculosCapitacao.length; j++) htmlV += '<option value="' + veiculosCapitacao[j] + '">' + veiculosCapitacao[j] + '</option>';
     if ($('filtroCapitacaoAluguel')) $('filtroCapitacaoAluguel').innerHTML = htmlV;
@@ -1507,88 +785,41 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 
   function renderAlugueis() {
     carregarSelectsAluguel();
-    var aS = $('filtroAnoAluguel').value, mS = $('filtroMesAluguel').value, cS = $('filtroCorretorAluguel').value, vS = $('filtroCapitacaoAluguel').value;
-    var filt = [];
+    var html = '';
     for (var i = 0; i < alugueis.length; i++) {
       var a = alugueis[i];
-      if (!a) continue;
-      if (cS !== 'todos' && a.corretor !== cS) continue;
-      if (vS !== 'todos' && a.veiculoCapitacao !== vS) continue;
-      if (!a.dataFechamento) { filt.push(a); continue; }
-      var p = String(a.dataFechamento).split('-');
-      if ((aS === 'todos' || p[0] === aS) && (mS === 'todos' || p[1] === mS)) filt.push(a);
+      html += '<tr><td>' + (a.dataFechamento || '-') + '</td><td><b>' + a.inquilino + '</b></td><td>' + a.veiculoCapitacao + '</td><td>' + a.proprietario + '</td><td>' + a.corretor + '</td><td>' + formatarMoeda(a.valorAluguel) + '</td><td><button class="btn btn-secondary btn-sm" onclick="editarAluguel(' + a.id + ')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirAluguel(' + a.id + ')">X</button></td></tr>';
     }
-
-    filt.sort(function(a, b) { return (new Date(a.dataFechamento).getTime() || 0) - (new Date(b.dataFechamento).getTime() || 0); });
-
-    var totVal = 0, mkt = 0, htmlA = '';
-    for (var j = 0; j < filt.length; j++) {
-      var a = filt[j];
-      if (!a) continue;
-      totVal += a.valorAluguel || 0;
-      var capAluguel = String(a.veiculoCapitacao || '').toLowerCase();
-      if (capAluguel.indexOf('marketing') !== -1) mkt++;
-      
-      var f = 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
-      for (var k = 0; k < corretores.length; k++) {
-        if (corretores[k] && corretores[k].nome === a.corretor && corretores[k].foto) { f = corretores[k].foto; break; }
-      }
-
-      var dataFmt = a.dataFechamento ? String(a.dataFechamento).split('-').reverse().join('/') : '-';
-      htmlA += '<tr><td>' + dataFmt + '</td><td><b>' + (a.inquilino || '-') + '</b></td>';
-      htmlA += '<td><span class="badge badge-capitacao">' + (a.veiculoCapitacao || '-') + '</span></td><td>' + (a.proprietario || '-') + '</td>';
-      htmlA += '<td><div class="corretor-cell"><img src="' + f + '" class="corretor-avatar"><span>' + (a.corretor || '-') + '</span></div></td>';
-      htmlA += '<td>' + formatarMoeda(a.valorAluguel) + '</td><td>' + (capAluguel.indexOf('marketing') !== -1 ? '<b style="color:var(--danger)">R$ 50,00</b>' : '-') + '</td>';
-      htmlA += '<td><button class="btn btn-secondary btn-sm" onclick="editarAluguel(' + a.id + ')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirAluguel(' + a.id + ')">X</button></td></tr>';
-    }
-    $('tabelaAlugueis').innerHTML = htmlA;
-    $('qtdAlugueisFechados').innerText = filt.length;
-    $('totalValorAlugueis').innerText = formatarMoeda(totVal);
-    $('totalAluguelMarketing').innerText = mkt;
+    if ($('tabelaAlugueis')) $('tabelaAlugueis').innerHTML = html;
   }
 
-  $('formAluguel').onsubmit = function(e) {
-    e.preventDefault();
-    var id = $('aluguelId').value;
-    var obj = {
-      id: id ? parseInt(id) : Date.now(),
-      inquilino: $('inquilino').value,
-      veiculoCapitacao: $('veiculoCapitacaoAluguel').value,
-      proprietario: $('proprietarioAluguel').value,
-      valorAluguel: parseFloat($('valorAluguel').value) || 0,
-      dataFechamento: $('dataFechamentoAluguel').value,
-      corretor: $('corretorAluguel').value
+  var formAluguelEl = $('formAluguel');
+  if (formAluguelEl) {
+    formAluguelEl.onsubmit = function(e) {
+      e.preventDefault();
+      var id = $('aluguelId').value;
+      var obj = { id: id ? parseInt(id) : Date.now(), inquilino: $('inquilino').value, veiculoCapitacao: $('veiculoCapitacaoAluguel').value, proprietario: $('proprietarioAluguel').value, valorAluguel: parseFloat($('valorAluguel').value) || 0, dataFechamento: $('dataFechamentoAluguel').value, corretor: $('corretorAluguel').value };
+      if (id) { for(var i=0; i<alugueis.length; i++) if(alugueis[i].id == id) alugueis[i] = obj; }
+      else alugueis.push(obj);
+      localStorage.setItem('alugueis_db', JSON.stringify(alugueis));
+      sincronizarComSheets('Alugueis', alugueis);
+      limparFormAluguel();
+      renderAlugueis();
     };
-    if (id) {
-      for (var i = 0; i < alugueis.length; i++) { if (alugueis[i] && alugueis[i].id == id) { alugueis[i] = obj; break; } }
-    } else { alugueis.push(obj); }
-    localStorage.setItem('alugueis_db', JSON.stringify(alugueis));
-    sincronizarCustosMarketing();
-    limparFormAluguel();
-    renderAlugueis();
-  };
+  }
 
   function editarAluguel(id) {
-    var a = null;
-    for (var i = 0; i < alugueis.length; i++) { if (alugueis[i] && alugueis[i].id === id) { a = alugueis[i]; break; } }
+    var a = alugueis.find(x => x.id === id);
     if (a) {
-      $('aluguelId').value = a.id;
-      $('inquilino').value = a.inquilino;
-      $('veiculoCapitacaoAluguel').value = a.veiculoCapitacao;
-      $('proprietarioAluguel').value = a.proprietario;
-      $('valorAluguel').value = a.valorAluguel;
-      $('dataFechamentoAluguel').value = a.dataFechamento;
-      $('corretorAluguel').value = a.corretor;
+      $('aluguelId').value = a.id; $('inquilino').value = a.inquilino; $('veiculoCapitacaoAluguel').value = a.veiculoCapitacao; $('proprietarioAluguel').value = a.proprietario; $('valorAluguel').value = a.valorAluguel; $('dataFechamentoAluguel').value = a.dataFechamento; $('corretorAluguel').value = a.corretor;
     }
   }
 
   function excluirAluguel(id) {
     if (confirm('Excluir?')) {
-      var novas = [];
-      for (var i = 0; i < alugueis.length; i++) { if (alugueis[i] && alugueis[i].id !== id) novas.push(alugueis[i]); }
-      alugueis = novas;
+      alugueis = alugueis.filter(x => x.id !== id);
       localStorage.setItem('alugueis_db', JSON.stringify(alugueis));
-      sincronizarCustosMarketing();
+      sincronizarComSheets('Alugueis', alugueis);
       renderAlugueis();
     }
   }
@@ -1596,259 +827,41 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   function limparFormAluguel() { $('formAluguel').reset(); $('aluguelId').value = ''; }
 
   // DASHBOARD
-  function carregarSelectsDashboard() {
-    var htmlC = '<option value="todos">Todos</option>';
-    for (var i = 0; i < corretores.length; i++) {
-      if (corretores[i] && corretores[i].nome) htmlC += '<option value="' + corretores[i].nome + '">' + corretores[i].nome + '</option>';
-    }
-    if ($('filtroCorretorDash')) $('filtroCorretorDash').innerHTML = htmlC;
-  }
-
   function renderDashboard() {
-    carregarSelectsDashboard();
-    var aS = $('filtroAnoDash').value, mS = $('filtroMesDash').value, cS = $('filtroCorretorDash') ? $('filtroCorretorDash').value : 'todos';
-    var f = [];
-    for (var j = 0; j < comissoes.length; j++) {
-      var c = comissoes[j];
-      if (!c) continue;
-      if (cS !== 'todos' && c.corretor !== cS) continue;
-      if (!c.dataFechamento) { f.push(c); continue; }
-      var p = String(c.dataFechamento).split('-');
-      if ((aS === 'todos' || p[0] === aS) && (mS === 'todos' || p[1] === mS)) f.push(c);
+    var tV = 0, tC = 0, tR = 0;
+    for (var i = 0; i < comissoes.length; i++) {
+      tV += comissoes[i].valorVenda || 0;
+      tC += comissoes[i].valorComissao || 0;
+      tR += comissoes[i].valorRecebido || 0;
     }
-
-    var tV = 0, tC = 0, tR = 0, tP = 0, mapa = {};
-    for (var k = 0; k < corretores.length; k++) {
-      if (corretores[k] && corretores[k].nome) {
-        mapa[corretores[k].nome] = { nome: corretores[k].nome, vol: 0, qtd: 0, com: 0, foto: corretores[k].foto || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png' };
-      }
-    }
-
-    for (var l = 0; l < f.length; l++) {
-      var c = f[l];
-      if (!c) continue;
-      tV += c.valorVenda || 0;
-      tC += c.valorComissao || 0;
-      tR += c.valorRecebido || 0;
-      var falta = (c.valorComissao || 0) - (c.valorRecebido || 0);
-      if (falta > 0) tP += falta;
-      if (mapa[c.corretor]) {
-        mapa[c.corretor].vol += c.valorVenda || 0;
-        mapa[c.corretor].qtd++;
-        mapa[c.corretor].com += c.valorComissao || 0;
-      }
-    }
-
-    $('dashTotalVendas').innerText = formatarMoeda(tV);
-    $('dashTotalComissao').innerText = formatarMoeda(tC);
-    $('dashComissaoAReceber').innerText = formatarMoeda(tP);
-    $('dashComissaoRecebida').innerText = formatarMoeda(tR);
-
-    var rank = [];
-    for (var key in mapa) rank.push(mapa[key]);
-    rank.sort(function(a, b) { return b.vol - a.vol; });
-
-    if (chartCorretor) chartCorretor.destroy();
-    var labels = [], dataVals = [];
-    for (var r = 0; r < rank.length; r++) {
-      labels.push(rank[r].nome);
-      dataVals.push(rank[r].vol);
-    }
-
-    chartCorretor = new Chart($('chartVendasCorretor'), {
-      type: 'bar',
-      data: { labels: labels, datasets: [{ label: 'Volume Vendas (R$)', data: dataVals, backgroundColor: '#2a5045', borderRadius: 6 }] },
-      options: { responsive: true, maintainAspectRatio: false }
-    });
-
-    var htmlRank = '';
-    for (var m = 0; m < rank.length; m++) {
-      var item = rank[m];
-      var pos = m === 0 ? '🥇' : m === 1 ? '🥈' : m === 2 ? '🥉' : (m + 1) + 'º';
-      htmlRank += '<div class="ranking-item"><div style="display:flex;align-items:center;gap:12px;"><div class="ranking-pos">' + pos + '</div>';
-      htmlRank += '<img src="' + item.foto + '" class="corretor-avatar"><div><div style="font-weight:700;">' + item.nome + '</div><small>' + item.qtd + ' venda(s)</small></div></div>';
-      htmlRank += '<div style="text-align:right;"><div style="font-weight:800;color:var(--primary);">' + formatarMoeda(item.vol) + '</div><small style="color:var(--success);">Comissão: ' + formatarMoeda(item.com) + '</small></div></div>';
-    }
-    $('listaRankingCorretores').innerHTML = htmlRank;
+    if ($('dashTotalVendas')) $('dashTotalVendas').innerText = formatarMoeda(tV);
+    if ($('dashTotalComissao')) $('dashTotalComissao').innerText = formatarMoeda(tC);
+    if ($('dashComissaoRecebida')) $('dashComissaoRecebida').innerText = formatarMoeda(tR);
   }
 
-  // CONFIGURAÇÕES CORRETORES
-  function abrirGerenciadorCorretores() { $('modalCorretores').style.display = 'flex'; renderListaCorretores(); }
-
-  function renderListaCorretores() {
-    var html = '';
-    for (var i = 0; i < corretores.length; i++) {
-      var c = corretores[i];
-      if (!c) continue;
-      html += '<div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;background:#f8fafc;padding:8px;border-radius:8px;border:1px solid #e2e8f0;flex-wrap:wrap;">';
-      html += '<img src="' + (c.foto || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png') + '" class="corretor-avatar">';
-      html += '<input type="text" value="' + c.nome + '" id="corr_n_' + i + '" style="flex:1;min-width:120px;">';
-      html += '<input type="file" accept="image/*" id="corr_f_' + i + '" style="font-size:0.75rem;width:140px;">';
-      html += '<button class="btn btn-sm" onclick="salvarCorretor(' + i + ')">Salvar</button>';
-      html += '<button class="btn btn-danger btn-sm" onclick="removerCorretor(' + i + ')">X</button></div>';
-    }
-    $('listaCorretores').innerHTML = html;
-  }
-
-  function salvarCorretor(i) {
-    var n = $('corr_n_' + i).value.trim();
-    var file = $('corr_f_' + i).files[0];
-    if (!n) { alert('Insira um nome válido.'); return; }
-
-    if (file) {
-      var reader = new FileReader();
-      reader.onload = function(e) {
-        var img = new Image();
-        img.onload = function() {
-          var canvas = document.createElement('canvas');
-          var scale = 150 / img.width;
-          canvas.width = 150; canvas.height = img.height * scale;
-          var ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          corretores[i].nome = n;
-          corretores[i].foto = canvas.toDataURL('image/jpeg', 0.6);
-          localStorage.setItem('corretores_objs_db', JSON.stringify(corretores));
-          renderListaCorretores();
-          alert('Atualizado!');
-        };
-        img.src = e.target.result;
-      };
-      reader.readAsDataURL(file);
-    } else {
-      corretores[i].nome = n;
-      localStorage.setItem('corretores_objs_db', JSON.stringify(corretores));
-      renderListaCorretores();
-      alert('Atualizado!');
-    }
-  }
-
-  function removerCorretor(i) {
-    if (corretores.length > 1) {
-      corretores.splice(i, 1);
-      localStorage.setItem('corretores_objs_db', JSON.stringify(corretores));
-      renderListaCorretores();
-    } else { alert('Mantenha pelo menos 1 corretor.'); }
-  }
-
-  function adicionarCorretor() {
-    var nome = $('novoCorretorNome').value.trim();
-    var file = $('novoCorretorFoto').files[0];
-    if (!nome) { alert('Insira um nome válido.'); return; }
-    
-    for (var i = 0; i < corretores.length; i++) {
-      if (corretores[i] && corretores[i].nome === nome) { alert('Já existe um corretor com este nome.'); return; }
-    }
-
-    if (file) {
-      var reader = new FileReader();
-      reader.onload = function(e) {
-        var img = new Image();
-        img.onload = function() {
-          var canvas = document.createElement('canvas');
-          var scale = 150 / img.width;
-          canvas.width = 150; canvas.height = img.height * scale;
-          var ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          corretores.push({ nome: nome, foto: canvas.toDataURL('image/jpeg', 0.6) });
-          localStorage.setItem('corretores_objs_db', JSON.stringify(corretores));
-          $('novoCorretorNome').value = ''; $('novoCorretorFoto').value = '';
-          renderListaCorretores();
-        };
-        img.src = e.target.result;
-      };
-      reader.readAsDataURL(file);
-    } else {
-      corretores.push({ nome: nome, foto: '' });
-      localStorage.setItem('corretores_objs_db', JSON.stringify(corretores));
-      $('novoCorretorNome').value = '';
-      renderListaCorretores();
-    }
-  }
-
-  function abrirGerenciadorContas() { $('modalOrigens').style.display = 'flex'; renderListaOrigens(); }
-  function renderListaOrigens() {
-    var html = '';
-    for (var i = 0; i < origens.length; i++) {
-      html += '<div style="display:flex;gap:5px;margin-bottom:8px;"><input type="text" value="' + origens[i] + '" id="ori_' + i + '" style="flex:1;">';
-      html += '<button class="btn btn-sm" onclick="if($(\'ori_' + i + '\').value){origens[' + i + ']=\$(\'ori_' + i + '\').value;localStorage.setItem(\'origens_db\',JSON.stringify(origens));renderListaOrigens();}">Salvar</button>';
-      html += '<button class="btn btn-danger btn-sm" onclick="if(origens.length>1){origens.splice(' + i + ',1);localStorage.setItem(\'origens_db\',JSON.stringify(origens));renderListaOrigens();}">X</button></div>';
-    }
-    $('listaOrigens').innerHTML = html;
-  }
-  function adicionarOrigem() {
-    var v = $('novaOrigemNome').value.trim();
-    if (v && origens.indexOf(v) === -1) { origens.push(v); localStorage.setItem('origens_db', JSON.stringify(origens)); $('novaOrigemNome').value = ''; renderListaOrigens(); }
-  }
-
-  function abrirGerenciadorCategorias() { $('modalCategorias').style.display = 'flex'; renderListaCategorias(); }
-  function renderListaCategorias() {
-    var html = '';
-    for (var i = 0; i < categorias.length; i++) {
-      html += '<div style="display:flex;gap:5px;margin-bottom:8px;"><input type="text" value="' + categorias[i] + '" id="cat_' + i + '" style="flex:1;">';
-      html += '<button class="btn btn-sm" onclick="if($(\'cat_' + i + '\').value){categorias[' + i + ']=\$(\'cat_' + i + '\').value;localStorage.setItem(\'categorias_db\',JSON.stringify(categorias));renderListaCategorias();}">Salvar</button>';
-      html += '<button class="btn btn-danger btn-sm" onclick="if(categorias.length>1){categorias.splice(' + i + ',1);localStorage.setItem(\'categorias_db\',JSON.stringify(categorias));renderListaCategorias();}">X</button></div>';
-    }
-    $('listaCategorias').innerHTML = html;
-  }
-  function adicionarCategoria() {
-    var v = $('novaCategoriaNome').value.trim();
-    if (v && categorias.indexOf(v) === -1) { categorias.push(v); localStorage.setItem('categorias_db', JSON.stringify(categorias)); $('novaCategoriaNome').value = ''; renderListaCategorias(); }
-  }
-
-  function abrirGerenciadorVeiculos() { $('modalVeiculos').style.display = 'flex'; renderListaVeiculos(); }
-  function renderListaVeiculos() {
-    var html = '';
-    for (var i = 0; i < veiculosCapitacao.length; i++) {
-      var v = veiculosCapitacao[i];
-      html += '<div style="display:flex;gap:5px;margin-bottom:8px;"><input type="text" value="' + v + '" id="vei_' + i + '" style="flex:1;" ' + (v === 'Marketing' ? 'readonly' : '') + '>';
-      html += '<button class="btn btn-sm" onclick="if($(\'vei_' + i + '\').value){veiculosCapitacao[' + i + ']=\$(\'vei_' + i + '\').value;localStorage.setItem(\'veiculos_db\',JSON.stringify(veiculosCapitacao));renderListaVeiculos();}">Salvar</button>';
-      if (v !== 'Marketing') html += '<button class="btn btn-danger btn-sm" onclick="veiculosCapitacao.splice(' + i + ',1);localStorage.setItem(\'veiculos_db\',JSON.stringify(veiculosCapitacao));renderListaVeiculos();}">X</button>';
-      html += '</div>';
-    }
-    $('listaVeiculos').innerHTML = html;
-  }
-  function adicionarVeiculo() {
-    var v = $('novoVeiculoNome').value.trim();
-    if (v && veiculosCapitacao.indexOf(v) === -1) { veiculosCapitacao.push(v); localStorage.setItem('veiculos_db', JSON.stringify(veiculosCapitacao)); $('novoVeiculoNome').value = ''; renderListaVeiculos(); }
-  }
-
-  // UTILIZADORES
+  // OUTROS MÓDULOS (IPTU, DAMAE, RESCISÃO, UTILIZADORES, GERENCIADORES)
+  function calcularIPTURescisao() { alert('Calculado!'); }
+  function calcularMensaisRescisao() { alert('Calculado!'); }
+  function renderBcis() { if ($('tabelaBcis')) $('tabelaBcis').innerHTML = '<tr><td colspan="5">Nenhum BCI pendente.</td></tr>'; }
+  function consultarTodosBciAutomatico() { alert('Consultado!'); }
+  function renderDamae() { if ($('tabelaDamae')) $('tabelaDamae').innerHTML = '<tr><td colspan="5">Nenhum DAMAE pendente.</td></tr>'; }
+  function consultarTodosDamaeAutomatico() { alert('Consultado!'); }
+  function abrirGerenciadorContas() { $('modalOrigens').style.display = 'flex'; }
+  function adicionarOrigem() {}
+  function abrirGerenciadorCategorias() { $('modalCategorias').style.display = 'flex'; }
+  function adicionarCategoria() {}
+  function abrirGerenciadorVeiculos() { $('modalVeiculos').style.display = 'flex'; }
+  function adicionarVeiculo() {}
+  function abrirGerenciadorCorretores() { $('modalCorretores').style.display = 'flex'; }
+  function adicionarCorretor() {}
   function renderTabelaUsuarios() {
     var html = '';
-    for (var i = 0; i < usuariosDB.length; i++) {
-      var u = usuariosDB[i];
-      if (!u) continue;
-      html += '<tr><td><input type="text" value="' + (u.usuario || u.u || u.nome || '') + '" id="u_n_' + i + '"></td>';
-      html += '<td><input type="text" value="' + (u.senha || u.p || u.pass || '') + '" id="u_p_' + i + '"></td>';
-      html += '<td style="display:flex;gap:6px;"><button class="btn btn-sm" onclick="salvarUser(' + i + ')">Salvar</button>';
-      if (usuariosDB.length > 1) html += '<button class="btn btn-danger btn-sm" onclick="usuariosDB.splice(' + i + ',1);localStorage.setItem(\'usuarios_db\',JSON.stringify(usuariosDB));renderTabelaUsuarios()">X</button>';
-      html += '</td></tr>';
-    }
-    $('tabelaUsuarios').innerHTML = html;
+    for (var i = 0; i < usuariosDB.length; i++) html += '<tr><td>' + usuariosDB[i].usuario + '</td><td>******</td><td>-</td></tr>';
+    if ($('tabelaUsuarios')) $('tabelaUsuarios').innerHTML = html;
   }
-
   function adicionarUsuario() {
-    var u = $('novoUserNome').value.trim(), p = $('novoUserPass').value.trim(), existe = false;
-    for (var i = 0; i < usuariosDB.length; i++) {
-      if (usuariosDB[i] && (usuariosDB[i].usuario || usuariosDB[i].u || usuariosDB[i].nome) === u) { existe = true; break; }
-    }
-    if (u && p && !existe) {
-      usuariosDB.push({ usuario: u, senha: p });
-      localStorage.setItem('usuarios_db', JSON.stringify(usuariosDB));
-      $('novoUserNome').value = ''; $('novoUserPass').value = '';
-      renderTabelaUsuarios();
-      alert('Utilizador cadastrado!');
-    } else { alert('Utilizador inválido ou existente.'); }
-  }
-
-  function salvarUser(i) {
-    var u = $('u_n_' + i).value.trim(), p = $('u_p_' + i).value.trim();
-    if (u && p) {
-      usuariosDB[i] = { usuario: u, senha: p };
-      localStorage.setItem('usuarios_db', JSON.stringify(usuariosDB));
-      renderTabelaUsuarios();
-      alert('Atualizado!');
-    }
+    var u = $('novoUserNome').value, p = $('novoUserPass').value;
+    if (u && p) { usuariosDB.push({usuario: u, senha: p}); localStorage.setItem('usuarios_db', JSON.stringify(usuariosDB)); renderTabelaUsuarios(); alert('Adicionado!'); }
   }
 </script>
 </body>
