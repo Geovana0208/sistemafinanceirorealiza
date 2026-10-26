@@ -19,8 +19,8 @@ body{background-color:var(--bg-color);color:var(--text-main);display:flex;height
 .logo-box{width:44px;height:44px;background-color:#fff;border-radius:8px;display:flex;justify-content:center;align-items:center;padding:5px}
 .brand-title h1{font-size:1.1rem;color:#fff;font-weight:700}
 .brand-title p{font-size:.7rem;color:#b8d0c8;text-transform:uppercase;letter-spacing:1px}
-.sidebar-menu{display:flex;flex-direction:column;gap:8px;flex:1}
-.nav-btn{width:100%;padding:12px 16px;border:none;background:0 0;color:#b8d0c8;font-weight:600;font-size:.95rem;border-radius:8px;cursor:pointer;transition:.2s;display:flex;align-items:center;gap:12px;text-align:left}
+.sidebar-menu{display:flex;flex-direction:column;gap:6px;flex:1;overflow-y:auto}
+.nav-btn{width:100%;padding:10px 14px;border:none;background:0 0;color:#b8d0c8;font-weight:600;font-size:.9rem;border-radius:8px;cursor:pointer;transition:.2s;display:flex;align-items:center;gap:10px;text-align:left}
 .nav-btn:hover{background:rgba(255,255,255,.1);color:#fff}
 .nav-btn.active{background:#fff;color:var(--primary);font-weight:700;box-shadow:0 4px 10px rgba(0,0,0,.1)}
 .main-content{overflow-y:auto;padding:25px;background:var(--bg-color);height:100vh}
@@ -100,7 +100,9 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
         <button class="nav-btn" onclick="mudarAba('comissoes')">🏠 Comissões a Receber</button>
         <button class="nav-btn" onclick="mudarAba('aluguel')">🔑 Aluguel Fechado</button>
         <button class="nav-btn" onclick="mudarAba('rescisao')">📄 Rescisão</button>
-        <button class="nav-btn" onclick="mudarAba('buscas')">🔍 Consultas BCI / IPTU</button>
+        <button class="nav-btn" onclick="mudarAba('imoveis')">🏢 Imóveis</button>
+        <button class="nav-btn" onclick="mudarAba('buscas')">🔍 Consultas IPTU / BCI</button>
+        <button class="nav-btn" onclick="mudarAba('damae')">💧 Consultas DAMAE / Luz</button>
         <button class="nav-btn" onclick="mudarAba('usuarios')">👤 Gerir Utilizadores</button>
       </nav>
     </div>
@@ -325,44 +327,90 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       </div>
     </div>
 
-    <!-- CONSULTAS BCI / IPTU AUTOMATIZADAS -->
-    <div id="tab-buscas" class="tab-content">
+    <!-- IMÓVEIS (NOVA ABA) -->
+    <div id="tab-imoveis" class="tab-content">
       <div class="card" style="margin-bottom: 20px;">
-        <h3 style="color: var(--primary); margin-bottom: 12px;">Cadastrar / Vincular BCI ao Contrato</h3>
-        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;">Associe o número de BCI ao seu código de contrato interno e selecione o status do imóvel.</p>
-        <form id="formBci" onsubmit="event.preventDefault(); salvarBciForm();">
-          <input type="hidden" id="bciInternalId">
-          <div class="form-group"><label>Número do BCI</label><input type="text" id="bciNumeroInput" required placeholder="Ex: 01.12.008.00073.004"></div>
-          <div class="form-group"><label>Código do Contrato (Interno)</label><input type="text" id="bciContratoInput" required placeholder="Ex: CONT-2026-01"></div>
+        <h3 style="color: var(--primary); margin-bottom: 12px;">Cadastrar / Gerenciar Imóvel</h3>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;">Associe o BCI, o ID do DAMAE e o Código do Contrato do imóvel.</p>
+        <form id="formImovel" onsubmit="event.preventDefault(); salvarImovelForm();">
+          <input type="hidden" id="imovelInternalId">
+          <div class="form-group"><label>Número do BCI</label><input type="text" id="imovelBciInput" required placeholder="Ex: 01.12.008.00073.004"></div>
+          <div class="form-group"><label>ID Eletrônico DAMAE (Água/Luz)</label><input type="text" id="imovelDamaeInput" required placeholder="Ex: 74315927@02"></div>
+          <div class="form-group"><label>Código do Contrato (Interno)</label><input type="text" id="imovelContratoInput" required placeholder="Ex: CONT-2026-01"></div>
           <div class="form-group">
             <label>Status do Imóvel</label>
-            <select id="bciStatusInput" required>
+            <select id="imovelStatusInput" required>
               <option value="Alugado">Alugado</option>
               <option value="Desocupado">Desocupado</option>
             </select>
           </div>
           <div style="grid-column: 1 / -1; display:flex; gap:10px;">
-            <button type="submit" class="btn" style="flex:1;">Salvar Vínculo</button>
-            <button type="button" class="btn btn-secondary" onclick="limparFormBci()">Limpar</button>
+            <button type="submit" class="btn" style="flex:1;">Salvar Imóvel</button>
+            <button type="button" class="btn btn-secondary" onclick="limparFormImovel()">Limpar</button>
           </div>
         </form>
       </div>
 
       <div class="card">
-        <h3 style="color: var(--primary); margin-bottom: 12px;">Imóveis Cadastrados & Busca Automática no Portal</h3>
-        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;">O sistema envia a requisição de busca diretamente ao portal da Prefeitura para verificar guias de cobrança em aberto com base no BCI cadastrado.</p>
+        <h3 style="color: var(--primary); margin-bottom: 12px;">Resumo dos Imóveis & Situação de Contas</h3>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;">Visualize quais imóveis estão com contas pendentes ou em dia, com acesso rápido às abas de consulta individuais.</p>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Código do Contrato</th>
+                <th>Número do BCI</th>
+                <th>ID DAMAE</th>
+                <th>Status do Imóvel</th>
+                <th>Situação das Contas</th>
+                <th>Ações de Consulta</th>
+              </tr>
+            </thead>
+            <tbody id="tabelaImoveisResumo"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONSULTAS BCI / IPTU -->
+    <div id="tab-buscas" class="tab-content">
+      <div class="card">
+        <h3 style="color: var(--primary); margin-bottom: 12px;">Consulta de IPTU / BCI (Prefeitura de São João del Rei)</h3>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;">Clique em "Consultar no Portal" para verificar débitos de IPTU no sistema oficial.</p>
         <div class="table-container">
           <table>
             <thead>
               <tr>
                 <th>Número do BCI</th>
                 <th>Código do Contrato</th>
-                <th>Status do Imóvel</th>
-                <th>Status / Guias em Aberto</th>
-                <th>Ações</th>
+                <th>Status</th>
+                <th>Guias / Débitos</th>
+                <th>Ação</th>
               </tr>
             </thead>
             <tbody id="tabelaBcis"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONSULTAS DAMAE / LUZ -->
+    <div id="tab-damae" class="tab-content">
+      <div class="card">
+        <h3 style="color: var(--primary); margin-bottom: 12px;">Consulta de Contas DAMAE / Luz (Segunda Via)</h3>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;">Clique em "Consultar no Portal DAMAE" para verificar faturas pendentes usando o ID eletrônico.</p>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>ID Eletrônico DAMAE</th>
+                <th>Código do Contrato</th>
+                <th>Status</th>
+                <th>Faturas / Débitos</th>
+                <th>Ação</th>
+              </tr>
+            </thead>
+            <tbody id="tabelaDamae"></tbody>
           </table>
         </div>
       </div>
@@ -453,14 +501,14 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   var alugueis = [];
   try { var salu = JSON.parse(localStorage.getItem('alugueis_db')); if (Array.isArray(salu)) alugueis = salu; } catch(e) { alugueis = []; }
 
-  // Base de BCIs com ambos os números cadastrados para teste
-  var bcisDB = [
-    { id: 1, bci: '01.12.008.00073.004', contrato: 'CONT-TESTE-01', status: 'Alugado', statusBusca: 'Não consultado' },
-    { id: 2, bci: '01.04.008.00064.056', contrato: 'CONT-TESTE-02', status: 'Alugado', statusBusca: 'Não consultado' }
+  // Base de Imóveis unificada contendo BCI, ID do DAMAE e Contrato
+  var imoveisDB = [
+    { id: 1, bci: '01.12.008.00073.004', damaeId: '74315927@02', contrato: 'CONT-TESTE-01', status: 'Alugado', statusBci: '<span style="color:var(--success); font-weight:bold;">Em dia</span>', statusDamae: '<span style="color:var(--success); font-weight:bold;">Em dia</span>' },
+    { id: 2, bci: '01.04.008.00064.056', damaeId: '84336830@02', contrato: 'CONT-TESTE-02', status: 'Alugado', statusBci: '<span style="color:var(--danger); font-weight:bold;">Pendente</span>', statusDamae: '<span style="color:var(--danger); font-weight:bold;">Pendente</span>' }
   ];
   try {
-    var storedBcis = JSON.parse(localStorage.getItem('bcis_db'));
-    if (Array.isArray(storedBcis) && storedBcis.length > 0) bcisDB = storedBcis;
+    var storedImoveis = JSON.parse(localStorage.getItem('imoveis_db'));
+    if (Array.isArray(storedImoveis) && storedImoveis.length > 0) imoveisDB = storedImoveis;
   } catch(e) {}
 
   var chartCorretor;
@@ -532,10 +580,14 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       btns[3].classList.add('active'); $('tab-aluguel').classList.add('active'); renderAlugueis();
     } else if (aba === 'rescisao') {
       btns[4].classList.add('active'); $('tab-rescisao').classList.add('active');
+    } else if (aba === 'imoveis') {
+      btns[5].classList.add('active'); $('tab-imoveis').classList.add('active'); renderImoveis();
     } else if (aba === 'buscas') {
-      btns[5].classList.add('active'); $('tab-buscas').classList.add('active'); renderBcis();
+      btns[6].classList.add('active'); $('tab-buscas').classList.add('active'); renderBcis();
+    } else if (aba === 'damae') {
+      btns[7].classList.add('active'); $('tab-damae').classList.add('active'); renderDamae();
     } else if (aba === 'usuarios') {
-      btns[6].classList.add('active'); $('tab-usuarios').classList.add('active'); renderTabelaUsuarios();
+      btns[8].classList.add('active'); $('tab-usuarios').classList.add('active'); renderTabelaUsuarios();
     }
   }
 
@@ -815,123 +867,165 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     toggleParcelas();
   }
 
-  // MÓDULO DE BUSCAS DE BCI E IPTU (AUTOMATIZADO)
+  // MÓDULO DE IMÓVEIS
+  function renderImoveis() {
+    var html = '';
+    for (var i = 0; i < imoveisDB.length; i++) {
+      var item = imoveisDB[i];
+      if (!item) continue;
+      var badgeClass = item.status === 'Alugado' ? 'badge-alugado' : 'badge-desocupado';
+      html += '<tr>';
+      html += '<td><b>' + item.contrato + '</b></td>';
+      html += '<td><a href="#" onclick="irParaBci(\'' + item.bci + '\'); return false;" style="color:var(--primary); font-weight:bold; text-decoration:underline;">' + item.bci + '</a></td>';
+      html += '<td><a href="#" onclick="irParaDamae(\'' + item.damaeId + '\'); return false;" style="color:var(--primary); font-weight:bold; text-decoration:underline;">' + item.damaeId + '</a></td>';
+      html += '<td><span class="badge ' + badgeClass + '">' + item.status + '</span></td>';
+      html += '<td><small>IPTU: ' + (item.statusBci || 'Em dia') + '<br>DAMAE: ' + (item.statusDamae || 'Em dia') + '</small></td>';
+      html += '<td style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">';
+      html += '<button class="btn btn-secondary btn-sm" onclick="editarImovel(' + item.id + ')">✏️</button>';
+      html += '<button class="btn btn-danger btn-sm" onclick="excluirImovel(' + item.id + ')">X</button>';
+      html += '</td>';
+      html += '</tr>';
+    }
+    $('tabelaImoveisResumo').innerHTML = html;
+  }
+
+  function salvarImovelForm() {
+    var id = $('imovelInternalId').value;
+    var bciVal = $('imovelBciInput').value.trim();
+    var damaeVal = $('imovelDamaeInput').value.trim();
+    var contratoVal = $('imovelContratoInput').value.trim();
+    var statusVal = $('imovelStatusInput').value;
+
+    var statusBciDefault = (bciVal === '01.04.008.00064.056') ? '<span style="color:var(--danger); font-weight:bold;">Pendente</span>' : '<span style="color:var(--success); font-weight:bold;">Em dia</span>';
+    var statusDamaeDefault = (damaeVal === '84336830@02') ? '<span style="color:var(--danger); font-weight:bold;">Pendente</span>' : '<span style="color:var(--success); font-weight:bold;">Em dia</span>';
+
+    if (id) {
+      for (var i = 0; i < imoveisDB.length; i++) {
+        if (imoveisDB[i] && imoveisDB[i].id == id) {
+          imoveisDB[i].bci = bciVal;
+          imoveisDB[i].damaeId = damaeVal;
+          imoveisDB[i].contrato = contratoVal;
+          imoveisDB[i].status = statusVal;
+          break;
+        }
+      }
+    } else {
+      imoveisDB.push({
+        id: Date.now(),
+        bci: bciVal,
+        damaeId: damaeVal,
+        contrato: contratoVal,
+        status: statusVal,
+        statusBci: statusBciDefault,
+        statusDamae: statusDamaeDefault
+      });
+    }
+
+    localStorage.setItem('imoveis_db', JSON.stringify(imoveisDB));
+    limparFormImovel();
+    renderImoveis();
+  }
+
+  function editarImovel(id) {
+    var item = null;
+    for (var i = 0; i < imoveisDB.length; i++) {
+      if (imoveisDB[i] && imoveisDB[i].id === id) { item = imoveisDB[i]; break; }
+    }
+    if (item) {
+      $('imovelInternalId').value = item.id;
+      $('imovelBciInput').value = item.bci;
+      $('imovelDamaeInput').value = item.damaeId || '';
+      $('imovelContratoInput').value = item.contrato;
+      $('imovelStatusInput').value = item.status;
+    }
+  }
+
+  function excluirImovel(id) {
+    if (confirm('Deseja excluir este imóvel?')) {
+      var novas = [];
+      for (var i = 0; i < imoveisDB.length; i++) {
+        if (imoveisDB[i] && imoveisDB[i].id !== id) novas.push(imoveisDB[i]);
+      }
+      imoveisDB = novas;
+      localStorage.setItem('imoveis_db', JSON.stringify(imoveisDB));
+      renderImoveis();
+    }
+  }
+
+  function limparFormImovel() {
+    $('formImovel').reset();
+    $('imovelInternalId').value = '';
+  }
+
+  function irParaBci(bci) {
+    mudarAba('buscas');
+  }
+
+  function irParaDamae(damaeId) {
+    mudarAba('damae');
+  }
+
+  // MÓDULO DE BUSCAS DE BCI / IPTU
   function renderBcis() {
     var html = '';
-    for (var i = 0; i < bcisDB.length; i++) {
-      var item = bcisDB[i];
+    for (var i = 0; i < imoveisDB.length; i++) {
+      var item = imoveisDB[i];
       if (!item) continue;
       var badgeClass = item.status === 'Alugado' ? 'badge-alugado' : 'badge-desocupado';
       html += '<tr>';
       html += '<td><b>' + item.bci + '</b></td>';
       html += '<td>' + item.contrato + '</td>';
       html += '<td><span class="badge ' + badgeClass + '">' + item.status + '</span></td>';
-      html += '<td><span id="status_bci_' + item.id + '">' + (item.statusBusca || 'Não consultado') + '</span></td>';
-      html += '<td style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">';
-      html += '<button class="btn btn-success btn-sm" onclick="executarBuscaAutomaticaBci(' + item.id + ', \'' + item.bci + '\')">⚡ Consultar Automático</button>';
-      html += '<button class="btn btn-secondary btn-sm" onclick="editarBci(' + item.id + ')">✏️</button>';
-      html += '<button class="btn btn-danger btn-sm" onclick="excluirBci(' + item.id + ')">X</button>';
-      html += '</td>';
+      html += '<td><span id="status_bci_' + item.id + '">' + (item.statusBci || 'Em dia') + '</span></td>';
+      html += '<td><button class="btn btn-success btn-sm" onclick="consultarBciPortal(\'' + item.bci + '\')">🔗 Consultar no Portal</button></td>';
       html += '</tr>';
     }
     $('tabelaBcis').innerHTML = html;
   }
 
-  function salvarBciForm() {
-    var id = $('bciInternalId').value;
-    var bciVal = $('bciNumeroInput').value.trim();
-    var contratoVal = $('bciContratoInput').value.trim();
-    var statusVal = $('bciStatusInput').value;
-
-    if (id) {
-      for (var i = 0; i < bcisDB.length; i++) {
-        if (bcisDB[i] && bcisDB[i].id == id) {
-          bcisDB[i].bci = bciVal;
-          bcisDB[i].contrato = contratoVal;
-          bcisDB[i].status = statusVal;
-          break;
-        }
-      }
+  function consultarBciPortal(bci) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(bci).then(function() {
+        alert('O número do BCI (' + bci + ') foi copiado para a sua área de transferência!\n\nO portal de São João del Rei será aberto agora.');
+      }).catch(function() {
+        prompt('Copie o BCI abaixo:', bci);
+      });
     } else {
-      bcisDB.push({
-        id: Date.now(),
-        bci: bciVal,
-        contrato: contratoVal,
-        status: statusVal,
-        statusBusca: 'Não consultado'
+      prompt('Copie o BCI abaixo:', bci);
+    }
+    window.open('https://servicos.saojoaodelrei.mg.gov.br/', '_blank');
+  }
+
+  // MÓDULO DE BUSCAS DE DAMAE / LUZ
+  function renderDamae() {
+    var html = '';
+    for (var i = 0; i < imoveisDB.length; i++) {
+      var item = imoveisDB[i];
+      if (!item) continue;
+      var badgeClass = item.status === 'Alugado' ? 'badge-alugado' : 'badge-desocupado';
+      var dId = item.damaeId || '74315927@02';
+      html += '<tr>';
+      html += '<td><b>' + dId + '</b></td>';
+      html += '<td>' + item.contrato + '</td>';
+      html += '<td><span class="badge ' + badgeClass + '">' + item.status + '</span></td>';
+      html += '<td><span id="status_damae_' + item.id + '">' + (item.statusDamae || 'Em dia') + '</span></td>';
+      html += '<td><button class="btn btn-success btn-sm" onclick="consultarDamaePortal(\'' + dId + '\')">🔗 Consultar Portal DAMAE</button></td>';
+      html += '</tr>';
+    }
+    $('tabelaDamae').innerHTML = html;
+  }
+
+  function consultarDamaePortal(damaeId) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(damaeId).then(function() {
+        alert('O ID Eletrônico DAMAE (' + damaeId + ') foi copiado para a sua área de transferência!\n\nO portal do DAMAE será aberto agora.');
+      }).catch(function() {
+        prompt('Copie o ID DAMAE abaixo:', damaeId);
       });
+    } else {
+      prompt('Copie o ID DAMAE abaixo:', damaeId);
     }
-
-    localStorage.setItem('bcis_db', JSON.stringify(bcisDB));
-    limparFormBci();
-    renderBcis();
-  }
-
-  function editarBci(id) {
-    var item = null;
-    for (var i = 0; i < bcisDB.length; i++) {
-      if (bcisDB[i] && bcisDB[i].id === id) { item = bcisDB[i]; break; }
-    }
-    if (item) {
-      $('bciInternalId').value = item.id;
-      $('bciNumeroInput').value = item.bci;
-      $('bciContratoInput').value = item.contrato;
-      $('bciStatusInput').value = item.status;
-    }
-  }
-
-  function excluirBci(id) {
-    if (confirm('Deseja excluir este BCI cadastrado?')) {
-      var novas = [];
-      for (var i = 0; i < bcisDB.length; i++) {
-        if (bcisDB[i] && bcisDB[i].id !== id) novas.push(bcisDB[i]);
-      }
-      bcisDB = novas;
-      localStorage.setItem('bcis_db', JSON.stringify(bcisDB));
-      renderBcis();
-    }
-  }
-
-  function limparFormBci() {
-    $('formBci').reset();
-    $('bciInternalId').value = '';
-  }
-
-  // Função de requisição automatizada ao portal da prefeitura
-  async function executarBuscaAutomaticaBci(id, bci) {
-    var statusSpan = $('status_bci_' + id);
-    if (statusSpan) statusSpan.innerHTML = '<span style="color:var(--warning);">🔄 Consultando...</span>';
-
-    try {
-      await fetch('https://servicos.saojoaodelrei.mg.gov.br/', {
-        method: 'GET',
-        mode: 'no-cors'
-      });
-
-      setTimeout(function() {
-        var resultadoSimulado = '';
-        // BCI com débitos / guias em aberto enviado por você
-        if (bci === '01.04.008.00064.056') {
-          resultadoSimulado = '<span style="color:var(--danger); font-weight:bold;">⚠️ Há guias em aberto!</span>';
-        } else {
-          resultadoSimulado = '<span style="color:var(--success); font-weight:bold;">✅ Nenhuma guia em aberto</span>';
-        }
-
-        if (statusSpan) statusSpan.innerHTML = resultadoSimulado;
-        
-        for (var i = 0; i < bcisDB.length; i++) {
-          if (bcisDB[i].id === id) {
-            bcisDB[i].statusBusca = resultadoSimulado;
-            break;
-          }
-        }
-        localStorage.setItem('bcis_db', JSON.stringify(bcisDB));
-      }, 1000);
-
-    } catch (error) {
-      if (statusSpan) statusSpan.innerHTML = '<span style="color:var(--danger);">❌ Erro na conexão</span>';
-      console.error(error);
-    }
+    window.open('https://segundavia.damaesjdr.mg.gov.br/', '_blank');
   }
 
   // CÁLCULOS DE RESCISÃO
