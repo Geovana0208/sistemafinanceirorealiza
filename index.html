@@ -483,16 +483,35 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     if (formLogin) {
       formLogin.addEventListener('submit', function(e) {
         e.preventDefault();
-        var u = $('loginUser').value.trim(), p = $('loginPass').value.trim();
-        if (u === 'admin' && p === '123') { localStorage.setItem('sessao_ativa', u); entrarSistema(u); return; }
+        var u = $('loginUser').value.trim();
+        var p = $('loginPass').value.trim();
+        
+        if (u === 'admin' && p === '123') {
+          localStorage.setItem('sessao_ativa', u);
+          entrarSistema(u);
+          return;
+        }
+
         var valido = false;
         for (var i = 0; i < usuariosDB.length; i++) {
-          if (usuariosDB[i] && (usuariosDB[i].usuario || usuariosDB[i].u) === u && (usuariosDB[i].senha || usuariosDB[i].p) === p) { valido = true; break; }
+          var usrObj = usuariosDB[i];
+          var nomeU = usrObj.usuario || usrObj.u;
+          var passU = usrObj.senha || usrObj.p;
+          if (nomeU === u && passU === p) {
+            valido = true;
+            break;
+          }
         }
-        if (valido) { localStorage.setItem('sessao_ativa', u); entrarSistema(u); }
-        else { $('loginError').innerText = 'Utilizador ou palavra-passe incorretos!'; }
+
+        if (valido) {
+          localStorage.setItem('sessao_ativa', u);
+          entrarSistema(u);
+        } else {
+          $('loginError').innerText = 'Utilizador ou palavra-passe incorretos!';
+        }
       });
     }
+
     try {
       var sessao = localStorage.getItem('sessao_ativa');
       if (sessao) entrarSistema(sessao);
@@ -515,7 +534,10 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     renderUsuarios();
   }
 
-  function sairSistema() { localStorage.removeItem('sessao_ativa'); location.reload(); }
+  function sairSistema() { 
+    localStorage.removeItem('sessao_ativa'); 
+    location.reload(); 
+  }
 
   function mudarAba(aba) {
     var btns = document.querySelectorAll('.nav-btn');
@@ -583,85 +605,6 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     for(var c=0; c<categorias.length; c++) optsCat += '<option value="' + categorias[c] + '">' + categorias[c] + '</option>';
     if($('categoria')) $('categoria').innerHTML = optsCat;
   }
-
-  // GERENCIADORES DE MODAIS
-  function abrirGerenciadorVeiculos() {
-    var html = '';
-    for(var i=0; i<veiculosCapitacao.length; i++) {
-      html += '<div style="display:flex; justify-content:space-between; align-items:center; padding:6px; border-bottom:1px solid #eee;"><span>' + veiculosCapitacao[i] + '</span><button class="btn btn-danger btn-sm" onclick="removerVeiculo(\'' + veiculosCapitacao[i] + '\')">X</button></div>';
-    }
-    $('listaVeiculos').innerHTML = html;
-    $('modalVeiculos').style.display = 'flex';
-  }
-  function adicionarVeiculo() {
-    var nome = $('novoVeiculoNome').value.trim();
-    if(nome && !veiculosCapitacao.includes(nome)) {
-      veiculosCapitacao.push(nome);
-      localStorage.setItem('veiculos_db', JSON.stringify(veiculosCapitacao));
-      $('novoVeiculoNome').value = '';
-      abrirGerenciadorVeiculos();
-      atualizarSelectsVeiculos();
-    }
-  }
-  function removerVeiculo(nome) {
-    veiculosCapitacao = veiculosCapitacao.filter(v => v !== nome);
-    localStorage.setItem('veiculos_db', JSON.stringify(veiculosCapitacao));
-    abrirGerenciadorVeiculos();
-    atualizarSelectsVeiculos();
-  }
-
-  function abrirGerenciadorCorretores() {
-    var html = '';
-    for(var i=0; i<corretores.length; i++) {
-      var c = corretores[i];
-      var nomeC = c.nome || c;
-      html += '<div style="display:flex; justify-content:space-between; align-items:center; padding:6px; border-bottom:1px solid #eee;"><span>' + nomeC + '</span><button class="btn btn-danger btn-sm" onclick="removerCorretor(\'' + nomeC + '\')">X</button></div>';
-    }
-    $('listaCorretores').innerHTML = html;
-    $('modalCorretores').style.display = 'flex';
-  }
-  function adicionarCorretor() {
-    var nome = $('novoCorretorNome').value.trim();
-    var foto = $('novoCorretorFoto').value.trim();
-    if(nome) {
-      corretores.push({ nome: nome, foto: foto });
-      localStorage.setItem('corretores_objs_db', JSON.stringify(corretores));
-      $('novoCorretorNome').value = '';
-      $('novoCorretorFoto').value = '';
-      abrirGerenciadorCorretores();
-      atualizarSelectsCorretores();
-    }
-  }
-  function removerCorretor(nome) {
-    corretores = corretores.filter(c => (c.nome || c) !== nome);
-    localStorage.setItem('corretores_objs_db', JSON.stringify(corretores));
-    abrirGerenciadorCorretores();
-    atualizarSelectsCorretores();
-  }
-
-  function abrirGerenciadorContas() {
-    var html = '';
-    for(var i=0; i<origens.length; i++) html += '<div style="display:flex; justify-content:space-between; padding:6px; border-bottom:1px solid #eee;"><span>' + origens[i] + '</span><button class="btn btn-danger btn-sm" onclick="removerOrigem(\'' + origens[i] + '\')">X</button></div>';
-    $('listaOrigens').innerHTML = html;
-    $('modalOrigens').style.display = 'flex';
-  }
-  function adicionarOrigem() {
-    var o = $('novaOrigemNome').value.trim();
-    if(o && !origens.includes(o)) { origens.push(o); localStorage.setItem('origens_db', JSON.stringify(origens)); $('novaOrigemNome').value=''; abrirGerenciadorContas(); atualizarSelectsContas(); }
-  }
-  function removerOrigem(o) { origens = origens.filter(x => x !== o); localStorage.setItem('origens_db', JSON.stringify(origens)); abrirGerenciadorContas(); atualizarSelectsContas(); }
-
-  function abrirGerenciadorCategorias() {
-    var html = '';
-    for(var i=0; i<categorias.length; i++) html += '<div style="display:flex; justify-content:space-between; padding:6px; border-bottom:1px solid #eee;"><span>' + categorias[i] + '</span><button class="btn btn-danger btn-sm" onclick="removerCategoria(\'' + categorias[i] + '\')">X</button></div>';
-    $('listaCategorias').innerHTML = html;
-    $('modalCategorias').style.display = 'flex';
-  }
-  function adicionarCategoria() {
-    var c = $('novaCategoriaNome').value.trim();
-    if(c && !categorias.includes(c)) { categorias.push(c); localStorage.setItem('categorias_db', JSON.stringify(categorias)); $('novaCategoriaNome').value=''; abrirGerenciadorCategorias(); atualizarSelectsContas(); }
-  }
-  function removerCategoria(c) { categorias = categorias.filter(x => x !== c); localStorage.setItem('categorias_db', JSON.stringify(categorias)); abrirGerenciadorCategorias(); atualizarSelectsContas(); }
 
   // GESTÃO DE UTILIZADORES
   function adicionarUsuario() {
@@ -774,36 +717,6 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       });
     }
 
-    var marketingAlugueisPorMes = {};
-    for(var j=0; j<alugueis.length; j++) {
-      var al = alugueis[j];
-      if (al.veiculoCapitacao && al.veiculoCapitacao.toLowerCase().includes('marketing') && al.dataFechamento) {
-        var dtA = new Date(al.dataFechamento + 'T00:00:00');
-        if (!isNaN(dtA.getTime())) {
-          dtA.setMonth(dtA.getMonth() + 1);
-          var anoMesAKey = dtA.getFullYear() + '-' + String(dtA.getMonth() + 1).padStart(2, '0');
-          marketingAlugueisPorMes[anoMesAKey] = (marketingAlugueisPorMes[anoMesAKey] || 0) + 50;
-        }
-      }
-    }
-
-    for(var keyA in marketingAlugueisPorMes) {
-      var partsA = keyA.split('-');
-      var vencimentoAStr = partsA[0] + '-' + partsA[1] + '-10';
-      contas.push({
-        id: 'auto_mkt_a_' + keyA,
-        descricao: 'Custos Mkt Aluguel (' + keyA + ')',
-        valorPrevisto: marketingAlugueisPorMes[keyA],
-        valorReal: 0,
-        vencimento: vencimentoAStr,
-        contaOrigem: origens[0] || 'Itaú',
-        tipo: 'Variável',
-        categoria: 'Marketing',
-        status: 'Pendente',
-        _autoMarketing: true
-      });
-    }
-
     localStorage.setItem('contas_db', JSON.stringify(contas));
   }
 
@@ -838,35 +751,6 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       alert('Conta salva com sucesso!');
     });
   }
-
-  function editarConta(id) {
-    var c = contas.find(x => x.id === id);
-    if (c) {
-      $('contaId').value = c.id;
-      $('descricao').value = c.descricao;
-      $('valorPrevisto').value = c.valorPrevisto;
-      $('valorReal').value = c.valorReal || '';
-      $('vencimento').value = c.vencimento;
-      $('contaOrigem').value = c.contaOrigem;
-      $('tipoConta').value = c.tipo;
-      toggleParcelas();
-      $('categoria').value = c.categoria;
-      mudarAba('contas');
-    }
-  }
-
-  function excluirConta(id) {
-    if (confirm('Deseja excluir esta conta?')) {
-      contas = contas.filter(x => x.id !== id);
-      localStorage.setItem('contas_db', JSON.stringify(contas));
-      sincronizarComSheets('Contas', contas);
-      renderContas();
-    }
-  }
-
-  function limparFormConta() { $('formConta').reset(); $('contaId').value = ''; toggleParcelas(); }
-  function toggleParcelas() { var t = $('tipoConta').value; $('groupParcelas').style.display = (t === 'Parcelada') ? 'flex' : 'none'; }
-  function gerarProximoMes() { alert('Contas recorrentes geradas automaticamente para o mês seguinte.'); renderContas(); }
 
   function renderContas() {
     processarMarketingAutomatico();
@@ -933,13 +817,11 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
         dataPrevisao: $('dataPrevisao').value,
         observacoes: $('observacoesComissao').value.trim()
       };
-
       if(id) {
         for(var i=0; i<comissoes.length; i++) { if(comissoes[i].id === id) { comissoes[i] = obj; break; } }
       } else {
         comissoes.push(obj);
       }
-
       localStorage.setItem('comissoes_db', JSON.stringify(comissoes));
       sincronizarComSheets('Comissoes', comissoes);
       limparFormComissao();
@@ -947,38 +829,6 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       alert('Comissão salva com sucesso!');
     });
   }
-
-  function editarComissao(id) {
-    var cm = comissoes.find(x => x.id === id);
-    if(cm) {
-      $('comissaoId').value = cm.id;
-      $('comprador').value = cm.comprador;
-      $('veiculoCapitacao').value = cm.veiculoCapitacao;
-      $('vendedor').value = cm.vendedor;
-      $('corretor').value = cm.corretor;
-      $('dataFechamentoComissao').value = cm.dataFechamento;
-      $('valorVenda').value = cm.valorVenda;
-      $('valorComissao').value = cm.valorComissao;
-      $('valorRecebido').value = cm.valorRecebido;
-      $('retidoPor').value = cm.retidoPor || 'Nenhum';
-      $('tipoPrevisao').value = cm.tipoPrevisao || 'com_data';
-      $('dataPrevisao').value = cm.dataPrevisao || '';
-      $('observacoesComissao').value = cm.observacoes || '';
-      mudarAba('comissoes');
-    }
-  }
-
-  function excluirComissao(id) {
-    if(confirm('Deseja excluir esta comissão?')) {
-      comissoes = comissoes.filter(x => x.id !== id);
-      localStorage.setItem('comissoes_db', JSON.stringify(comissoes));
-      sincronizarComSheets('Comissoes', comissoes);
-      renderComissoes();
-    }
-  }
-
-  function limparFormComissao() { $('formComissao').reset(); $('comissaoId').value = ''; }
-  function toggleDataPrevisao() { var t = $('tipoPrevisao').value; $('groupDataPrevisao').style.display = (t === 'com_data') ? 'flex' : 'none'; }
 
   function renderComissoes() {
     var fAno = $('filtroAnoComissoes').value;
@@ -1008,23 +858,10 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       var falta = vC - vRec;
 
       tVendas += vV; tComissao += vC; tAReceber += falta; tRecebida += vRec;
-
       var badge = falta <= 0 ? 'badge-recebido' : (vRec > 0 ? 'badge-parcial' : 'badge-areceber');
       var statusTxt = falta <= 0 ? 'Recebido' : (vRec > 0 ? 'Parcial' : 'A Receber');
 
-      html += '<tr>';
-      html += '<td>' + cm.dataFechamento.split('-').reverse().join('/') + '</td>';
-      html += '<td><b>Comp:</b> ' + cm.comprador + '<br><b>Vend:</b> ' + cm.vendedor + '</td>';
-      html += '<td>' + cm.veiculoCapitacao + '</td>';
-      html += '<td>' + cm.corretor + '</td>';
-      html += '<td>' + formatarMoeda(vV) + '</td>';
-      html += '<td>' + formatarMoeda(vC) + '</td>';
-      html += '<td>' + formatarMoeda(vRec) + '</td>';
-      html += '<td>' + formatarMoeda(falta) + '</td>';
-      html += '<td>' + (cm.retidoPor || 'Nenhum') + '</td>';
-      html += '<td><span class="badge ' + badge + '">' + statusTxt + '</span></td>';
-      html += '<td><button class="btn btn-secondary btn-sm" onclick="editarComissao(\'' + cm.id + '\')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirComissao(\'' + cm.id + '\')">X</button></td>';
-      html += '</tr>';
+      html += '<tr><td>' + cm.dataFechamento.split('-').reverse().join('/') + '</td><td><b>Comp:</b> ' + cm.comprador + '<br><b>Vend:</b> ' + cm.vendedor + '</td><td>' + cm.veiculoCapitacao + '</td><td>' + cm.corretor + '</td><td>' + formatarMoeda(vV) + '</td><td>' + formatarMoeda(vC) + '</td><td>' + formatarMoeda(vRec) + '</td><td>' + formatarMoeda(falta) + '</td><td>' + (cm.retidoPor || 'Nenhum') + '</td><td><span class="badge ' + badge + '">' + statusTxt + '</span></td><td><button class="btn btn-secondary btn-sm" onclick="editarComissao(\'' + cm.id + '\')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirComissao(\'' + cm.id + '\')">X</button></td></tr>';
     }
 
     $('totalVendasComissao').innerText = formatarMoeda(tVendas);
@@ -1032,11 +869,10 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     $('totalComissaoAReceber').innerText = formatarMoeda(tAReceber);
     $('totalComissaoRecebida').innerText = formatarMoeda(tRecebida);
     $('tabelaComissoes').innerHTML = html;
-    processarMarketingAutomatico();
     renderDashboard();
   }
 
-  // ALUGUEL FECHADO
+  // ALUGUEL
   var formAluguel = $('formAluguel');
   if(formAluguel) {
     formAluguel.addEventListener('submit', function(e) {
@@ -1051,13 +887,11 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
         dataFechamento: $('dataFechamentoAluguel').value,
         corretor: $('corretorAluguel').value
       };
-
       if(id) {
         for(var i=0; i<alugueis.length; i++) { if(alugueis[i].id === id) { alugueis[i] = obj; break; } }
       } else {
         alugueis.push(obj);
       }
-
       localStorage.setItem('alugueis_db', JSON.stringify(alugueis));
       sincronizarComSheets('Alugueis', alugueis);
       limparFormAluguel();
@@ -1065,31 +899,6 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       alert('Locação salva com sucesso!');
     });
   }
-
-  function editarAluguel(id) {
-    var al = alugueis.find(x => x.id === id);
-    if(al) {
-      $('aluguelId').value = al.id;
-      $('inquilino').value = al.inquilino;
-      $('veiculoCapitacaoAluguel').value = al.veiculoCapitacao;
-      $('proprietarioAluguel').value = al.proprietario;
-      $('valorAluguel').value = al.valorAluguel;
-      $('dataFechamentoAluguel').value = al.dataFechamento;
-      $('corretorAluguel').value = al.corretor;
-      mudarAba('aluguel');
-    }
-  }
-
-  function excluirAluguel(id) {
-    if(confirm('Deseja excluir esta locação?')) {
-      alugueis = alugueis.filter(x => x.id !== id);
-      localStorage.setItem('alugueis_db', JSON.stringify(alugueis));
-      sincronizarComSheets('Alugueis', alugueis);
-      renderAlugueis();
-    }
-  }
-
-  function limparFormAluguel() { $('formAluguel').reset(); $('aluguelId').value = ''; }
 
   function renderAlugueis() {
     var fAno = $('filtroAnoAluguel').value;
@@ -1117,23 +926,13 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       totalVal += val;
       if(al.veiculoCapitacao && al.veiculoCapitacao.toLowerCase().includes('marketing')) qtdMkt++;
 
-      html += '<tr>';
-      html += '<td>' + al.dataFechamento.split('-').reverse().join('/') + '</td>';
-      html += '<td>' + al.inquilino + '</td>';
-      html += '<td>' + al.veiculoCapitacao + '</td>';
-      html += '<td>' + al.proprietario + '</td>';
-      html += '<td>' + al.corretor + '</td>';
-      html += '<td>' + formatarMoeda(val) + '</td>';
-      html += '<td>' + (al.veiculoCapitacao && al.veiculoCapitacao.toLowerCase().includes('marketing') ? 'R$ 50,00' : '-') + '</td>';
-      html += '<td><button class="btn btn-secondary btn-sm" onclick="editarAluguel(\'' + al.id + '\')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirAluguel(\'' + al.id + '\')">X</button></td>';
-      html += '</tr>';
+      html += '<tr><td>' + al.dataFechamento.split('-').reverse().join('/') + '</td><td>' + al.inquilino + '</td><td>' + al.veiculoCapitacao + '</td><td>' + al.proprietario + '</td><td>' + al.corretor + '</td><td>' + formatarMoeda(val) + '</td><td>' + (al.veiculoCapitacao && al.veiculoCapitacao.toLowerCase().includes('marketing') ? 'R$ 50,00' : '-') + '</td><td><button class="btn btn-secondary btn-sm" onclick="editarAluguel(\'' + al.id + '\')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirAluguel(\'' + al.id + '\')">X</button></td></tr>';
     }
 
     $('qtdAlugueisFechados').innerText = alugueis.length;
     $('totalValorAlugueis').innerText = formatarMoeda(totalVal);
     $('totalAluguelMarketing').innerText = qtdMkt;
     $('tabelaAlugueis').innerHTML = html;
-    processarMarketingAutomatico();
   }
 
   // DASHBOARD
@@ -1209,14 +1008,6 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       return;
     }
 
-    for (var i = 0; i < imoveisDB.length; i++) {
-      var it = imoveisDB[i];
-      if (it.id != internalId) {
-        if (it.contrato === contrato) { alert('⚠️ O Contrato "' + contrato + '" já está cadastrado!'); return; }
-        if (it.bci === bci) { alert('⚠️ O BCI "' + bci + '" já está cadastrado!'); return; }
-      }
-    }
-
     if (internalId) {
       var item = imoveisDB.find(x => x.id == internalId);
       if (item) {
@@ -1268,16 +1059,39 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 
   function limparFormImovel() { $('formImovel').reset(); $('imovelInternalId').value = ''; }
 
-  function limparDuplicadosManual() {
-    var unicos = [];
-    var contratosVistos = new Set();
-    var bcisVistos = new Set();
+  function renderImoveis() {
+    var html = '';
     for (var i = 0; i < imoveisDB.length; i++) {
-      var it = imoveisDB[i];
-      if (it && it.contrato && it.bci) {
-        if (!contratosVistos.has(it.contrato) && !bcisVistos.has(it.bci)) {
-          contratosVistos.add(it.contrato); bcisVistos.add(it.bci); unicos.push(it);
-        }
-      }
+      var item = imoveisDB[i];
+      if (!item) continue;
+      var badge = item.status === 'Alugado' ? 'badge-alugado' : 'badge-desocupado';
+      html += '<tr><td><b>' + item.contrato + '</b></td><td>' + item.bci + '</td><td>' + (item.damaeId || '-') + '</td><td>' + (item.cpfCnpj || '-') + '</td><td><span class="badge ' + badge + '">' + item.status + '</span></td><td><small>IPTU: ' + (item.statusBci || 'Em dia') + '<br>DAMAE: ' + (item.statusDamae || 'Em dia') + '</small></td>';
+      html += '<td><button class="btn btn-secondary btn-sm" onclick="editarImovel(' + item.id + ')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirImovel(' + item.id + ')">X</button></td></tr>';
     }
-    imoveisDB =
+    if ($('tabelaImoveisResumo')) $('tabelaImoveisResumo').innerHTML = html;
+  }
+
+  function renderBcis() {
+    var html = '';
+    for (var i = 0; i < imoveisDB.length; i++) {
+      var item = imoveisDB[i];
+      if (!item) continue;
+      var badge = item.status === 'Alugado' ? 'badge-alugado' : 'badge-desocupado';
+      html += '<tr><td><b>' + item.bci + '</b></td><td>' + item.contrato + '</td><td>' + (item.cpfCnpj || '-') + '</td><td><span class="badge ' + badge + '">' + item.status + '</span></td><td>' + (item.statusBci || 'Em dia') + '</td></tr>';
+    }
+    if ($('tabelaBcis')) $('tabelaBcis').innerHTML = html;
+  }
+
+  function renderDamae() {
+    var html = '';
+    for (var i = 0; i < imoveisDB.length; i++) {
+      var item = imoveisDB[i];
+      if (!item) continue;
+      var badge = item.status === 'Alugado' ? 'badge-alugado' : 'badge-desocupado';
+      html += '<tr><td><b>' + (item.damaeId || 'Sem ID') + '</b></td><td>' + item.contrato + '</td><td><span class="badge ' + badge + '">' + item.status + '</span></td><td>' + (item.statusDamae || 'Em dia') + '</td></tr>';
+    }
+    if ($('tabelaDamae')) $('tabelaDamae').innerHTML = html;
+  }
+</script>
+</body>
+</html>
