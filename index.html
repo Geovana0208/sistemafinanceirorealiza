@@ -366,13 +366,14 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px; flex-wrap:wrap; gap:10px;">
           <h3 style="color: var(--primary);">Consulta Oficial DAMAE / Luz</h3>
+          <button class="btn btn-success" id="btnIniciarConsultaDamaeTela">⚡ Iniciar Consulta Automática DAMAE</button>
         </div>
         <div class="filter-bar" style="margin-bottom: 15px;">
           <label>Pesquisar Contrato:</label><input type="text" id="filtroBuscaContratoDamae" oninput="renderDamae()" placeholder="Nº Contrato..." style="max-width:160px;">
         </div>
         <div class="table-container">
           <table>
-            <thead><tr><th>ID DAMAE</th><th>Contrato</th><th>Status Imóvel</th><th>Consultar e Atualizar Status</th></tr></thead>
+            <thead><tr><th>ID DAMAE</th><th>Contrato</th><th>Status Imóvel</th><th>Status da Consulta</th></tr></thead>
             <tbody id="tabelaDamae"></tbody>
           </table>
         </div>
@@ -1229,8 +1230,8 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
         cpfCnpj: cpfCnpj,
         contrato: contrato,
         status: status,
-        statusBci: 'Em dia',
-        statusDamae: 'Em dia'
+        statusBci: '<span style="color:var(--success); font-weight:bold;">Em dia</span>',
+        statusDamae: '<span style="color:var(--success); font-weight:bold;">Em dia</span>'
       });
     }
 
@@ -1279,84 +1280,4 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
         }
       }
     }
-    imoveisDB = unicos;
-    localStorage.setItem('imoveis_db', JSON.stringify(imoveisDB));
-    sincronizarComSheets('Imoveis', imoveisDB);
-    renderImoveis(); renderBcis(); renderDamae();
-    alert('🧹 Imóveis duplicados removidos com sucesso!');
-  }
-
-  function renderImoveis() {
-    var fContrato = ($('filtroBuscaContratoImoveis').value || '').toLowerCase();
-    var fStatusContas = $('filtroStatusImoveis').value;
-    var fStatusImovel = $('filtroImovelStatus').value;
-
-    var html = '';
-    for (var i = 0; i < imoveisDB.length; i++) {
-      var item = imoveisDB[i];
-      if (!item) continue;
-      if (fContrato && !item.contrato.toLowerCase().includes(fContrato)) continue;
-      if (fStatusImovel !== 'todos' && item.status !== fStatusImovel) continue;
-      
-      var isPendente = (item.statusBci && item.statusBci.includes('Pendente')) || (item.statusDamae && item.statusDamae.includes('Pendente'));
-      if (fStatusStatusContas === 'em_dia' && isPendente) continue;
-      if (fStatusStatusContas === 'pendente' && !isPendente) continue;
-
-      var badge = item.status === 'Alugado' ? 'badge-alugado' : 'badge-desocupado';
-      html += '<tr><td><b>' + item.contrato + '</b></td><td>' + item.bci + '</td><td>' + (item.damaeId || '-') + '</td><td>' + (item.cpfCnpj || '-') + '</td><td><span class="badge ' + badge + '">' + item.status + '</span></td><td><small>IPTU: ' + (item.statusBci || 'Em dia') + '<br>DAMAE: ' + (item.statusDamae || 'Em dia') + '</small></td>';
-      html += '<td><button class="btn btn-secondary btn-sm" onclick="editarImovel(' + item.id + ')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirImovel(' + item.id + ')">X</button></td></tr>';
-    }
-    if ($('tabelaImoveisResumo')) $('tabelaImoveisResumo').innerHTML = html;
-  }
-
-  function renderBcis() {
-    var fContrato = ($('filtroBuscaContratoIptu').value || '').toLowerCase();
-    var html = '';
-    for (var i = 0; i < imoveisDB.length; i++) {
-      var item = imoveisDB[i];
-      if (!item) continue;
-      if (fContrato && !item.contrato.toLowerCase().includes(fContrato)) continue;
-      var badge = item.status === 'Alugado' ? 'badge-alugado' : 'badge-desocupado';
-      html += '<tr><td><b>' + item.bci + '</b></td><td>' + item.contrato + '</td><td>' + (item.cpfCnpj || '-') + '</td><td><span class="badge ' + badge + '">' + item.status + '</span></td><td>' + (item.statusBci || 'Em dia') + '</td></tr>';
-    }
-    if ($('tabelaBcis')) $('tabelaBcis').innerHTML = html;
-  }
-
-  function renderDamae() {
-    var fContrato = ($('filtroBuscaContratoDamae').value || '').toLowerCase();
-    var html = '';
-    for (var i = 0; i < imoveisDB.length; i++) {
-      var item = imoveisDB[i];
-      if (!item) continue;
-      if (fContrato && !item.contrato.toLowerCase().includes(fContrato)) continue;
-      var badge = item.status === 'Alugado' ? 'badge-alugado' : 'badge-desocupado';
-      html += '<tr><td><b>' + (item.damaeId || 'Sem ID') + '</b></td><td>' + item.contrato + '</td><td><span class="badge ' + badge + '">' + item.status + '</span><br>' + (item.statusDamae || 'Em dia') + '</td>';
-      html += '<td><button class="btn btn-success btn-sm" onclick="consultarDamae(\'' + (item.damaeId || '') + '\')">💧 Copiar ID e Consultar</button> <button class="btn btn-secondary btn-sm" onclick="alternarStatusDamae(' + item.id + ')">🔄 Alternar</button></td></tr>';
-    }
-    if ($('tabelaDamae')) $('tabelaDamae').innerHTML = html;
-  }
-
-  function consultarDamae(damaeId) {
-    if (!damaeId) { alert('Este imóvel não possui ID DAMAE cadastrado.'); return; }
-    navigator.clipboard.writeText(damaeId).then(() => {
-      alert('📋 ID DAMAE "' + damaeId + '" copiado! Abrindo portal DAMAE...');
-      window.open('https://segundavia.damaesjdr.mg.gov.br/', '_blank');
-    }).catch(() => {
-      window.open('https://segundavia.damaesjdr.mg.gov.br/', '_blank');
-    });
-  }
-
-  function alternarStatusDamae(id) {
-    var item = imoveisDB.find(x => x.id == id);
-    if (item) {
-      var atual = item.statusDamae || 'Em dia';
-      item.statusDamae = (atual.includes('Pendente')) ? '<span style="color:var(--success); font-weight:bold;">Em dia</span>' : '<span style="color:var(--danger); font-weight:bold;">⚠️ Pendente</span>';
-      localStorage.setItem('imoveis_db', JSON.stringify(imoveisDB));
-      sincronizarComSheets('Imoveis', imoveisDB);
-      renderDamae();
-      renderImoveis();
-    }
-  }
-</script>
-</body>
-</html>
+    imoveisDB =
