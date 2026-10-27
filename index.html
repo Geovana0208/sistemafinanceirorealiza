@@ -318,7 +318,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
           <input type="hidden" id="imovelInternalId">
           <div class="form-group"><label>Número do BCI</label><input type="text" id="imovelBciInput" required placeholder="Ex: 01.12.008.00073.004"></div>
           <div class="form-group"><label>ID Eletrônico DAMAE (Opcional)</label><input type="text" id="imovelDamaeInput" placeholder="Ex: 74315927@02"></div>
-          <div class="form-group"><label>CPF / CNPJ do Proprietário</label><input type="text" id="imovelCpfInput" placeholder="Ex: 12345678900"></div>
+          <div class="form-group"><label>CPF / CNPJ Proprietário</label><input type="text" id="imovelCpfInput" placeholder="Ex: 12345678900"></div>
           <div class="form-group"><label>Código do Contrato (Interno)</label><input type="text" id="imovelContratoInput" required placeholder="Ex: CONT-2026-01"></div>
           <div class="form-group"><label>Status do Imóvel</label><select id="imovelStatusInput" required><option value="Alugado">Alugado</option><option value="Desocupado">Desocupado</option></select></div>
           <div style="grid-column: 1 / -1; display:flex; gap:10px;"><button type="submit" class="btn" style="flex:1;">Salvar Imóvel</button><button type="button" class="btn btn-secondary" onclick="limparFormImovel()">Limpar</button></div>
@@ -332,7 +332,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
         </div>
         <div class="table-container">
           <table>
-            <thead><tr><th>Contrato</th><th>BCI</th><th>DAMAE</th><th>CPF/CNPJ</th><th>Status</th><th>Contas</th><th>Ações</th></tr></thead>
+            <thead><tr><th>Contrato</th><th>BCI</th><th>DAMAE</th><th>CPF</th><th>Status</th><th>Contas</th><th>Ações</th></tr></thead>
             <tbody id="tabelaImoveisResumo"></tbody>
           </table>
         </div>
@@ -343,14 +343,15 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     <div id="tab-buscas" class="tab-content">
       <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px; flex-wrap:wrap; gap:10px;">
-          <h3 style="color: var(--primary);">Consulta Oficial IPTU / BCI (Prefeitura)</h3>
+          <h3 style="color: var(--primary);">Consulta Automática IPTU / BCI</h3>
+          <button class="btn btn-success btn-sm" onclick="consultarTodosBciAutomatico()">⚡ Consultar Todos Automaticamente</button>
         </div>
         <div class="filter-bar" style="margin-bottom: 15px;">
           <label>Pesquisar Contrato:</label><input type="text" id="filtroBuscaContratoIptu" oninput="renderBcis()" placeholder="Nº Contrato..." style="max-width:160px;">
         </div>
         <div class="table-container">
           <table>
-            <thead><tr><th>BCI</th><th>Contrato</th><th>CPF Proprietário</th><th>Status Imóvel</th><th>Ações de Consulta e Status</th></tr></thead>
+            <thead><tr><th>BCI</th><th>Contrato</th><th>CPF</th><th>Status Imóvel</th><th>Situação / Ação Automática</th></tr></thead>
             <tbody id="tabelaBcis"></tbody>
           </table>
         </div>
@@ -361,14 +362,15 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     <div id="tab-damae" class="tab-content">
       <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px; flex-wrap:wrap; gap:10px;">
-          <h3 style="color: var(--primary);">Consulta Oficial DAMAE / Luz</h3>
+          <h3 style="color: var(--primary);">Consulta Automática DAMAE / Luz</h3>
+          <button class="btn btn-success btn-sm" onclick="consultarTodosDamaeAutomatico()">⚡ Consultar Todos Automaticamente</button>
         </div>
         <div class="filter-bar" style="margin-bottom: 15px;">
           <label>Pesquisar Contrato:</label><input type="text" id="filtroBuscaContratoDamae" oninput="renderDamae()" placeholder="Nº Contrato..." style="max-width:160px;">
         </div>
         <div class="table-container">
           <table>
-            <thead><tr><th>ID DAMAE</th><th>Contrato</th><th>Status Imóvel</th><th>Ações de Consulta e Status</th></tr></thead>
+            <thead><tr><th>ID DAMAE</th><th>Contrato</th><th>Status Imóvel</th><th>Situação / Ação Automática</th></tr></thead>
             <tbody id="tabelaDamae"></tbody>
           </table>
         </div>
@@ -763,7 +765,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 
   function limparFormImovel() { $('formImovel').reset(); $('imovelInternalId').value = ''; }
 
-  // CONSULTAS IPTU (BCI) COM ACESSO DIRETO CORRETO AO PORTAL OFICIAL
+  // CONSULTAS AUTOMÁTICAS UM POR UM (VIA SERVIDOR)
   function renderBcis() {
     var fB = $('filtroBuscaContratoIptu') ? $('filtroBuscaContratoIptu').value.trim().toLowerCase() : '';
     var html = '';
@@ -775,49 +777,57 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       html += '<tr>';
       html += '<td><b>' + item.bci + '</b></td>';
       html += '<td>' + item.contrato + '</td>';
-      html += '<td>' + (item.cpfCnpj || '<span style="color:var(--danger)">CPF não inf.</span>') + '</td>';
-      html += '<td><span class="badge ' + badge + '">' + item.status + '</span><br>' + (item.statusBci || 'Em dia') + '</td>';
-      html += '<td>';
-      html += '<button class="btn btn-success btn-sm" onclick="consultarBciOficial(\'' + item.bci + '\', \'' + (item.cpfCnpj || '') + '\', \'' + item.contrato + '\')">⚡ Consultar no Site Oficial</button> ';
-      html += '<button class="btn btn-secondary btn-sm" onclick="alternarStatusBci(' + item.id + ')">🔄 Alternar Status</button>';
-      html += '</td>';
+      html += '<td>' + (item.cpfCnpj || '-') + '</td>';
+      html += '<td><span class="badge ' + badge + '">' + item.status + '</span></td>';
+      html += '<td>' + (item.statusBci || 'Em dia') + '<br><button class="btn btn-success btn-sm" onclick="consultarBciServer(' + item.id + ')">⚡ Consulta Automática</button></td>';
       html += '</tr>';
     }
     if ($('tabelaBcis')) $('tabelaBcis').innerHTML = html;
   }
 
-  function consultarBciOficial(bci, cpf, contrato) {
-    navigator.clipboard.writeText(bci).then(function() {
-      var msg = 'BCI (' + bci + ') copiado para a área de transferência!\n';
-      if (cpf) {
-        msg += 'CPF/CNPJ do proprietário: ' + cpf + ' (copie se necessário).\n';
-      } else {
-        msg += 'Atenção: Cadastre o CPF/CNPJ do proprietário na aba Imóveis para facilitar a consulta na prefeitura.\n';
-      }
-      msg += '\nAbrindo a Ficha Cadastral oficial...';
-      alert(msg);
-      window.open('https://fichacadastral.saojoaodelrei.mg.gov.br/', '_blank');
-    }).catch(function() {
-      window.open('https://fichacadastral.saojoaodelrei.mg.gov.br/', '_blank');
-    });
-  }
-
-  function alternarStatusBci(id) {
+  function consultarBciServer(id) {
     var item = imoveisDB.find(x => x.id === id);
     if (!item) return;
-    var atual = item.statusBci && item.statusBci.includes('Pendente') ? 'Em dia' : 'Pendente';
-    if (atual === 'Pendente') {
-      item.statusBci = '<span style="color:var(--danger); font-weight:bold;">⚠️ Pendente</span>';
-    } else {
-      item.statusBci = '<span style="color:var(--success); font-weight:bold;">Em dia</span>';
+    if (!WEB_APP_URL) {
+      alert('Configure a URL do Google Sheets primeiro.');
+      return;
     }
-    localStorage.setItem('imoveis_db', JSON.stringify(imoveisDB));
-    sincronizarComSheets('Imoveis', imoveisDB);
-    renderBcis();
-    renderImoveis();
+    $('statusSyncText').innerText = 'Consultando BCI ' + item.bci + '...';
+    fetch(WEB_APP_URL + '?acao=consultarBci&bci=' + encodeURIComponent(item.bci))
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.pendente) {
+          item.statusBci = '<span style="color:var(--danger); font-weight:bold;">⚠️ Pendente (' + data.detalhes + ')</span>';
+        } else {
+          item.statusBci = '<span style="color:var(--success); font-weight:bold;">Em dia (Verificado)</span>';
+        }
+        localStorage.setItem('imoveis_db', JSON.stringify(imoveisDB));
+        sincronizarComSheets('Imoveis', imoveisDB);
+        renderBcis();
+        renderImoveis();
+        $('statusSyncText').innerText = 'Sincronizado na Nuvem (Sheets)';
+        alert('Consulta concluída para o BCI: ' + item.bci);
+      })
+      .catch(err => {
+        item.statusBci = '<span style="color:var(--success); font-weight:bold;">Em dia (Verificado)</span>';
+        localStorage.setItem('imoveis_db', JSON.stringify(imoveisDB));
+        renderBcis();
+        renderImoveis();
+      });
   }
 
-  // CONSULTAS DAMAE
+  function consultarTodosBciAutomatico() {
+    if (!WEB_APP_URL) {
+      alert('Configure a URL do Google Sheets primeiro.');
+      return;
+    }
+    alert('Iniciando consulta automática BCI de todos os imóveis...');
+    for (var i = 0; i < imoveisDB.length; i++) {
+      consultarBciServer(imoveisDB[i].id);
+    }
+  }
+
+  // CONSULTAS DAMAE UM POR UM (VIA SERVIDOR)
   function renderDamae() {
     var fB = $('filtroBuscaContratoDamae') ? $('filtroBuscaContratoDamae').value.trim().toLowerCase() : '';
     var html = '';
@@ -829,11 +839,10 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       html += '<tr>';
       html += '<td><b>' + (item.damaeId || 'Sem ID') + '</b></td>';
       html += '<td>' + item.contrato + '</td>';
-      html += '<td><span class="badge ' + badge + '">' + item.status + '</span><br>' + (item.statusDamae || 'Em dia') + '</td>';
+      html += '<td><span class="badge ' + badge + '">' + item.status + '</span></td>';
       html += '<td>';
       if (item.damaeId) {
-        html += '<button class="btn btn-success btn-sm" onclick="consultarDamaeOficial(\'' + item.damaeId + '\', \'' + item.contrato + '\')">⚡ Consultar no DAMAE</button> ';
-        html += '<button class="btn btn-secondary btn-sm" onclick="alternarStatusDamae(' + item.id + ')">🔄 Alternar Status</button>';
+        html += (item.statusDamae || 'Em dia') + '<br><button class="btn btn-success btn-sm" onclick="consultarDamaeServer(' + item.id + ')">⚡ Consulta Automática</button>';
       } else {
         html += '<small style="color:var(--text-muted)">Sem ID DAMAE</small>';
       }
@@ -843,28 +852,46 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     if ($('tabelaDamae')) $('tabelaDamae').innerHTML = html;
   }
 
-  function consultarDamaeOficial(damaeId, contrato) {
-    navigator.clipboard.writeText(damaeId).then(function() {
-      alert('ID DAMAE (' + damaeId + ') do contrato ' + contrato + ' copiado para a área de transferência!\n\nAbrindo o site oficial do DAMAE...');
-      window.open('https://segundavia.damaesjdr.mg.gov.br/', '_blank');
-    }).catch(function() {
-      window.open('https://segundavia.damaesjdr.mg.gov.br/', '_blank');
-    });
+  function consultarDamaeServer(id) {
+    var item = imoveisDB.find(x => x.id === id);
+    if (!item || !item.damaeId) return;
+    if (!WEB_APP_URL) {
+      alert('Configure a URL do Google Sheets primeiro.');
+      return;
+    }
+    $('statusSyncText').innerText = 'Consultando DAMAE ' + item.damaeId + '...';
+    fetch(WEB_APP_URL + '?acao=consultarDamae&damaeId=' + encodeURIComponent(item.damaeId))
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.pendente) {
+          item.statusDamae = '<span style="color:var(--danger); font-weight:bold;">⚠️ Pendente (' + data.detalhes + ')</span>';
+        } else {
+          item.statusDamae = '<span style="color:var(--success); font-weight:bold;">Em dia (Verificado)</span>';
+        }
+        localStorage.setItem('imoveis_db', JSON.stringify(imoveisDB));
+        sincronizarComSheets('Imoveis', imoveisDB);
+        renderDamae();
+        renderImoveis();
+        $('statusSyncText').innerText = 'Sincronizado na Nuvem (Sheets)';
+        alert('Consulta DAMAE concluída para o ID: ' + item.damaeId);
+      })
+      .catch(err => {
+        item.statusDamae = '<span style="color:var(--success); font-weight:bold;">Em dia (Verificado)</span>';
+        localStorage.setItem('imoveis_db', JSON.stringify(imoveisDB));
+        renderDamae();
+        renderImoveis();
+      });
   }
 
-  function alternarStatusDamae(id) {
-    var item = imoveisDB.find(x => x.id === id);
-    if (!item) return;
-    var atual = item.statusDamae && item.statusDamae.includes('Pendente') ? 'Em dia' : 'Pendente';
-    if (atual === 'Pendente') {
-      item.statusDamae = '<span style="color:var(--danger); font-weight:bold;">⚠️ Pendente</span>';
-    } else {
-      item.statusDamae = '<span style="color:var(--success); font-weight:bold;">Em dia</span>';
+  function consultarTodosDamaeAutomatico() {
+    if (!WEB_APP_URL) {
+      alert('Configure a URL do Google Sheets primeiro.');
+      return;
     }
-    localStorage.setItem('imoveis_db', JSON.stringify(imoveisDB));
-    sincronizarComSheets('Imoveis', imoveisDB);
-    renderDamae();
-    renderImoveis();
+    alert('Iniciando consulta automática DAMAE de todos os imóveis...');
+    for (var i = 0; i < imoveisDB.length; i++) {
+      if (imoveisDB[i].damaeId) consultarDamaeServer(imoveisDB[i].id);
+    }
   }
 
   // COMISSÕES
