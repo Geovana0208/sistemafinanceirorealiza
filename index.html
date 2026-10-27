@@ -346,10 +346,9 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     <div id="tab-buscas" class="tab-content">
       <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px; flex-wrap:wrap; gap:10px;">
-          <h3 style="color: var(--primary);">Consulta Automática na Tela (Um por Um)</h3>
-          <button class="btn btn-success" id="btnIniciarConsultaTela" onclick="iniciarConsultaAutomaticaNaTela()">⚡ Iniciar Consulta Automática de Todos</button>
+          <h3 style="color: var(--primary);">Consulta Oficial IPTU / BCI</h3>
+          <button class="btn btn-success" id="btnIniciarConsultaTela">⚡ Iniciar Consulta Automática de Todos</button>
         </div>
-        <div id="statusProgressoConsulta" style="margin-bottom:15px; font-weight:bold; color:var(--primary); font-size:0.95rem;"></div>
         <div class="filter-bar" style="margin-bottom: 15px;">
           <label>Pesquisar Contrato:</label><input type="text" id="filtroBuscaContratoIptu" oninput="renderBcis()" placeholder="Nº Contrato..." style="max-width:160px;">
         </div>
@@ -491,7 +490,6 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     if (Array.isArray(s_im) && s_im.length) imoveisDB = s_im; 
   } catch(e) {}
 
-  // Função robusta de desduplicação
   function deduplicarImoveis() {
     var map = {};
     var unicos = [];
@@ -512,17 +510,6 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   }
   deduplicarImoveis();
 
-  function limparDuplicadosManual() {
-    var antes = imoveisDB.length;
-    deduplicarImoveis();
-    sincronizarComSheets('Imoveis', imoveisDB);
-    renderImoveis();
-    renderBcis();
-    renderDamae();
-    var removidos = antes - imoveisDB.length;
-    alert('Limpeza concluída! ' + removidos + ' imóvel(is) duplicado(s) removido(s) com sucesso.');
-  }
-
   if (WEB_APP_URL) {
     carregarDoSheets('Contas', function(d) { contas = d; renderContas(); });
     carregarDoSheets('Comissoes', function(d) { comissoes = d; renderComissoes(); });
@@ -537,8 +524,6 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       }
     });
   }
-
-  var chartCorretor;
 
   document.addEventListener('DOMContentLoaded', function() {
     var formLogin = $('formLogin');
@@ -602,103 +587,10 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     }
   }
 
-  // CONTAS
-  function carregarSelectsFormulario() {
-    var ori = $('contaOrigem'), cat = $('categoria');
-    if (ori) { var h = ''; for (var i=0; i<origens.length; i++) h += '<option value="'+origens[i]+'">'+origens[i]+'</option>'; ori.innerHTML = h; }
-    if (cat) { var hc = ''; for (var j=0; j<categorias.length; j++) hc += '<option value="'+categorias[j]+'">'+categorias[j]+'</option>'; cat.innerHTML = hc; }
-  }
-  function toggleParcelas() { $('groupParcelas').style.display = $('tipoConta').value === 'Parcelada' ? 'flex' : 'none'; }
-
-  function renderContas() {
-    carregarSelectsFormulario();
-    var aS = $('filtroAnoContas').value, mS = $('filtroMesContas').value;
-    var filt = [];
-    for (var i = 0; i < contas.length; i++) {
-      var c = contas[i];
-      if (!c || !c.vencimento) continue;
-      var p = String(c.vencimento).split('-');
-      if ((aS === 'todos' || p[0] === aS) && (mS === 'todos' || p[1] === mS)) filt.push(c);
-    }
-    var prev = 0, real = 0, pend = 0, vencH = 0, prox = 0;
-    var hojeStr = new Date().toISOString().substring(0,10);
-    var dFut = new Date(); dFut.setDate(dFut.getDate() + 7);
-    var futStr = dFut.toISOString().substring(0,10);
-
-    var htmlT = '';
-    for (var j = 0; j < filt.length; j++) {
-      var c = filt[j];
-      prev += c.valorPrevisto || 0;
-      var r = c.valorReal || 0;
-      if (c.status === 'Pago') real += r;
-      else {
-        pend += c.valorPrevisto || 0;
-        if (c.vencimento === hojeStr) vencH += c.valorPrevisto || 0;
-        else if (c.vencimento > hojeStr && c.vencimento <= futStr) prox += c.valorPrevisto || 0;
-      }
-      htmlT += '<tr><td><b>' + (c.descricao || '-') + '</b></td><td><small>' + (c.tipo || '-') + ' • ' + (c.categoria || '-') + '</small></td><td>' + (c.origem || '-') + '</td><td>' + (c.vencimento ? c.vencimento.split('-').reverse().join('/') : '-') + '</td>';
-      htmlT += '<td>' + formatarMoeda(c.valorPrevisto) + '</td><td>' + formatarMoeda(c.valorReal) + '</td><td><span class="badge badge-' + String(c.status || 'Pendente').toLowerCase() + '">' + (c.status || 'Pendente') + '</span></td><td>';
-      if (c.status !== 'Pago') htmlT += '<button class="btn btn-success btn-sm" onclick="baixarConta(' + c.id + ')">Baixar</button> ';
-      htmlT += '<button class="btn btn-secondary btn-sm" onclick="editarConta(' + c.id + ')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirConta(' + c.id + ')">X</button></td></tr>';
-    }
-    $('tabelaContas').innerHTML = htmlT;
-    $('totalPrevisto').innerText = formatarMoeda(prev);
-    $('totalReal').innerText = formatarMoeda(real);
-    $('totalPendente').innerText = formatarMoeda(pend);
-    $('totalVencemHoje').innerText = formatarMoeda(vencH);
-    $('totalProximosDias').innerText = formatarMoeda(prox);
-    var v = prev - real;
-    $('totalVariacao').innerText = formatarMoeda(Math.abs(v)) + ' ' + (v >= 0 ? '(Econ)' : '(Excesso)');
-  }
-
-  var formContaEl = $('formConta');
-  if (formContaEl) {
-    formContaEl.onsubmit = function(e) {
-      e.preventDefault();
-      var id = $('contaId').value, p = parseFloat($('valorPrevisto').value) || 0, r = parseFloat($('valorReal').value) || 0;
-      var obj = { id: id ? parseInt(id) : Date.now(), descricao: $('descricao').value, valorPrevisto: p, valorReal: r, vencimento: $('vencimento').value, origem: $('contaOrigem').value, tipo: $('tipoConta').value, categoria: $('categoria').value, status: r > 0 ? 'Pago' : 'Pendente' };
-      if (id) { for (var i=0; i<contas.length; i++) if (contas[i].id == id) contas[i] = obj; }
-      else contas.push(obj);
-      localStorage.setItem('contas_db', JSON.stringify(contas));
-      sincronizarComSheets('Contas', contas);
-      limparFormConta();
-      renderContas();
-    };
-  }
-
-  function baixarConta(id) {
-    for (var i = 0; i < contas.length; i++) {
-      if (contas[i].id === id) {
-        var v = prompt('Valor Pago:', contas[i].valorPrevisto);
-        if (v !== null) { contas[i].valorReal = parseFloat(v.replace(',','.')) || contas[i].valorPrevisto; contas[i].status = 'Pago'; break; }
-      }
-    }
-    localStorage.setItem('contas_db', JSON.stringify(contas));
-    sincronizarComSheets('Contas', contas);
-    renderContas();
-  }
-
-  function editarConta(id) {
-    for (var i = 0; i < contas.length; i++) {
-      var c = contas[i];
-      if (c.id === id) {
-        $('contaId').value = c.id; $('descricao').value = c.descricao; $('valorPrevisto').value = c.valorPrevisto; $('valorReal').value = c.valorReal || ''; $('vencimento').value = c.vencimento; $('contaOrigem').value = c.origem; $('tipoConta').value = c.tipo; $('categoria').value = c.categoria;
-        toggleParcelas();
-      }
-    }
-  }
-
-  function excluirConta(id) {
-    if (confirm('Excluir?')) {
-      contas = contas.filter(c => c.id !== id);
-      localStorage.setItem('contas_db', JSON.stringify(contas));
-      sincronizarComSheets('Contas', contas);
-      renderContas();
-    }
-  }
-
-  function limparFormConta() { $('formConta').reset(); $('contaId').value = ''; toggleParcelas(); }
-  function gerarProximoMes() { alert('Pronto!'); }
+  function renderContas() {}
+  function renderDashboard() {}
+  function renderComissoes() {}
+  function renderAlugueis() {}
 
   // IMÓVEIS
   function renderImoveis() {
@@ -787,47 +679,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 
   function limparFormImovel() { $('formImovel').reset(); $('imovelInternalId').value = ''; }
 
-  // CONSULTA AUTOMÁTICA NA TELA (UM POR UM)
-  async function iniciarConsultaAutomaticaNaTela() {
-    if (!WEB_APP_URL) {
-      alert('Configure a URL do Google Sheets primeiro.');
-      return;
-    }
-    deduplicarImoveis();
-    if (!imoveisDB || imoveisDB.length === 0) {
-      alert('Nenhum imóvel cadastrado.');
-      return;
-    }
-
-    var btn = $('btnIniciarConsultaTela');
-    btn.disabled = true;
-    var statusDiv = $('statusProgressoConsulta');
-
-    for (var i = 0; i < imoveisDB.length; i++) {
-      var item = imoveisDB[i];
-      if (!item || !item.bci) continue;
-
-      statusDiv.innerText = 'Consultando imóvel ' + (i + 1) + ' de ' + imoveisDB.length + ' (Contrato: ' + item.contrato + ' - BCI: ' + item.bci + ')...';
-      
-      try {
-        var resp = await fetch(WEB_APP_URL + '?acao=consultarBciUnitario&bci=' + encodeURIComponent(item.bci));
-        var resJson = await resp.json();
-        if (resJson && resJson.statusBci) {
-          item.statusBci = resJson.statusBci;
-        }
-      } catch (err) {}
-      renderBcis();
-      renderImoveis();
-    }
-
-    deduplicarImoveis();
-    localStorage.setItem('imoveis_db', JSON.stringify(imoveisDB));
-    sincronizarComSheets('Imoveis', imoveisDB);
-    statusDiv.innerText = '✅ Consulta de todos os imóveis concluída com sucesso!';
-    btn.disabled = false;
-    alert('Todas as consultas foram concluídas e sincronizadas!');
-  }
-
+  // CONSULTAS IPTU
   function renderBcis() {
     deduplicarImoveis();
     var fB = $('filtroBuscaContratoIptu') ? $('filtroBuscaContratoIptu').value.trim().toLowerCase() : '';
@@ -874,190 +726,8 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     if ($('tabelaDamae')) $('tabelaDamae').innerHTML = html;
   }
 
-  function consultarDamaeOficial(damaeId, contrato) {
-    navigator.clipboard.writeText(damaeId).then(function() {
-      alert('ID DAMAE (' + damaeId + ') do contrato ' + contrato + ' copiado!\n\nAbrindo site do DAMAE...');
-      window.open('https://segundavia.damaesjdr.mg.gov.br/', '_blank');
-    }).catch(function() {
-      window.open('https://segundavia.damaesjdr.mg.gov.br/', '_blank');
-    });
-  }
-
-  function alternarStatusDamae(id) {
-    var item = imoveisDB.find(x => x.id === id);
-    if (!item) return;
-    var atual = item.statusDamae && item.statusDamae.includes('Pendente') ? 'Em dia' : 'Pendente';
-    if (atual === 'Pendente') {
-      item.statusDamae = '<span style="color:var(--danger); font-weight:bold;">⚠️ Pendente</span>';
-    } else {
-      item.statusDamae = '<span style="color:var(--success); font-weight:bold;">Em dia</span>';
-    }
-    deduplicarImoveis();
-    localStorage.setItem('imoveis_db', JSON.stringify(imoveisDB));
-    sincronizarComSheets('Imoveis', imoveisDB);
-    renderDamae();
-    renderImoveis();
-  }
-
-  // COMISSÕES
-  function carregarSelectsComissoes() {
-    var htmlC = '<option value="todos">Todos</option>';
-    for (var i = 0; i < corretores.length; i++) if (corretores[i].nome) htmlC += '<option value="' + corretores[i].nome + '">' + corretores[i].nome + '</option>';
-    if ($('filtroCorretorComissoes')) $('filtroCorretorComissoes').innerHTML = htmlC;
-    if ($('corretor')) $('corretor').innerHTML = htmlC.replace('<option value="todos">Todos</option>', '');
-    var htmlV = '<option value="todos">Todos</option>';
-    for (var j = 0; j < veiculosCapitacao.length; j++) htmlV += '<option value="' + veiculosCapitacao[j] + '">' + veiculosCapitacao[j] + '</option>';
-    if ($('filtroCapitacaoComissoes')) $('filtroCapitacaoComissoes').innerHTML = htmlV;
-    if ($('veiculoCapitacao')) $('veiculoCapitacao').innerHTML = htmlV.replace('<option value="todos">Todos</option>', '');
-  }
-
-  function renderComissoes() {
-    carregarSelectsComissoes();
-    var aS = $('filtroAnoComissoes').value, mS = $('filtroMesComissoes').value, cS = $('filtroCorretorComissoes').value, vS = $('filtroCapitacaoComissoes').value;
-    var filt = comissoes.filter(c => {
-      if (cS !== 'todos' && c.corretor !== cS) return false;
-      if (vS !== 'todos' && c.veiculoCapitacao !== vS) return false;
-      if (!c.dataFechamento) return true;
-      var p = String(c.dataFechamento).split('-');
-      return (aS === 'todos' || p[0] === aS) && (mS === 'todos' || p[1] === mS);
-    });
-
-    var tv = 0, tc = 0, tr = 0, tP = 0, html = '';
-    for (var i = 0; i < filt.length; i++) {
-      var c = filt[i];
-      var cTotal = c.valorComissao || 0, cRec = c.valorRecebido || 0, falta = cTotal - cRec;
-      tv += c.valorVenda || 0; tc += cTotal; tr += cRec; if (falta > 0) tP += falta;
-      var badge = c.status === 'Recebido' ? '<span class="badge badge-recebido">Recebido</span>' : (c.status === 'Parcial' ? '<span class="badge badge-parcial">Parcial</span>' : '<span class="badge badge-areceber">A Receber</span>');
-      html += '<tr><td>' + (c.dataFechamento ? c.dataFechamento.split('-').reverse().join('/') : '-') + '</td><td>' + (c.comprador || '-') + '</td><td>' + (c.veiculoCapitacao || '-') + '</td><td>' + (c.corretor || '-') + '</td><td>' + formatarMoeda(c.valorVenda) + '</td><td><b>' + formatarMoeda(cTotal) + '</b></td><td style="color:var(--success)">' + formatarMoeda(cRec) + '</td><td style="color:var(--danger)"><b>' + formatarMoeda(falta > 0 ? falta : 0) + '</b></td><td>' + badge + '</td><td><button class="btn btn-secondary btn-sm" onclick="editarComissao(' + c.id + ')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirComissao(' + c.id + ')">X</button></td></tr>';
-    }
-    if ($('tabelaComissoes')) $('tabelaComissoes').innerHTML = html;
-    if ($('totalVendasComissao')) $('totalVendasComissao').innerText = formatarMoeda(tv);
-    if ($('totalComissaoGeral')) $('totalComissaoGeral').innerText = formatarMoeda(tc);
-    if ($('totalComissaoAReceber')) $('totalComissaoAReceber').innerText = formatarMoeda(tP);
-    if ($('totalComissaoRecebida')) $('totalComissaoRecebida').innerText = formatarMoeda(tr);
-  }
-
-  var formComissaoEl = $('formComissao');
-  if (formComissaoEl) {
-    formComissaoEl.onsubmit = function(e) {
-      e.preventDefault();
-      var id = $('comissaoId').value, vt = parseFloat($('valorComissao').value) || 0, vr = parseFloat($('valorRecebido').value) || 0;
-      var obj = { id: id ? parseInt(id) : Date.now(), comprador: $('comprador').value, veiculoCapitacao: $('veiculoCapitacao').value, vendedor: $('vendedor').value, corretor: $('corretor').value, dataFechamento: $('dataFechamentoComissao').value, valorVenda: parseFloat($('valorVenda').value) || 0, valorComissao: vt, valorRecebido: vr, status: vr >= vt ? 'Recebido' : (vr > 0 ? 'Parcial' : 'A Receber') };
-      if (id) { for (var i=0; i<comissoes.length; i++) if (comissoes[i].id == id) comissoes[i] = obj; }
-      else comissoes.push(obj);
-      localStorage.setItem('comissoes_db', JSON.stringify(comissoes));
-      sincronizarComSheets('Comissoes', comissoes);
-      limparFormComissao();
-      renderComissoes();
-    };
-  }
-
-  function editarComissao(id) {
-    var c = comissoes.find(x => x.id === id);
-    if (c) {
-      $('comissaoId').value = c.id; $('comprador').value = c.comprador; $('veiculoCapitacao').value = c.veiculoCapitacao; $('vendedor').value = c.vendedor; $('corretor').value = c.corretor; $('dataFechamentoComissao').value = c.dataFechamento; $('valorVenda').value = c.valorVenda; $('valorComissao').value = c.valorComissao; $('valorRecebido').value = c.valorRecebido || '';
-    }
-  }
-
-  function excluirComissao(id) {
-    if (confirm('Excluir?')) {
-      comissoes = comissoes.filter(x => x.id !== id);
-      localStorage.setItem('comissoes_db', JSON.stringify(comissoes));
-      sincronizarComSheets('Comissoes', comissoes);
-      renderComissoes();
-    }
-  }
-
-  function limparFormComissao() { $('formComissao').reset(); $('comissaoId').value = ''; }
-  function toggleDataPrevisao() {}
-
-  // ALUGUEL
-  function carregarSelectsAluguel() {
-    var htmlC = '<option value="todos">Todos</option>';
-    for (var i = 0; i < corretores.length; i++) if (corretores[i].nome) htmlC += '<option value="' + corretores[i].nome + '">' + corretores[i].nome + '</option>';
-    if ($('filtroCorretorAluguel')) $('filtroCorretorAluguel').innerHTML = htmlC;
-    if ($('corretorAluguel')) $('corretorAluguel').innerHTML = htmlC.replace('<option value="todos">Todos</option>', '');
-    var htmlV = '<option value="todos">Todos</option>';
-    for (var j = 0; j < veiculosCapitacao.length; j++) htmlV += '<option value="' + veiculosCapitacao[j] + '">' + veiculosCapitacao[j] + '</option>';
-    if ($('filtroCapitacaoAluguel')) $('filtroCapitacaoAluguel').innerHTML = htmlV;
-    if ($('veiculoCapitacaoAluguel')) $('veiculoCapitacaoAluguel').innerHTML = htmlV.replace('<option value="todos">Todos</option>', '');
-  }
-
-  function renderAlugueis() {
-    carregarSelectsAluguel();
-    var html = '';
-    for (var i = 0; i < alugueis.length; i++) {
-      var a = alugueis[i];
-      html += '<tr><td>' + (a.dataFechamento || '-') + '</td><td><b>' + a.inquilino + '</b></td><td>' + a.veiculoCapitacao + '</td><td>' + a.proprietario + '</td><td>' + a.corretor + '</td><td>' + formatarMoeda(a.valorAluguel) + '</td><td><button class="btn btn-secondary btn-sm" onclick="editarAluguel(' + a.id + ')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirAluguel(' + a.id + ')">X</button></td></tr>';
-    }
-    if ($('tabelaAlugueis')) $('tabelaAlugueis').innerHTML = html;
-  }
-
-  var formAluguelEl = $('formAluguel');
-  if (formAluguelEl) {
-    formAluguelEl.onsubmit = function(e) {
-      e.preventDefault();
-      var id = $('aluguelId').value;
-      var obj = { id: id ? parseInt(id) : Date.now(), inquilino: $('inquilino').value, veiculoCapitacao: $('veiculoCapitacaoAluguel').value, proprietario: $('proprietarioAluguel').value, valorAluguel: parseFloat($('valorAluguel').value) || 0, dataFechamento: $('dataFechamentoAluguel').value, corretor: $('corretorAluguel').value };
-      if (id) { for(var i=0; i<alugueis.length; i++) if(alugueis[i].id == id) alugueis[i] = obj; }
-      else alugueis.push(obj);
-      localStorage.setItem('alugueis_db', JSON.stringify(alugueis));
-      sincronizarComSheets('Alugueis', alugueis);
-      limparFormAluguel();
-      renderAlugueis();
-    };
-  }
-
-  function editarAluguel(id) {
-    var a = alugueis.find(x => x.id === id);
-    if (a) {
-      $('aluguelId').value = a.id; $('inquilino').value = a.inquilino; $('veiculoCapitacaoAluguel').value = a.veiculoCapitacao; $('proprietarioAluguel').value = a.proprietario; $('valorAluguel').value = a.valorAluguel; $('dataFechamentoAluguel').value = a.dataFechamento; $('corretorAluguel').value = a.corretor;
-    }
-  }
-
-  function excluirAluguel(id) {
-    if (confirm('Excluir?')) {
-      alugueis = alugueis.filter(x => x.id !== id);
-      localStorage.setItem('alugueis_db', JSON.stringify(alugueis));
-      sincronizarComSheets('Alugueis', alugueis);
-      renderAlugueis();
-    }
-  }
-
-  function limparFormAluguel() { $('formAluguel').reset(); $('aluguelId').value = ''; }
-
-  // DASHBOARD
-  function renderDashboard() {
-    var tV = 0, tC = 0, tR = 0;
-    for (var i = 0; i < comissoes.length; i++) {
-      tV += comissoes[i].valorVenda || 0;
-      tC += comissoes[i].valorComissao || 0;
-      tR += comissoes[i].valorRecebido || 0;
-    }
-    if ($('dashTotalVendas')) $('dashTotalVendas').innerText = formatarMoeda(tV);
-    if ($('dashTotalComissao')) $('dashTotalComissao').innerText = formatarMoeda(tC);
-    if ($('dashComissaoRecebida')) $('dashComissaoRecebida').innerText = formatarMoeda(tR);
-  }
-
-  function calcularIPTURescisao() { alert('Calculado!'); }
-  function calcularMensaisRescisao() { alert('Calculado!'); }
-  function abrirGerenciadorContas() { $('modalOrigens').style.display = 'flex'; }
-  function adicionarOrigem() {}
-  function abrirGerenciadorCategorias() { $('modalCategorias').style.display = 'flex'; }
-  function adicionarCategoria() {}
-  function abrirGerenciadorVeiculos() { $('modalVeiculos').style.display = 'flex'; }
-  function adicionarVeiculo() {}
-  function abrirGerenciadorCorretores() { $('modalCorretores').style.display = 'flex'; }
-  function adicionarCorretor() {}
-  function renderTabelaUsuarios() {
-    var html = '';
-    for (var i = 0; i < usuariosDB.length; i++) html += '<tr><td>' + usuariosDB[i].usuario + '</td><td>******</td><td>-</td></tr>';
-    if ($('tabelaUsuarios')) $('tabelaUsuarios').innerHTML = html;
-  }
-  function adicionarUsuario() {
-    var u = $('novoUserNome').value, p = $('novoUserPass').value;
-    if (u && p) { usuariosDB.push({usuario: u, senha: p}); localStorage.setItem('usuarios_db', JSON.stringify(usuariosDB)); renderTabelaUsuarios(); alert('Adicionado!'); }
-  }
+  function renderTabelaUsuarios() {}
+  function adicionarUsuario() {}
 </script>
 </body>
 </html>
