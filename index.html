@@ -325,10 +325,13 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
         </form>
       </div>
       <div class="card">
-        <div class="filter-bar" style="margin-bottom: 15px;">
-          <label>Pesquisar Contrato:</label><input type="text" id="filtroBuscaContratoImoveis" oninput="renderImoveis()" placeholder="Nº Contrato..." style="max-width:160px;">
-          <label>Situação Contas:</label><select id="filtroStatusImoveis" onchange="renderImoveis()"><option value="todos">Todos</option><option value="em_dia">Em dia</option><option value="pendente">Com pendências</option></select>
-          <label>Status Imóvel:</label><select id="filtroImovelStatus" onchange="renderImoveis()"><option value="todos">Todos</option><option value="Alugado">Alugado</option><option value="Desocupado">Desocupado</option></select>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px; flex-wrap:wrap; gap:10px;">
+          <div class="filter-bar" style="margin-bottom:0;">
+            <label>Pesquisar Contrato:</label><input type="text" id="filtroBuscaContratoImoveis" oninput="renderImoveis()" placeholder="Nº Contrato..." style="max-width:160px;">
+            <label>Situação Contas:</label><select id="filtroStatusImoveis" onchange="renderImoveis()"><option value="todos">Todos</option><option value="em_dia">Em dia</option><option value="pendente">Com pendências</option></select>
+            <label>Status Imóvel:</label><select id="filtroImovelStatus" onchange="renderImoveis()"><option value="todos">Todos</option><option value="Alugado">Alugado</option><option value="Desocupado">Desocupado</option></select>
+          </div>
+          <button class="btn btn-danger btn-sm" onclick="limparDuplicadosManual()">🧹 Limpar Imóveis Duplicados</button>
         </div>
         <div class="table-container">
           <table>
@@ -488,16 +491,19 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     if (Array.isArray(s_im) && s_im.length) imoveisDB = s_im; 
   } catch(e) {}
 
-  // Função estrita de desduplicação
+  // Função robusta de desduplicação
   function deduplicarImoveis() {
     var map = {};
     var unicos = [];
     for (var i = 0; i < imoveisDB.length; i++) {
       var item = imoveisDB[i];
-      if (!item || !item.contrato) continue;
-      var chave = String(item.contrato).trim().toLowerCase();
-      if (!map[chave]) {
-        map[chave] = true;
+      if (!item) continue;
+      var chaveContrato = item.contrato ? String(item.contrato).trim().toLowerCase() : '';
+      var chaveBci = item.bci ? String(item.bci).trim().toLowerCase() : '';
+      var chaveUnica = chaveContrato || chaveBci || ('item_' + i);
+      
+      if (!map[chaveUnica]) {
+        map[chaveUnica] = true;
         unicos.push(item);
       }
     }
@@ -505,6 +511,17 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     localStorage.setItem('imoveis_db', JSON.stringify(imoveisDB));
   }
   deduplicarImoveis();
+
+  function limparDuplicadosManual() {
+    var antes = imoveisDB.length;
+    deduplicarImoveis();
+    sincronizarComSheets('Imoveis', imoveisDB);
+    renderImoveis();
+    renderBcis();
+    renderDamae();
+    var removidos = antes - imoveisDB.length;
+    alert('Limpeza concluída! ' + removidos + ' imóvel(is) duplicado(s) removido(s) com sucesso.');
+  }
 
   if (WEB_APP_URL) {
     carregarDoSheets('Contas', function(d) { contas = d; renderContas(); });
@@ -683,7 +700,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   function limparFormConta() { $('formConta').reset(); $('contaId').value = ''; toggleParcelas(); }
   function gerarProximoMes() { alert('Pronto!'); }
 
-  // IMÓVEIS (SEM DUPLICAÇÃO)
+  // IMÓVEIS
   function renderImoveis() {
     deduplicarImoveis();
     var fS = $('filtroStatusImoveis') ? $('filtroStatusImoveis').value : 'todos';
@@ -704,7 +721,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 
   function salvarImovelForm() {
     var id = $('imovelInternalId').value;
-    var bciVal = $('imovelBciInput').value.trim(); // Mantém formato original
+    var bciVal = $('imovelBciInput').value.trim();
     var damaeVal = $('imovelDamaeInput').value.trim();
     var cpfVal = $('imovelCpfInput').value.trim();
     var contratoVal = $('imovelContratoInput').value.trim();
@@ -770,12 +787,13 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 
   function limparFormImovel() { $('formImovel').reset(); $('imovelInternalId').value = ''; }
 
-  // CONSULTA AUTOMÁTICA NA TELA (UM POR UM COM PROGRESSO)
+  // CONSULTA AUTOMÁTICA NA TELA (UM POR UM)
   async function iniciarConsultaAutomaticaNaTela() {
     if (!WEB_APP_URL) {
       alert('Configure a URL do Google Sheets primeiro.');
       return;
     }
+    deduplicarImoveis();
     if (!imoveisDB || imoveisDB.length === 0) {
       alert('Nenhum imóvel cadastrado.');
       return;
@@ -797,9 +815,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
         if (resJson && resJson.statusBci) {
           item.statusBci = resJson.statusBci;
         }
-      } catch (err) {
-        // Mantém ou marca erro
-      }
+      } catch (err) {}
       renderBcis();
       renderImoveis();
     }
