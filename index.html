@@ -443,14 +443,6 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     });
   }
 
-  function carregarDoSheets(aba, callback) {
-    if (!WEB_APP_URL) return;
-    fetch(WEB_APP_URL + '?aba=' + aba)
-      .then(res => res.json())
-      .then(data => { if (Array.isArray(data) && data.length > 0) callback(data); })
-      .catch(e => console.log('Erro ao carregar ' + aba, e));
-  }
-
   function abrirConfigSheets() {
     $('inputSheetsUrl').value = WEB_APP_URL;
     $('modalSheets').style.display = 'flex';
@@ -519,6 +511,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     renderImoveis();
     renderBcis();
     renderDamae();
+    renderUsuarios();
   }
 
   function sairSistema() { localStorage.removeItem('sessao_ativa'); location.reload(); }
@@ -538,7 +531,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     else if (aba === 'imoveis') { btns[5].classList.add('active'); $('tab-imoveis').classList.add('active'); renderImoveis(); }
     else if (aba === 'buscas') { btns[6].classList.add('active'); $('tab-buscas').classList.add('active'); renderBcis(); }
     else if (aba === 'damae') { btns[7].classList.add('active'); $('tab-damae').classList.add('active'); renderDamae(); }
-    else if (aba === 'usuarios') { btns[8].classList.add('active'); $('tab-usuarios').classList.add('active'); }
+    else if (aba === 'usuarios') { btns[8].classList.add('active'); $('tab-usuarios').classList.add('active'); renderUsuarios(); }
   }
 
   function initAnoSelectors() {
@@ -621,7 +614,6 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     for(var i=0; i<corretores.length; i++) {
       var c = corretores[i];
       var nomeC = c.nome || c;
-      var fotoC = c.foto || '';
       html += '<div style="display:flex; justify-content:space-between; align-items:center; padding:6px; border-bottom:1px solid #eee;"><span>' + nomeC + '</span><button class="btn btn-danger btn-sm" onclick="removerCorretor(\'' + nomeC + '\')">X</button></div>';
     }
     $('listaCorretores').innerHTML = html;
@@ -670,19 +662,94 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   }
   function removerCategoria(c) { categorias = categorias.filter(x => x !== c); localStorage.setItem('categorias_db', JSON.stringify(categorias)); abrirGerenciadorCategorias(); atualizarSelectsContas(); }
 
-  // AUTOMACÃO DE MARKETING MÊS SEGUINTE (R$ 300 Vendas / R$ 50 Aluguéis)
+  // GESTÃO DE UTILIZADORES
+  function adicionarUsuario() {
+    var u = $('novoUserNome').value.trim();
+    var p = $('novoUserPass').value.trim();
+    if (!u || !p) return;
+    if (u === 'admin') { alert('O utilizador admin é protegido.'); return; }
+    usuariosDB.push({ usuario: u, senha: p });
+    localStorage.setItem('usuarios_db', JSON.stringify(usuariosDB));
+    $('novoUserNome').value = '';
+    $('novoUserPass').value = '';
+    renderUsuarios();
+    alert('Utilizador cadastrado com sucesso!');
+  }
+
+  function renderUsuarios() {
+    var html = '';
+    for (var i = 0; i < usuariosDB.length; i++) {
+      var usr = usuariosDB[i];
+      var nomeU = usr.usuario || usr.u;
+      var passU = usr.senha || usr.p;
+      html += '<tr><td><b>' + nomeU + '</b></td><td>' + passU + '</td>';
+      html += '<td>';
+      if (nomeU !== 'admin') {
+        html += '<button class="btn btn-danger btn-sm" onclick="removerUsuario(\'' + nomeU + '\')">X</button>';
+      } else {
+        html += '<small style="color:var(--text-muted)">Protegido</small>';
+      }
+      html += '</td></tr>';
+    }
+    if ($('tabelaUsuarios')) $('tabelaUsuarios').innerHTML = html;
+  }
+
+  function removerUsuario(nome) {
+    if (confirm('Deseja excluir o utilizador ' + nome + '?')) {
+      usuariosDB = usuariosDB.filter(x => (x.usuario || x.u) !== nome);
+      localStorage.setItem('usuarios_db', JSON.stringify(usuariosDB));
+      renderUsuarios();
+    }
+  }
+
+  // CÁLCULOS DA ABA RESCISÃO
+  function calcularIPTURescisao() {
+    var valorAnual = Number($('rescisaoIptuValor').value) || 0;
+    var dtInicio = new Date($('rescisaoIptuInicio').value + 'T00:00:00');
+    var dtFim = new Date($('rescisaoIptuFim').value + 'T00:00:00');
+    if (!valorAnual || isNaN(dtInicio.getTime()) || isNaN(dtFim.getTime())) {
+      alert('Preencha o valor anual do IPTU e as datas inicial e final.');
+      return;
+    }
+    var diffTime = dtFim - dtInicio;
+    var diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    if (diffDays < 0) diffDays = 0;
+    var valorProporcional = (valorAnual / 365) * diffDays;
+    $('resIptuCalc').innerHTML = '<b>Dias de Ocupação:</b> ' + diffDays + ' dias<br><b>IPTU Proporcional:</b> <span style="color:var(--success); font-weight:bold;">' + formatarMoeda(valorProporcional) + '</span>';
+  }
+
+  function calcularMensaisRescisao() {
+    var diasMes = Number($('rescisaoDiasMes').value) || 30;
+    var aluguelVal = Number($('rescisaoAluguelVal').value) || 0;
+    var aluguelDias = Number($('rescisaoAluguelDias').value) || 0;
+    var aguaVal = Number($('rescisaoAguaVal').value) || 0;
+    var aguaDias = Number($('rescisaoAguaDias').value) || 0;
+    var luzVal = Number($('rescisaoLuzVal').value) || 0;
+    var luzDias = Number($('rescisaoLuzDias').value) || 0;
+
+    var totalAluguel = diasMes > 0 ? (aluguelVal / diasMes) * aluguelDias : 0;
+    var totalAgua = diasMes > 0 ? (aguaVal / diasMes) * aguaDias : 0;
+    var totalLuz = diasMes > 0 ? (luzVal / diasMes) * luzDias : 0;
+    var totalGeral = totalAluguel + totalAgua + totalLuz;
+
+    $('resMensaisCalc').innerHTML = '<b>Aluguel Proporcional:</b> ' + formatarMoeda(totalAluguel) + '<br>' +
+                                    '<b>Água Proporcional:</b> ' + formatarMoeda(totalAgua) + '<br>' +
+                                    '<b>Luz Proporcional:</b> ' + formatarMoeda(totalLuz) + '<br>' +
+                                    '<hr style="margin:6px 0; border:0; border-top:1px solid var(--border);">' +
+                                    '<b>Total Proporcional: <span style="color:var(--success); font-weight:bold;">' + formatarMoeda(totalGeral) + '</span></b>';
+  }
+
+  // AUTOMAÇÃO DE MARKETING MÊS SEGUINTE
   function processarMarketingAutomatico() {
-    // Remove faturas anteriores geradas por automação de marketing para recalcular limpo
     contas = contas.filter(ct => !ct._autoMarketing);
 
-    // Processa Comissões com captação Marketing -> R$ 300,00 no mês seguinte
     var marketingComissoesPorMes = {};
     for(var i=0; i<comissoes.length; i++) {
       var cm = comissoes[i];
       if (cm.veiculoCapitacao && cm.veiculoCapitacao.toLowerCase().includes('marketing') && cm.dataFechamento) {
         var dtF = new Date(cm.dataFechamento + 'T00:00:00');
         if (!isNaN(dtF.getTime())) {
-          dtF.setMonth(dtF.getMonth() + 1); // Mês seguinte
+          dtF.setMonth(dtF.getMonth() + 1);
           var anoMesKey = dtF.getFullYear() + '-' + String(dtF.getMonth() + 1).padStart(2, '0');
           marketingComissoesPorMes[anoMesKey] = (marketingComissoesPorMes[anoMesKey] || 0) + 300;
         }
@@ -691,7 +758,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 
     for(var key in marketingComissoesPorMes) {
       var parts = key.split('-');
-      var vencimentoStr = parts[0] + '-' + parts[1] + '-10'; // Dia 10 do mês seguinte
+      var vencimentoStr = parts[0] + '-' + parts[1] + '-10';
       contas.push({
         id: 'auto_mkt_v_' + key,
         descricao: 'Custos Mkt Vendas (' + key + ')',
@@ -706,14 +773,13 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       });
     }
 
-    // Processa Aluguéis com captação Marketing -> R$ 50,00 no mês seguinte
     var marketingAlugueisPorMes = {};
     for(var j=0; j<alugueis.length; j++) {
       var al = alugueis[j];
       if (al.veiculoCapitacao && al.veiculoCapitacao.toLowerCase().includes('marketing') && al.dataFechamento) {
         var dtA = new Date(al.dataFechamento + 'T00:00:00');
         if (!isNaN(dtA.getTime())) {
-          dtA.setMonth(dtA.getMonth() + 1); // Mês seguinte
+          dtA.setMonth(dtA.getMonth() + 1);
           var anoMesAKey = dtA.getFullYear() + '-' + String(dtA.getMonth() + 1).padStart(2, '0');
           marketingAlugueisPorMes[anoMesAKey] = (marketingAlugueisPorMes[anoMesAKey] || 0) + 50;
         }
@@ -740,7 +806,67 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     localStorage.setItem('contas_db', JSON.stringify(contas));
   }
 
-  // RENDER CONTAS
+  // CONTAS A PAGAR
+  var formConta = $('formConta');
+  if (formConta) {
+    formConta.addEventListener('submit', function(e) {
+      e.preventDefault();
+      var id = $('contaId').value;
+      var obj = {
+        id: id || ('ct_' + Date.now()),
+        descricao: $('descricao').value.trim(),
+        valorPrevisto: Number($('valorPrevisto').value) || 0,
+        valorReal: Number($('valorReal').value) || 0,
+        vencimento: $('vencimento').value,
+        contaOrigem: $('contaOrigem').value,
+        tipo: $('tipoConta').value,
+        categoria: $('categoria').value,
+        status: (Number($('valorReal').value) > 0) ? 'Pago' : 'Pendente'
+      };
+      if (id) {
+        for (var i = 0; i < contas.length; i++) {
+          if (contas[i].id === id) { contas[i] = obj; break; }
+        }
+      } else {
+        contas.push(obj);
+      }
+      localStorage.setItem('contas_db', JSON.stringify(contas));
+      sincronizarComSheets('Contas', contas);
+      limparFormConta();
+      renderContas();
+      alert('Conta salva com sucesso!');
+    });
+  }
+
+  function editarConta(id) {
+    var c = contas.find(x => x.id === id);
+    if (c) {
+      $('contaId').value = c.id;
+      $('descricao').value = c.descricao;
+      $('valorPrevisto').value = c.valorPrevisto;
+      $('valorReal').value = c.valorReal || '';
+      $('vencimento').value = c.vencimento;
+      $('contaOrigem').value = c.contaOrigem;
+      $('tipoConta').value = c.tipo;
+      toggleParcelas();
+      $('categoria').value = c.categoria;
+      mudarAba('contas');
+    }
+  }
+
+  function excluirConta(id) {
+    if (confirm('Deseja excluir esta conta?')) {
+      contas = contas.filter(x => x.id !== id);
+      localStorage.setItem('contas_db', JSON.stringify(contas));
+      sincronizarComSheets('Contas', contas);
+      renderContas();
+    }
+  }
+
+  function limparFormConta() { $('formConta').reset(); $('contaId').value = ''; toggleParcelas(); }
+  function toggleParcelas() { var t = $('tipoConta').value; $('groupParcelas').style.display = (t === 'Parcelada') ? 'flex' : 'none'; }
+  function gerarProximoMes() { alert('Contas recorrentes geradas automaticamente para o mês seguinte.'); renderContas(); }
+
   function renderContas() {
     processarMarketingAutomatico();
     var fAno = $('filtroAnoContas').value;
@@ -786,186 +912,6 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   }
 
   // COMISSÕES
-  function renderComissoes() {
-    var fAno = $('filtroAnoComissoes').value;
-    var fMes = $('filtroMesComissoes').value;
-    var fCor = $('filtroCorretorComissoes').value;
-    var fCap = $('filtroCapitacaoComissoes').value;
-
-    // Ordena cronologicamente por data de fechamento
-    comissoes.sort(function(a, b) {
-      return new Date(a.dataFechamento || 0) - new Date(b.dataFechamento || 0);
-    });
-
-    var html = '';
-    var tVendas = 0, tComissao = 0, tAReceber = 0, tRecebida = 0;
-
-    for(var i=0; i<comissoes.length; i++) {
-      var cm = comissoes[i];
-      if(!cm.dataFechamento) continue;
-      var pAno = cm.dataFechamento.substring(0,4);
-      var pMes = cm.dataFechamento.substring(5,7);
-
-      if(fAno !== 'todos' && pAno !== fAno) continue;
-      if(fMes !== 'todos' && pMes !== fMes) continue;
-      if(fCor !== 'todos' && cm.corretor !== fCor) continue;
-      if(fCap !== 'todos' && cm.veiculoCapitacao !== fCap) continue;
-
-      var vV = Number(cm.valorVenda) || 0;
-      var vC = Number(cm.valorComissao) || 0;
-      var vRec = Number(cm.valorRecebido) || 0;
-      var falta = vC - vRec;
-
-      tVendas += vV;
-      tComissao += vC;
-      tAReceber += falta;
-      tRecebida += vRec;
-
-      var badge = falta <= 0 ? 'badge-recebido' : (vRec > 0 ? 'badge-parcial' : 'badge-areceber');
-      var statusTxt = falta <= 0 ? 'Recebido' : (vRec > 0 ? 'Parcial' : 'A Receber');
-
-      html += '<tr>';
-      html += '<td>' + cm.dataFechamento.split('-').reverse().join('/') + '</td>';
-      html += '<td><b>Comp:</b> ' + cm.comprador + '<br><b>Vend:</b> ' + cm.vendedor + '</td>';
-      html += '<td>' + cm.veiculoCapitacao + '</td>';
-      html += '<td>' + cm.corretor + '</td>';
-      html += '<td>' + formatarMoeda(vV) + '</td>';
-      html += '<td>' + formatarMoeda(vC) + '</td>';
-      html += '<td>' + formatarMoeda(vRec) + '</td>';
-      html += '<td>' + formatarMoeda(falta) + '</td>';
-      html += '<td>' + (cm.retidoPor || 'Nenhum') + '</td>';
-      html += '<td><span class="badge ' + badge + '">' + statusTxt + '</span></td>';
-      html += '<td><button class="btn btn-secondary btn-sm" onclick="editarComissao(\'' + cm.id + '\')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirComissao(\'' + cm.id + '\')">X</button></td>';
-      html += '</tr>';
-    }
-
-    $('totalVendasComissao').innerText = formatarMoeda(tVendas);
-    $('totalComissaoGeral').innerText = formatarMoeda(tComissao);
-    $('totalComissaoAReceber').innerText = formatarMoeda(tAReceber);
-    $('totalComissaoRecebida').innerText = formatarMoeda(tRecebida);
-    $('tabelaComissoes').innerHTML = html;
-    processarMarketingAutomatico();
-    renderDashboard();
-  }
-
-  // ALUGUEL FECHADO
-  function renderAlugueis() {
-    var fAno = $('filtroAnoAluguel').value;
-    var fMes = $('filtroMesAluguel').value;
-    var fCor = $('filtroCorretorAluguel').value;
-    var fCap = $('filtroCapitacaoAluguel').value;
-
-    alugueis.sort(function(a, b) {
-      return new Date(a.dataFechamento || 0) - new Date(b.dataFechamento || 0);
-    });
-
-    var html = '';
-    var totalVal = 0, qtdMkt = 0;
-
-    for(var i=0; i<alugueis.length; i++) {
-      var al = alugueis[i];
-      if(!al.dataFechamento) continue;
-      var pAno = al.dataFechamento.substring(0,4);
-      var pMes = al.dataFechamento.substring(5,7);
-
-      if(fAno !== 'todos' && pAno !== fAno) continue;
-      if(fMes !== 'todos' && pMes !== fMes) continue;
-      if(fCor !== 'todos' && al.corretor !== fCor) continue;
-      if(fCap !== 'todos' && al.veiculoCapitacao !== fCap) continue;
-
-      var val = Number(al.valorAluguel) || 0;
-      totalVal += val;
-      if(al.veiculoCapitacao && al.veiculoCapitacao.toLowerCase().includes('marketing')) qtdMkt++;
-
-      html += '<tr>';
-      html += '<td>' + al.dataFechamento.split('-').reverse().join('/') + '</td>';
-      html += '<td>' + al.inquilino + '</td>';
-      html += '<td>' + al.veiculoCapitacao + '</td>';
-      html += '<td>' + al.proprietario + '</td>';
-      html += '<td>' + al.corretor + '</td>';
-      html += '<td>' + formatarMoeda(val) + '</td>';
-      html += '<td>' + (al.veiculoCapitacao && al.veiculoCapitacao.toLowerCase().includes('marketing') ? 'R$ 50,00' : '-') + '</td>';
-      html += '<td><button class="btn btn-secondary btn-sm" onclick="editarAluguel(\'' + al.id + '\')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirAluguel(\'' + al.id + '\')">X</button></td>';
-      html += '</tr>';
-    }
-
-    $('qtdAlugueisFechados').innerText = alugueis.length;
-    $('totalValorAlugueis').innerText = formatarMoeda(totalVal);
-    $('totalAluguelMarketing').innerText = qtdMkt;
-    $('tabelaAlugueis').innerHTML = html;
-    processarMarketingAutomatico();
-  }
-
-  // DASHBOARD E RANKING DE CORRETORES (DECRESCENTE)
-  function renderDashboard() {
-    var fAno = $('filtroAnoDash').value;
-    var fMes = $('filtroMesDash').value;
-    var fCor = $('filtroCorretorDash').value;
-
-    var tVendas = 0, tComissao = 0, cAReceber = 0, cRecebida = 0;
-    var vendasPorCorretor = {};
-
-    for(var i=0; i<corretores.length; i++) {
-      var cNome = corretores[i].nome || corretores[i];
-      vendasPorCorretor[cNome] = { nome: cNome, foto: corretores[i].foto || '', volume: 0, comissao: 0, qtd: 0 };
-    }
-
-    for(var j=0; j<comissoes.length; j++) {
-      var cm = comissoes[j];
-      if(!cm.dataFechamento) continue;
-      var pAno = cm.dataFechamento.substring(0,4);
-      var pMes = cm.dataFechamento.substring(5,7);
-
-      if(fAno !== 'todos' && pAno !== fAno) continue;
-      if(fMes !== 'todos' && pMes !== fMes) continue;
-      if(fCor !== 'todos' && cm.corretor !== fCor) continue;
-
-      var vV = Number(cm.valorVenda) || 0;
-      var vC = Number(cm.valorComissao) || 0;
-      var vRec = Number(cm.valorRecebido) || 0;
-      var falta = vC - vRec;
-
-      tVendas += vV;
-      tComissao += vC;
-      cAReceber += falta;
-      cRecebida += vRec;
-
-      if(vendasPorCorretor[cm.corretor]) {
-        vendasPorCorretor[cm.corretor].volume += vV;
-        vendasPorCorretor[cm.corretor].comissao += vC;
-        vendasPorCorretor[cm.corretor].qtd++;
-      }
-    }
-
-    $('dashTotalVendas').innerText = formatarMoeda(tVendas);
-    $('dashTotalComissao').innerText = formatarMoeda(tComissao);
-    $('dashComissaoAReceber').innerText = formatarMoeda(cAReceber);
-    $('dashComissaoRecebida').innerText = formatarMoeda(cRecebida);
-
-    // Converter para array e ordenar em ORDEM DECRESCENTE pelo volume de vendas
-    var rankingArr = [];
-    for(var key in vendasPorCorretor) {
-      rankingArr.push(vendasPorCorretor[key]);
-    }
-    rankingArr.sort(function(a, b) { return b.volume - a.volume; });
-
-    var rankingHtml = '';
-    for(var r=0; r<rankingArr.length; r++) {
-      var rk = rankingArr[r];
-      var avatar = rk.foto ? '<img src="' + rk.foto + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover;">' : '<div style="width:36px;height:36px;border-radius:50%;background:#2a5045;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:bold;">' + rk.nome.charAt(0) + '</div>';
-      rankingHtml += '<div style="display:flex; align-items:center; justify-content:space-between; padding:10px; border-bottom:1px solid var(--border);">';
-      rankingHtml += '<div style="display:flex; align-items:center; gap:10px;">';
-      rankingHtml += '<span style="font-weight:bold; color:var(--primary); width:20px;">' + (r+1) + 'º</span>';
-      rankingHtml += avatar;
-      rankingHtml += '<div><div style="font-weight:600; font-size:0.9rem;">' + rk.nome + '</div><small style="color:var(--text-muted);">' + rk.qtd + ' venda(s)</small></div>';
-      rankingHtml += '</div>';
-      rankingHtml += '<div style="text-align:right;"><div style="font-weight:700; color:var(--primary);">' + formatarMoeda(rk.volume) + '</div><small style="color:var(--success);">Comissão: ' + formatarMoeda(rk.comissao) + '</small></div>';
-      rankingHtml += '</div>';
-    }
-    if($('listaRankingCorretores')) $('listaRankingCorretores').innerHTML = rankingHtml;
-  }
-
-  // FORMULÁRIO COMISSÃO
   var formComissao = $('formComissao');
   if(formComissao) {
     formComissao.addEventListener('submit', function(e) {
@@ -1031,8 +977,65 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   }
 
   function limparFormComissao() { $('formComissao').reset(); $('comissaoId').value = ''; }
+  function toggleDataPrevisao() { var t = $('tipoPrevisao').value; $('groupDataPrevisao').style.display = (t === 'com_data') ? 'flex' : 'none'; }
 
-  // FORMULÁRIO ALUGUEL FECHADO
+  function renderComissoes() {
+    var fAno = $('filtroAnoComissoes').value;
+    var fMes = $('filtroMesComissoes').value;
+    var fCor = $('filtroCorretorComissoes').value;
+    var fCap = $('filtroCapitacaoComissoes').value;
+
+    comissoes.sort(function(a, b) { return new Date(a.dataFechamento || 0) - new Date(b.dataFechamento || 0); });
+
+    var html = '';
+    var tVendas = 0, tComissao = 0, tAReceber = 0, tRecebida = 0;
+
+    for(var i=0; i<comissoes.length; i++) {
+      var cm = comissoes[i];
+      if(!cm.dataFechamento) continue;
+      var pAno = cm.dataFechamento.substring(0,4);
+      var pMes = cm.dataFechamento.substring(5,7);
+
+      if(fAno !== 'todos' && pAno !== fAno) continue;
+      if(fMes !== 'todos' && pMes !== fMes) continue;
+      if(fCor !== 'todos' && cm.corretor !== fCor) continue;
+      if(fCap !== 'todos' && cm.veiculoCapitacao !== fCap) continue;
+
+      var vV = Number(cm.valorVenda) || 0;
+      var vC = Number(cm.valorComissao) || 0;
+      var vRec = Number(cm.valorRecebido) || 0;
+      var falta = vC - vRec;
+
+      tVendas += vV; tComissao += vC; tAReceber += falta; tRecebida += vRec;
+
+      var badge = falta <= 0 ? 'badge-recebido' : (vRec > 0 ? 'badge-parcial' : 'badge-areceber');
+      var statusTxt = falta <= 0 ? 'Recebido' : (vRec > 0 ? 'Parcial' : 'A Receber');
+
+      html += '<tr>';
+      html += '<td>' + cm.dataFechamento.split('-').reverse().join('/') + '</td>';
+      html += '<td><b>Comp:</b> ' + cm.comprador + '<br><b>Vend:</b> ' + cm.vendedor + '</td>';
+      html += '<td>' + cm.veiculoCapitacao + '</td>';
+      html += '<td>' + cm.corretor + '</td>';
+      html += '<td>' + formatarMoeda(vV) + '</td>';
+      html += '<td>' + formatarMoeda(vC) + '</td>';
+      html += '<td>' + formatarMoeda(vRec) + '</td>';
+      html += '<td>' + formatarMoeda(falta) + '</td>';
+      html += '<td>' + (cm.retidoPor || 'Nenhum') + '</td>';
+      html += '<td><span class="badge ' + badge + '">' + statusTxt + '</span></td>';
+      html += '<td><button class="btn btn-secondary btn-sm" onclick="editarComissao(\'' + cm.id + '\')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirComissao(\'' + cm.id + '\')">X</button></td>';
+      html += '</tr>';
+    }
+
+    $('totalVendasComissao').innerText = formatarMoeda(tVendas);
+    $('totalComissaoGeral').innerText = formatarMoeda(tComissao);
+    $('totalComissaoAReceber').innerText = formatarMoeda(tAReceber);
+    $('totalComissaoRecebida').innerText = formatarMoeda(tRecebida);
+    $('tabelaComissoes').innerHTML = html;
+    processarMarketingAutomatico();
+    renderDashboard();
+  }
+
+  // ALUGUEL FECHADO
   var formAluguel = $('formAluguel');
   if(formAluguel) {
     formAluguel.addEventListener('submit', function(e) {
@@ -1087,12 +1090,218 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 
   function limparFormAluguel() { $('formAluguel').reset(); $('aluguelId').value = ''; }
 
-  // IMÓVEIS E CONSULTAS BCI / DAMAE
+  function renderAlugueis() {
+    var fAno = $('filtroAnoAluguel').value;
+    var fMes = $('filtroMesAluguel').value;
+    var fCor = $('filtroCorretorAluguel').value;
+    var fCap = $('filtroCapitacaoAluguel').value;
+
+    alugueis.sort(function(a, b) { return new Date(a.dataFechamento || 0) - new Date(b.dataFechamento || 0); });
+
+    var html = '';
+    var totalVal = 0, qtdMkt = 0;
+
+    for(var i=0; i<alugueis.length; i++) {
+      var al = alugueis[i];
+      if(!al.dataFechamento) continue;
+      var pAno = al.dataFechamento.substring(0,4);
+      var pMes = al.dataFechamento.substring(5,7);
+
+      if(fAno !== 'todos' && pAno !== fAno) continue;
+      if(fMes !== 'todos' && pMes !== fMes) continue;
+      if(fCor !== 'todos' && al.corretor !== fCor) continue;
+      if(fCap !== 'todos' && al.veiculoCapitacao !== fCap) continue;
+
+      var val = Number(al.valorAluguel) || 0;
+      totalVal += val;
+      if(al.veiculoCapitacao && al.veiculoCapitacao.toLowerCase().includes('marketing')) qtdMkt++;
+
+      html += '<tr>';
+      html += '<td>' + al.dataFechamento.split('-').reverse().join('/') + '</td>';
+      html += '<td>' + al.inquilino + '</td>';
+      html += '<td>' + al.veiculoCapitacao + '</td>';
+      html += '<td>' + al.proprietario + '</td>';
+      html += '<td>' + al.corretor + '</td>';
+      html += '<td>' + formatarMoeda(val) + '</td>';
+      html += '<td>' + (al.veiculoCapitacao && al.veiculoCapitacao.toLowerCase().includes('marketing') ? 'R$ 50,00' : '-') + '</td>';
+      html += '<td><button class="btn btn-secondary btn-sm" onclick="editarAluguel(\'' + al.id + '\')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirAluguel(\'' + al.id + '\')">X</button></td>';
+      html += '</tr>';
+    }
+
+    $('qtdAlugueisFechados').innerText = alugueis.length;
+    $('totalValorAlugueis').innerText = formatarMoeda(totalVal);
+    $('totalAluguelMarketing').innerText = qtdMkt;
+    $('tabelaAlugueis').innerHTML = html;
+    processarMarketingAutomatico();
+  }
+
+  // DASHBOARD
+  function renderDashboard() {
+    var fAno = $('filtroAnoDash').value;
+    var fMes = $('filtroMesDash').value;
+    var fCor = $('filtroCorretorDash').value;
+
+    var tVendas = 0, tComissao = 0, cAReceber = 0, cRecebida = 0;
+    var vendasPorCorretor = {};
+
+    for(var i=0; i<corretores.length; i++) {
+      var cNome = corretores[i].nome || corretores[i];
+      vendasPorCorretor[cNome] = { nome: cNome, foto: corretores[i].foto || '', volume: 0, comissao: 0, qtd: 0 };
+    }
+
+    for(var j=0; j<comissoes.length; j++) {
+      var cm = comissoes[j];
+      if(!cm.dataFechamento) continue;
+      var pAno = cm.dataFechamento.substring(0,4);
+      var pMes = cm.dataFechamento.substring(5,7);
+
+      if(fAno !== 'todos' && pAno !== fAno) continue;
+      if(fMes !== 'todos' && pMes !== fMes) continue;
+      if(fCor !== 'todos' && cm.corretor !== fCor) continue;
+
+      var vV = Number(cm.valorVenda) || 0;
+      var vC = Number(cm.valorComissao) || 0;
+      var vRec = Number(cm.valorRecebido) || 0;
+      var falta = vC - vRec;
+
+      tVendas += vV; tComissao += vC; cAReceber += falta; cRecebida += vRec;
+
+      if(vendasPorCorretor[cm.corretor]) {
+        vendasPorCorretor[cm.corretor].volume += vV;
+        vendasPorCorretor[cm.corretor].comissao += vC;
+        vendasPorCorretor[cm.corretor].qtd++;
+      }
+    }
+
+    $('dashTotalVendas').innerText = formatarMoeda(tVendas);
+    $('dashTotalComissao').innerText = formatarMoeda(tComissao);
+    $('dashComissaoAReceber').innerText = formatarMoeda(cAReceber);
+    $('dashComissaoRecebida').innerText = formatarMoeda(cRecebida);
+
+    var rankingArr = [];
+    for(var key in vendasPorCorretor) rankingArr.push(vendasPorCorretor[key]);
+    rankingArr.sort(function(a, b) { return b.volume - a.volume; });
+
+    var rankingHtml = '';
+    for(var r=0; r<rankingArr.length; r++) {
+      var rk = rankingArr[r];
+      var avatar = rk.foto ? '<img src="' + rk.foto + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover;">' : '<div style="width:36px;height:36px;border-radius:50%;background:#2a5045;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:bold;">' + rk.nome.charAt(0) + '</div>';
+      rankingHtml += '<div style="display:flex; align-items:center; justify-content:space-between; padding:10px; border-bottom:1px solid var(--border);">';
+      rankingHtml += '<div style="display:flex; align-items:center; gap:10px;"><span style="font-weight:bold; color:var(--primary); width:20px;">' + (r+1) + 'º</span>' + avatar + '<div><div style="font-weight:600; font-size:0.9rem;">' + rk.nome + '</div><small style="color:var(--text-muted);">' + rk.qtd + ' venda(s)</small></div></div>';
+      rankingHtml += '<div style="text-align:right;"><div style="font-weight:700; color:var(--primary);">' + formatarMoeda(rk.volume) + '</div><small style="color:var(--success);">Comissão: ' + formatarMoeda(rk.comissao) + '</small></div>';
+      rankingHtml += '</div>';
+    }
+    if($('listaRankingCorretores')) $('listaRankingCorretores').innerHTML = rankingHtml;
+  }
+
+  // IMÓVEIS
+  function salvarImovelForm() {
+    var internalId = $('imovelInternalId').value;
+    var bci = $('imovelBciInput').value.trim();
+    var damaeId = $('imovelDamaeInput').value.trim();
+    var cpfCnpj = $('imovelCpfInput').value.trim();
+    var contrato = $('imovelContratoInput').value.trim();
+    var status = $('imovelStatusInput').value;
+
+    if (!bci || !contrato) {
+      alert('Preencha o BCI e o Código do Contrato.');
+      return;
+    }
+
+    for (var i = 0; i < imoveisDB.length; i++) {
+      var it = imoveisDB[i];
+      if (it.id != internalId) {
+        if (it.contrato === contrato) { alert('⚠️ O Contrato "' + contrato + '" já está cadastrado!'); return; }
+        if (it.bci === bci) { alert('⚠️ O BCI "' + bci + '" já está cadastrado!'); return; }
+      }
+    }
+
+    if (internalId) {
+      var item = imoveisDB.find(x => x.id == internalId);
+      if (item) {
+        item.bci = bci; item.damaeId = damaeId; item.cpfCnpj = cpfCnpj; item.contrato = contrato; item.status = status;
+      }
+    } else {
+      imoveisDB.push({
+        id: Date.now(),
+        bci: bci,
+        damaeId: damaeId,
+        cpfCnpj: cpfCnpj,
+        contrato: contrato,
+        status: status,
+        statusBci: 'Em dia',
+        statusDamae: 'Em dia'
+      });
+    }
+
+    localStorage.setItem('imoveis_db', JSON.stringify(imoveisDB));
+    sincronizarComSheets('Imoveis', imoveisDB);
+    limparFormImovel();
+    renderImoveis();
+    renderBcis();
+    renderDamae();
+    alert('✅ Imóvel salvo com sucesso!');
+  }
+
+  function editarImovel(id) {
+    var item = imoveisDB.find(x => x.id == id);
+    if (item) {
+      $('imovelInternalId').value = item.id;
+      $('imovelBciInput').value = item.bci || '';
+      $('imovelDamaeInput').value = item.damaeId || '';
+      $('imovelCpfInput').value = item.cpfCnpj || '';
+      $('imovelContratoInput').value = item.contrato || '';
+      $('imovelStatusInput').value = item.status || 'Alugado';
+      mudarAba('imoveis');
+    }
+  }
+
+  function excluirImovel(id) {
+    if (confirm('Deseja excluir este imóvel?')) {
+      imoveisDB = imoveisDB.filter(x => x.id != id);
+      localStorage.setItem('imoveis_db', JSON.stringify(imoveisDB));
+      sincronizarComSheets('Imoveis', imoveisDB);
+      renderImoveis(); renderBcis(); renderDamae();
+    }
+  }
+
+  function limparFormImovel() { $('formImovel').reset(); $('imovelInternalId').value = ''; }
+
+  function limparDuplicadosManual() {
+    var unicos = [];
+    var contratosVistos = new Set();
+    var bcisVistos = new Set();
+    for (var i = 0; i < imoveisDB.length; i++) {
+      var it = imoveisDB[i];
+      if (it && it.contrato && it.bci) {
+        if (!contratosVistos.has(it.contrato) && !bcisVistos.has(it.bci)) {
+          contratosVistos.add(it.contrato); bcisVistos.add(it.bci); unicos.push(it);
+        }
+      }
+    }
+    imoveisDB = unicos;
+    localStorage.setItem('imoveis_db', JSON.stringify(imoveisDB));
+    sincronizarComSheets('Imoveis', imoveisDB);
+    renderImoveis(); renderBcis(); renderDamae();
+    alert('🧹 Imóveis duplicados removidos com sucesso!');
+  }
+
   function renderImoveis() {
+    var fContrato = ($('filtroBuscaContratoImoveis').value || '').toLowerCase();
+    var fStatusContas = $('filtroStatusImoveis').value;
+    var fStatusImovel = $('filtroImovelStatus').value;
+
     var html = '';
     for (var i = 0; i < imoveisDB.length; i++) {
       var item = imoveisDB[i];
       if (!item) continue;
+      if (fContrato && !item.contrato.toLowerCase().includes(fContrato)) continue;
+      if (fStatusImovel !== 'todos' && item.status !== fStatusImovel) continue;
+      
+      var isPendente = (item.statusBci && item.statusBci.includes('Pendente')) || (item.statusDamae && item.statusDamae.includes('Pendente'));
+      if (fStatusStatusContas === 'em_dia' && isPendente) continue;
+      if (fStatusStatusContas === 'pendente' && !isPendente) continue;
+
       var badge = item.status === 'Alugado' ? 'badge-alugado' : 'badge-desocupado';
       html += '<tr><td><b>' + item.contrato + '</b></td><td>' + item.bci + '</td><td>' + (item.damaeId || '-') + '</td><td>' + (item.cpfCnpj || '-') + '</td><td><span class="badge ' + badge + '">' + item.status + '</span></td><td><small>IPTU: ' + (item.statusBci || 'Em dia') + '<br>DAMAE: ' + (item.statusDamae || 'Em dia') + '</small></td>';
       html += '<td><button class="btn btn-secondary btn-sm" onclick="editarImovel(' + item.id + ')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirImovel(' + item.id + ')">X</button></td></tr>';
@@ -1101,10 +1310,12 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   }
 
   function renderBcis() {
+    var fContrato = ($('filtroBuscaContratoIptu').value || '').toLowerCase();
     var html = '';
     for (var i = 0; i < imoveisDB.length; i++) {
       var item = imoveisDB[i];
       if (!item) continue;
+      if (fContrato && !item.contrato.toLowerCase().includes(fContrato)) continue;
       var badge = item.status === 'Alugado' ? 'badge-alugado' : 'badge-desocupado';
       html += '<tr><td><b>' + item.bci + '</b></td><td>' + item.contrato + '</td><td>' + (item.cpfCnpj || '-') + '</td><td><span class="badge ' + badge + '">' + item.status + '</span></td><td>' + (item.statusBci || 'Em dia') + '</td></tr>';
     }
@@ -1112,15 +1323,39 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   }
 
   function renderDamae() {
+    var fContrato = ($('filtroBuscaContratoDamae').value || '').toLowerCase();
     var html = '';
     for (var i = 0; i < imoveisDB.length; i++) {
       var item = imoveisDB[i];
       if (!item) continue;
+      if (fContrato && !item.contrato.toLowerCase().includes(fContrato)) continue;
       var badge = item.status === 'Alugado' ? 'badge-alugado' : 'badge-desocupado';
       html += '<tr><td><b>' + (item.damaeId || 'Sem ID') + '</b></td><td>' + item.contrato + '</td><td><span class="badge ' + badge + '">' + item.status + '</span><br>' + (item.statusDamae || 'Em dia') + '</td>';
-      html += '<td><button class="btn btn-success btn-sm" onclick="alert(\'Use a aba de BCI ou a extensão dedicada para automação DAMAE\')">Consultar</button></td></tr>';
+      html += '<td><button class="btn btn-success btn-sm" onclick="consultarDamae(\'' + (item.damaeId || '') + '\')">💧 Copiar ID e Consultar</button> <button class="btn btn-secondary btn-sm" onclick="alternarStatusDamae(' + item.id + ')">🔄 Alternar</button></td></tr>';
     }
     if ($('tabelaDamae')) $('tabelaDamae').innerHTML = html;
+  }
+
+  function consultarDamae(damaeId) {
+    if (!damaeId) { alert('Este imóvel não possui ID DAMAE cadastrado.'); return; }
+    navigator.clipboard.writeText(damaeId).then(() => {
+      alert('📋 ID DAMAE "' + damaeId + '" copiado! Abrindo portal DAMAE...');
+      window.open('https://segundavia.damaesjdr.mg.gov.br/', '_blank');
+    }).catch(() => {
+      window.open('https://segundavia.damaesjdr.mg.gov.br/', '_blank');
+    });
+  }
+
+  function alternarStatusDamae(id) {
+    var item = imoveisDB.find(x => x.id == id);
+    if (item) {
+      var atual = item.statusDamae || 'Em dia';
+      item.statusDamae = (atual.includes('Pendente')) ? '<span style="color:var(--success); font-weight:bold;">Em dia</span>' : '<span style="color:var(--danger); font-weight:bold;">⚠️ Pendente</span>';
+      localStorage.setItem('imoveis_db', JSON.stringify(imoveisDB));
+      sincronizarComSheets('Imoveis', imoveisDB);
+      renderDamae();
+      renderImoveis();
+    }
   }
 </script>
 </body>
