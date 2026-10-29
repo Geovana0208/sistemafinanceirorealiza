@@ -1048,6 +1048,27 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       return;
     }
 
+    var normalizarDuplicidade = function(valor) {
+      return String(valor || '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('pt-BR');
+    };
+    var camposUnicos = [
+      { campo: 'BCI', valor: bci, chave: 'bci' },
+      { campo: 'ID eletrônico DAMAE', valor: damaeId, chave: 'damaeId' },
+      { campo: 'Contrato', valor: contrato, chave: 'contrato' }
+    ];
+    var duplicados = camposUnicos.filter(function(regra) {
+      if (!regra.valor) return false;
+      return imoveisDB.some(function(existente) {
+        return String(existente.id) !== String(internalId) &&
+          normalizarDuplicidade(existente[regra.chave]) === normalizarDuplicidade(regra.valor);
+      });
+    });
+    if (duplicados.length) {
+      alert('Não foi possível salvar. Já existe outro imóvel com este(s) dado(s): ' +
+        duplicados.map(function(regra) { return regra.campo; }).join(', ') + '.');
+      return;
+    }
+
     if (internalId) {
       var item = imoveisDB.find(x => x.id == internalId);
       if (item) {
