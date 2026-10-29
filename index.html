@@ -4,6 +4,7 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sistema de Gestão Financeira - Realiza Imóveis</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 :root{--bg-color:#f2f5f4;--card-bg:#ffffff;--text-main:#1c2d28;--text-muted:#536b63;--primary:#2a5045;--primary-hover:#1f3d34;--primary-light:#e8f0ed;--success:#10b981;--warning:#f59e0b;--danger:#ef4444;--border:#d4e0dc}
 *{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',system-ui,sans-serif}
@@ -127,9 +128,12 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   </aside>
 
   <main class="main-content">
-    <div class="header-top">
+    <div class="header-top" style="flex-wrap:wrap;gap:10px;">
       <h2 id="tituloAbaAtual" style="color: var(--primary); font-size: 1.3rem;">Contas a Pagar</h2>
-      <span style="font-size: 0.85rem; color: var(--text-muted);" id="statusSyncText">Sincronizado (Local/Sheets)</span>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;">
+        <span style="font-size: 0.85rem; color: var(--text-muted);" id="statusSyncText">Sincronizado (Local/Sheets)</span>
+        <button type="button" class="btn btn-success btn-sm" id="btnExportarAba" onclick="exportarAbaAbertaExcel()">📥 Exportar aba aberta (.xlsx)</button>
+      </div>
     </div>
 
     <!-- CONTAS -->
@@ -1191,6 +1195,113 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       html += '<tr><td><b>' + (item.damaeId || 'Sem ID') + '</b></td><td>' + item.contrato + '</td><td><span class="badge ' + badge + '">' + item.status + '</span></td><td>' + (item.statusDamae || 'Em dia') + '</td></tr>';
     }
     if ($('tabelaDamae')) $('tabelaDamae').innerHTML = html;
+  }
+
+  function exportarAbaAbertaExcel() {
+    if (!window.XLSX) {
+      alert('Não foi possível carregar o exportador Excel. Verifique sua conexão e tente novamente.');
+      return;
+    }
+    var abaAtiva = document.querySelector('.tab-content.active');
+    if (!abaAtiva) {
+      alert('Não foi possível identificar a aba aberta.');
+      return;
+    }
+    var nomesAbas = {
+      contas: 'Contas a Pagar', dashboard: 'Dashboard', comissoes: 'Comissões',
+      aluguel: 'Aluguel Fechado', rescisao: 'Rescisão', imoveis: 'Imóveis',
+      buscas: 'Consultas IPTU', damae: 'Consultas DAMAE', usuarios: 'Utilizadores'
+    };
+    var chaveAba = abaAtiva.id.replace(/^tab-/, '');
+    var nomeAba = nomesAbas[chaveAba] || $('tituloAbaAtual').innerText || 'Dados';
+    var workbook = XLSX.utils.book_new();
+    var tabelas = Array.from(abaAtiva.querySelectorAll('table')).filter(function(tabela) {
+      return tabela.getClientRects().length > 0;
+    });
+    var abasCriadas = 0;
+    var colunasSensíveisOmitidas = false;
+
+    function textoDaCelula(celula) {
+      var copia = celula.cloneNode(true);
+      copia.querySelectorAll('button,input,select,textarea,svg,[aria-hidden="true"]').forEach(function(el) { el.remove(); });
+      return (copia.innerText || copia.textContent || '').replace(/\s+/g, ' ').trim();
+    }
+    function nomeSeguroPlanilha(valor) {
+      var seguro = String(valor || 'Dados').replace(/[\\/?*\[\]:]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 31);
+      return seguro || 'Dados';
+    }
+    function adicionarPlanilha(nome, linhas) {
+      if (!linhas.length) return;
+      var ws = XLSX.utils.aoa_to_sheet(linhas);
+      var quantColunas = Math.max.apply(null, linhas.map(function(linha) { return linha.length; }));
+      ws['!cols'] = Array.from({length: quantColunas}, function(_, indice) {
+        var largura = Math.max.apply(null, linhas.map(function(linha) { return String(linha[indice] == null ? '' : linha[indice]).length; }));
+        return {wch: Math.min(42, Math.max(12, largura + 2))};
+      });
+      var nome = nomeSeguroPlanilha(nome);
+      var base = nome, sufixo = 2;
+      while (workbook.SheetNames.includes(nome)) {
+        var final = ' ' + sufixo++;
+        nome = base.slice(0, 31 - final.length) + final;
+      }
+      XLSX.utils.book_append_sheet(workbook, ws, nome);
+      abasCriadas++;
+    }
+
+    tabelas.forEach(function(tabela, indiceTabela) {
+      var headerCells = Array.from(tabela.querySelectorAll('thead tr:last-child th, thead tr:last-child td'));
+      var bodyRows = Array.from(tabela.querySelectorAll('tbody tr')).filter(function(linha) {
+        return !linha.hidden && getComputedStyle(linha).display !== 'none';
+      });
+      var footRows = Array.from(tabela.querySelectorAll('tfoot tr')).filter(function(linha) {
+        return !linha.hidden && getComputedStyle(linha).display !== 'none';
+      });
+      if (!headerCells.length) {
+        var firstRow = tabela.querySelector('tr');
+        if (firstRow) headerCells = Array.from(firstRow.querySelectorAll('th,td'));
+      }
+      var cabecalhos = headerCells.map(textoDaCelula);
+      var indices = cabecalhos.map(function(titulo, indice) { return indice; }).filter(function(indice) {
+        var titulo = cabecalhos[indice];
+        if (/senha|palavra[- ]?passe|password|credencial|token/i.test(titulo)) {
+          colunasSensíveisOmitidas = true;
+          return false;
+        }
+        return !/^(a[cç][aã]o|a[cç][oõ]es|editar|excluir|remover)$/i.test(titulo);
+      });
+      if (!cabecalhos.length) {
+        var amostra = bodyRows[0] || footRows[0];
+        cabecalhos = amostra ? Array.from(amostra.cells).map(function(_, i) { return 'Coluna ' + (i + 1); }) : [];
+        indices = cabecalhos.map(function(_, i) { return i; });
+      }
+      var linhas = [indices.map(function(i) { return cabecalhos[i] || ('Coluna ' + (i + 1)); })];
+      bodyRows.concat(footRows).forEach(function(linha) {
+        var celulas = Array.from(linha.cells);
+        var valores = indices.map(function(i) { return celulas[i] ? textoDaCelula(celulas[i]) : ''; });
+        if (valores.some(function(valor) { return valor !== ''; })) linhas.push(valores);
+      });
+      if (indices.length) adicionarPlanilha(tabelas.length > 1 ? nomeAba + ' ' + (indiceTabela + 1) : nomeAba, linhas);
+    });
+
+    // O dashboard não tem tabela: exporta os indicadores que estão visíveis na aba.
+    if (!abasCriadas && chaveAba === 'dashboard') {
+      var indicadores = Array.from(abaAtiva.querySelectorAll('.card')).map(function(card) {
+        var titulo = card.querySelector('.card-title');
+        var valor = card.querySelector('.card-val');
+        return titulo && valor ? [titulo.innerText.trim(), valor.innerText.trim()] : null;
+      }).filter(Boolean);
+      if (indicadores.length) adicionarPlanilha('Dashboard', [['Indicador', 'Valor']].concat(indicadores));
+    }
+    if (!abasCriadas) {
+      alert('Não há tabela ou indicador visível para exportar nesta aba.');
+      return;
+    }
+    var slug = nomeAba.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_|_$/g, '') || 'Dados';
+    var agora = new Date();
+    var data = agora.getFullYear() + '-' + String(agora.getMonth() + 1).padStart(2, '0') + '-' + String(agora.getDate()).padStart(2, '0');
+    XLSX.writeFile(workbook, 'Realiza_' + slug + '_' + data + '.xlsx');
+    var aviso = colunasSensíveisOmitidas ? ' Colunas de senha/credenciais foram omitidas por segurança.' : '';
+    if ($('statusSyncText')) $('statusSyncText').innerText = 'Exportação concluída: ' + nomeAba + '.' + aviso;
   }
 </script>
 </body>
