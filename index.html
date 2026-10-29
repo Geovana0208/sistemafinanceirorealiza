@@ -1127,11 +1127,14 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 
   function renderImoveis() {
     var html = '';
+    var imoveisOrdenados = imoveisDB.slice().sort(function(a, b) {
+      return String(a.contrato || '').localeCompare(String(b.contrato || ''), 'pt-BR', { numeric: true, sensitivity: 'base' });
+    });
     var contratoFiltro = (($('filtroBuscaContratoImoveis') || {}).value || '').trim().toLowerCase();
     var contasFiltro = (($('filtroStatusImoveis') || {}).value || 'todos');
     var imovelFiltro = (($('filtroImovelStatus') || {}).value || 'todos');
-    for (var i = 0; i < imoveisDB.length; i++) {
-      var item = imoveisDB[i];
+    for (var i = 0; i < imoveisOrdenados.length; i++) {
+      var item = imoveisOrdenados[i];
       if (!item) continue;
       if (contratoFiltro && String(item.contrato || '').toLowerCase().indexOf(contratoFiltro) === -1) continue;
       if (imovelFiltro !== 'todos' && item.status !== imovelFiltro) continue;
@@ -1149,10 +1152,13 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 
   function renderBcis() {
     var html = '';
+    var imoveisOrdenados = imoveisDB.slice().sort(function(a, b) {
+      return String(a.contrato || '').localeCompare(String(b.contrato || ''), 'pt-BR', { numeric: true, sensitivity: 'base' });
+    });
     var contratoFiltro = (($('filtroBuscaContratoIptu') || {}).value || '').trim().toLowerCase();
     var statusFiltro = (($('filtroStatusIptu') || {}).value || 'todos');
-    for (var i = 0; i < imoveisDB.length; i++) {
-      var item = imoveisDB[i];
+    for (var i = 0; i < imoveisOrdenados.length; i++) {
+      var item = imoveisOrdenados[i];
       if (!item) continue;
       var textoConsulta = (item.statusBci || 'Não consultado').replace(/<[^>]*>/g, '').toLowerCase();
       if (contratoFiltro && String(item.contrato || '').toLowerCase().indexOf(contratoFiltro) === -1) continue;
@@ -1167,10 +1173,13 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 
   function renderDamae() {
     var html = '';
+    var imoveisOrdenados = imoveisDB.slice().sort(function(a, b) {
+      return String(a.contrato || '').localeCompare(String(b.contrato || ''), 'pt-BR', { numeric: true, sensitivity: 'base' });
+    });
     var contratoFiltro = (($('filtroBuscaContratoDamae') || {}).value || '').trim().toLowerCase();
     var statusFiltro = (($('filtroStatusDamae') || {}).value || 'todos');
-    for (var i = 0; i < imoveisDB.length; i++) {
-      var item = imoveisDB[i];
+    for (var i = 0; i < imoveisOrdenados.length; i++) {
+      var item = imoveisOrdenados[i];
       if (!item) continue;
       var textoConsulta = (item.statusDamae || 'Não consultado').replace(/<[^>]*>/g, '').toLowerCase();
       if (contratoFiltro && String(item.contrato || '').toLowerCase().indexOf(contratoFiltro) === -1) continue;
