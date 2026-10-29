@@ -375,7 +375,10 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px; flex-wrap:wrap; gap:10px;">
           <h3 style="color: var(--primary);">Consulta Oficial IPTU / BCI</h3>
-          <button class="btn btn-success" id="btnIniciarConsultaTela">⚡ Iniciar Consulta Automática de Todos</button>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-success" id="btnIniciarConsultaBciTodos">⚡ Consultar todos</button>
+            <button class="btn btn-secondary" id="btnIniciarConsultaBciPendentes">🔄 Consultar pendentes / verificar</button>
+          </div>
         </div>
         <div class="query-progress" id="progressBciPanel" role="status" aria-live="polite">
           <div class="query-progress-title">Progresso IPTU / BCI</div>
@@ -399,7 +402,10 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px; flex-wrap:wrap; gap:10px;">
           <h3 style="color: var(--primary);">Consulta Oficial DAMAE / Luz</h3>
-          <button class="btn btn-success" id="btnIniciarConsultaDamaeTela">⚡ Iniciar Consulta Automática DAMAE</button>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-success" id="btnIniciarConsultaDamaeTodos">⚡ Consultar todos</button>
+            <button class="btn btn-secondary" id="btnIniciarConsultaDamaePendentes">🔄 Consultar pendentes / verificar</button>
+          </div>
         </div>
         <div class="query-progress" id="progressDamaePanel" role="status" aria-live="polite">
           <div class="query-progress-title">Progresso DAMAE</div>
@@ -554,46 +560,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       if (sessao) entrarSistema(sessao);
     } catch(err) {}
 
-    // Eventos dos botões de automação de consulta
-    var btnBci = $('btnIniciarConsultaTela');
-    if (btnBci) {
-      btnBci.addEventListener('click', function() {
-        if (!imoveisDB || imoveisDB.length === 0) {
-          alert('Não há imóveis cadastrados para consultar.');
-          return;
-        }
-        if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
-          chrome.runtime.sendMessage({
-            action: 'iniciarAutomacaoBciDoSistema',
-            imoveis: imoveisDB,
-            url: WEB_APP_URL
-          });
-          alert('⚡ Consulta automática de IPTU iniciada! Acompanhe as abas.');
-        } else {
-          alert('Esta funcionalidade requer que o sistema esteja aberto como Extensão do Chrome.');
-        }
-      });
-    }
-
-    var btnDamae = $('btnIniciarConsultaDamaeTela');
-    if (btnDamae) {
-      btnDamae.addEventListener('click', function() {
-        if (!imoveisDB || imoveisDB.length === 0) {
-          alert('Não há imóveis cadastrados para consultar.');
-          return;
-        }
-        if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
-          chrome.runtime.sendMessage({
-            action: 'iniciarAutomacaoDamaeDoSistema',
-            imoveis: imoveisDB,
-            url: WEB_APP_URL
-          });
-          alert('⚡ Consulta automática DAMAE iniciada! Acompanhe as abas.');
-        } else {
-          alert('Esta funcionalidade requer que o sistema esteja aberto como Extensão do Chrome.');
-        }
-      });
-    }
+    // Os cliques de automação são encaminhados pelo content script da extensão.
   });
 
   function entrarSistema(user) {
