@@ -369,7 +369,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
           <button class="btn btn-success" id="btnIniciarConsultaDamaeTela">⚡ Iniciar Consulta Automática DAMAE</button>
         </div>
         <div class="filter-bar" style="margin-bottom: 15px;">
-          <label>Pesquisar Contrato:</label><input type="text" id="filtroBuscaContratoDamae" oninput="renderDamae()" placeholder="Nº Contrato..." style="max-width:160px;"><label>Consulta:</label><select id="filtroStatusDamae" onchange="renderDamae()"><option value="todos">Todos</option><option value="aberto">Em aberto</option><option value="emdia">Em dia</option><option value="outros">Não consultado / verificar</option></select>
+          <label>Pesquisar Contrato:</label><input type="text" id="filtroBuscaContratoDamae" oninput="renderDamae()" placeholder="Nº Contrato..." style="max-width:160px;"><label>Consulta:</label><select id="filtroStatusDamae" onchange="renderDamae()"><option value="todos">Todos</option><option value="aberto">Em aberto</option><option value="vencida">Guia vencida</option><option value="emdia">Em dia</option><option value="outros">Não consultado / verificar</option></select>
         </div>
         <div class="table-container">
           <table>
@@ -1138,9 +1138,10 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       if (!item) continue;
       var textoConsulta = (item.statusDamae || 'Não consultado').replace(/<[^>]*>/g, '').toLowerCase();
       if (contratoFiltro && String(item.contrato || '').toLowerCase().indexOf(contratoFiltro) === -1) continue;
-      if (statusFiltro === 'aberto' && !/(pendente|aberto|débito|debito|vencido)/.test(textoConsulta)) continue;
+      if (statusFiltro === 'aberto' && !textoConsulta.includes('em aberto')) continue;
+      if (statusFiltro === 'vencida' && !textoConsulta.includes('guia vencida')) continue;
       if (statusFiltro === 'emdia' && !textoConsulta.includes('em dia')) continue;
-      if (statusFiltro === 'outros' && (textoConsulta.includes('em dia') || /(pendente|aberto|débito|debito|vencido)/.test(textoConsulta))) continue;
+      if (statusFiltro === 'outros' && (textoConsulta.includes('em dia') || textoConsulta.includes('em aberto') || textoConsulta.includes('guia vencida'))) continue;
       var badge = item.status === 'Alugado' ? 'badge-alugado' : 'badge-desocupado';
       html += '<tr><td><b>' + (item.damaeId || 'Sem ID') + '</b></td><td>' + item.contrato + '</td><td><span class="badge ' + badge + '">' + item.status + '</span></td><td>' + (item.statusDamae || 'Em dia') + '</td></tr>';
     }
