@@ -350,7 +350,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
           <button class="btn btn-success" id="btnIniciarConsultaTela">⚡ Iniciar Consulta Automática de Todos</button>
         </div>
         <div class="filter-bar" style="margin-bottom: 15px;">
-          <label>Pesquisar Contrato:</label><input type="text" id="filtroBuscaContratoIptu" oninput="renderBcis()" placeholder="Nº Contrato..." style="max-width:160px;">
+          <label>Pesquisar Contrato:</label><input type="text" id="filtroBuscaContratoIptu" oninput="renderBcis()" placeholder="Nº Contrato..." style="max-width:160px;"><label>Consulta:</label><select id="filtroStatusIptu" onchange="renderBcis()"><option value="todos">Todos</option><option value="aberto">Em aberto</option><option value="emdia">Em dia</option><option value="outros">Não consultado / verificar</option></select>
         </div>
         <div class="table-container">
           <table>
@@ -369,7 +369,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
           <button class="btn btn-success" id="btnIniciarConsultaDamaeTela">⚡ Iniciar Consulta Automática DAMAE</button>
         </div>
         <div class="filter-bar" style="margin-bottom: 15px;">
-          <label>Pesquisar Contrato:</label><input type="text" id="filtroBuscaContratoDamae" oninput="renderDamae()" placeholder="Nº Contrato..." style="max-width:160px;">
+          <label>Pesquisar Contrato:</label><input type="text" id="filtroBuscaContratoDamae" oninput="renderDamae()" placeholder="Nº Contrato..." style="max-width:160px;"><label>Consulta:</label><select id="filtroStatusDamae" onchange="renderDamae()"><option value="todos">Todos</option><option value="aberto">Em aberto</option><option value="emdia">Em dia</option><option value="outros">Não consultado / verificar</option></select>
         </div>
         <div class="table-container">
           <table>
@@ -1061,8 +1061,8 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
         cpfCnpj: cpfCnpj,
         contrato: contrato,
         status: status,
-        statusBci: '<span style="color:var(--success); font-weight:bold;">Em dia</span>',
-        statusDamae: '<span style="color:var(--success); font-weight:bold;">Em dia</span>'
+        statusBci: '<span style="color:var(--text-muted); font-weight:bold;">Não consultado</span>',
+        statusDamae: '<span style="color:var(--text-muted); font-weight:bold;">Não consultado</span>'
       });
     }
 
@@ -1113,9 +1113,16 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 
   function renderBcis() {
     var html = '';
+    var contratoFiltro = (($('filtroBuscaContratoIptu') || {}).value || '').trim().toLowerCase();
+    var statusFiltro = (($('filtroStatusIptu') || {}).value || 'todos');
     for (var i = 0; i < imoveisDB.length; i++) {
       var item = imoveisDB[i];
       if (!item) continue;
+      var textoConsulta = (item.statusBci || 'Não consultado').replace(/<[^>]*>/g, '').toLowerCase();
+      if (contratoFiltro && String(item.contrato || '').toLowerCase().indexOf(contratoFiltro) === -1) continue;
+      if (statusFiltro === 'aberto' && !/(pendente|aberto|débito|debito|vencido)/.test(textoConsulta)) continue;
+      if (statusFiltro === 'emdia' && !textoConsulta.includes('em dia')) continue;
+      if (statusFiltro === 'outros' && (textoConsulta.includes('em dia') || /(pendente|aberto|débito|debito|vencido)/.test(textoConsulta))) continue;
       var badge = item.status === 'Alugado' ? 'badge-alugado' : 'badge-desocupado';
       html += '<tr><td><b>' + item.bci + '</b></td><td>' + item.contrato + '</td><td>' + (item.cpfCnpj || '-') + '</td><td><span class="badge ' + badge + '">' + item.status + '</span></td><td>' + (item.statusBci || 'Em dia') + '</td></tr>';
     }
@@ -1124,9 +1131,16 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 
   function renderDamae() {
     var html = '';
+    var contratoFiltro = (($('filtroBuscaContratoDamae') || {}).value || '').trim().toLowerCase();
+    var statusFiltro = (($('filtroStatusDamae') || {}).value || 'todos');
     for (var i = 0; i < imoveisDB.length; i++) {
       var item = imoveisDB[i];
       if (!item) continue;
+      var textoConsulta = (item.statusDamae || 'Não consultado').replace(/<[^>]*>/g, '').toLowerCase();
+      if (contratoFiltro && String(item.contrato || '').toLowerCase().indexOf(contratoFiltro) === -1) continue;
+      if (statusFiltro === 'aberto' && !/(pendente|aberto|débito|debito|vencido)/.test(textoConsulta)) continue;
+      if (statusFiltro === 'emdia' && !textoConsulta.includes('em dia')) continue;
+      if (statusFiltro === 'outros' && (textoConsulta.includes('em dia') || /(pendente|aberto|débito|debito|vencido)/.test(textoConsulta))) continue;
       var badge = item.status === 'Alugado' ? 'badge-alugado' : 'badge-desocupado';
       html += '<tr><td><b>' + (item.damaeId || 'Sem ID') + '</b></td><td>' + item.contrato + '</td><td><span class="badge ' + badge + '">' + item.status + '</span></td><td>' + (item.statusDamae || 'Em dia') + '</td></tr>';
     }
