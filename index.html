@@ -457,7 +457,6 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     location.reload();
   }
 
-  // Dados globais e DBs
   var origens = ['Itaú', 'Bradesco', 'Caixa', 'Dinheiro / Caixinha'];
   try { var so = JSON.parse(localStorage.getItem('origens_db')); if (Array.isArray(so) && so.length) origens = so; } catch(e) {}
   var categorias = ['Imóvel/Aluguel', 'Serviços públicos', 'Impostos', 'Atrasos/Multas', 'Operacional', 'Marketing'];
@@ -516,6 +515,47 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       var sessao = localStorage.getItem('sessao_ativa');
       if (sessao) entrarSistema(sessao);
     } catch(err) {}
+
+    // Eventos dos botões de automação de consulta
+    var btnBci = $('btnIniciarConsultaTela');
+    if (btnBci) {
+      btnBci.addEventListener('click', function() {
+        if (!imoveisDB || imoveisDB.length === 0) {
+          alert('Não há imóveis cadastrados para consultar.');
+          return;
+        }
+        if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+          chrome.runtime.sendMessage({
+            action: 'iniciarAutomacaoBciDoSistema',
+            imoveis: imoveisDB,
+            url: WEB_APP_URL
+          });
+          alert('⚡ Consulta automática de IPTU iniciada! Acompanhe as abas.');
+        } else {
+          alert('Esta funcionalidade requer que o sistema esteja aberto como Extensão do Chrome.');
+        }
+      });
+    }
+
+    var btnDamae = $('btnIniciarConsultaDamaeTela');
+    if (btnDamae) {
+      btnDamae.addEventListener('click', function() {
+        if (!imoveisDB || imoveisDB.length === 0) {
+          alert('Não há imóveis cadastrados para consultar.');
+          return;
+        }
+        if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+          chrome.runtime.sendMessage({
+            action: 'iniciarAutomacaoDamaeDoSistema',
+            imoveis: imoveisDB,
+            url: WEB_APP_URL
+          });
+          alert('⚡ Consulta automática DAMAE iniciada! Acompanhe as abas.');
+        } else {
+          alert('Esta funcionalidade requer que o sistema esteja aberto como Extensão do Chrome.');
+        }
+      });
+    }
   });
 
   function entrarSistema(user) {
