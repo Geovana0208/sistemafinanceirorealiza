@@ -10,6 +10,11 @@
 body{background-color:var(--bg-color);color:var(--text-main);display:flex;height:100vh;overflow:hidden}
 #loginScreen{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(42,80,69,.98);display:flex;justify-content:center;align-items:center;z-index:999}
 .login-box{background:white;padding:35px;border-radius:14px;width:100%;max-width:400px;box-shadow:0 10px 30px rgba(0,0,0,.25);text-align:center}
+.login-box{max-height:92vh;overflow-y:auto}
+.extension-help{margin-top:16px;padding:12px;text-align:left;background:#f2f5f4;border:1px solid var(--border);border-radius:8px;font-size:.78rem;color:var(--text-muted);line-height:1.45}
+.extension-help h3{font-size:.9rem;color:var(--primary);margin-bottom:6px}
+.extension-help ol{padding-left:18px;margin:7px 0}
+.extension-help a{color:var(--primary);font-weight:700}
 .login-box h2{color:var(--primary);margin-bottom:8px;font-size:1.6rem}
 .login-box p{color:var(--text-muted);font-size:.85rem;margin-bottom:25px}
 .app-layout{display:none;width:100%;height:100vh;grid-template-columns:260px 1fr}
@@ -65,11 +70,24 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   <div class="login-box">
     <h2>Realiza Imóveis</h2><p>Painel de Gestão Financeira</p>
     <form id="formLogin">
-      <div class="form-group" style="margin-bottom:12px;"><label>Utilizador</label><input type="text" id="loginUser" required placeholder="Ex: admin" autocomplete="username"></div>
-      <div class="form-group" style="margin-bottom:20px;"><label>Palavra-passe</label><input type="password" id="loginPass" required placeholder="Ex: 123" autocomplete="current-password"></div>
+      <div class="form-group" style="margin-bottom:12px;"><label>Utilizador</label><input type="text" id="loginUser" required placeholder="Seu usuário" autocomplete="username"></div>
+      <div class="form-group" style="margin-bottom:20px;"><label>Palavra-passe</label><input type="password" id="loginPass" required placeholder="Sua senha" autocomplete="current-password"></div>
       <button type="submit" class="btn" style="width:100%; justify-content:center;">Entrar no Sistema</button>
     </form>
     <div id="loginError" style="color:var(--danger); font-size:0.8rem; margin-top:12px; font-weight:600;"></div>
+    <div class="extension-help">
+      <h3>Instalar extensão para consultas oficiais</h3>
+      <p>A extensão é necessária para consultar IPTU/BCI e DAMAE. Ela precisa ser instalada separadamente em cada navegador ou perfil e não pode ser instalada automaticamente pelo site.</p>
+      <ol>
+        <li>Baixe e extraia o arquivo ZIP abaixo.</li>
+        <li>No Chrome, acesse <code>chrome://extensions</code>; no Edge, acesse <code>edge://extensions</code>.</li>
+        <li>Ative <b>Modo do desenvolvedor</b> e clique em <b>Carregar sem compactação</b>.</li>
+        <li>Selecione a pasta extraída que contém o arquivo <code>manifest.json</code>.</li>
+        <li>Volte a esta página e atualize-a.</li>
+      </ol>
+      <p><a href="./realiza-extensao.zip" download>Baixar extensão REALIZA</a></p>
+      <p>Instale somente em dispositivos autorizados. O Chrome pode exibir um aviso por ser uma extensão carregada manualmente.</p>
+    </div>
   </div>
 </div>
 
