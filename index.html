@@ -1255,6 +1255,34 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     $('tabelaAlugueis').innerHTML = html;
   }
 
+  function limparFormAluguel() {
+    if ($('formAluguel')) $('formAluguel').reset();
+    $('aluguelId').value = '';
+  }
+
+  function editarAluguel(id) {
+    var item = alugueis.find(function(x) { return String(x.id) === String(id); });
+    if (!item) { alert('Locação não encontrada.'); return; }
+    $('aluguelId').value = item.id;
+    $('inquilino').value = item.inquilino || '';
+    $('veiculoCapitacaoAluguel').value = item.veiculoCapitacao || '';
+    $('proprietarioAluguel').value = item.proprietario || '';
+    $('valorAluguel').value = Number(item.valorAluguel) || 0;
+    $('dataFechamentoAluguel').value = item.dataFechamento || '';
+    $('corretorAluguel').value = item.corretor || '';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function excluirAluguel(id) {
+    var item = alugueis.find(function(x) { return String(x.id) === String(id); });
+    if (!item) { alert('Locação não encontrada.'); return; }
+    if (!confirm('Deseja excluir a locação de ' + (item.inquilino || 'este inquilino') + '?')) return;
+    alugueis = alugueis.filter(function(x) { return String(x.id) !== String(id); });
+    localStorage.setItem('alugueis_db', JSON.stringify(alugueis));
+    sincronizarComSheets('Alugueis', alugueis);
+    renderAlugueis();
+  }
+
   // DASHBOARD
   function renderDashboard() {
     var fAno = $('filtroAnoDash').value;
