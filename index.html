@@ -769,6 +769,202 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     localStorage.setItem('contas_db', JSON.stringify(contas));
   }
 
+  // AÇÕES DOS FORMULÁRIOS, FILTROS E GERENCIADORES
+  function escaparTextoHtml(valor) {
+    return String(valor == null ? '' : valor).replace(/[&<>"']/g, function(ch) {
+      return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]);
+    });
+  }
+
+  function atualizarListaGerenciador(elementId, itens, obterNome, funcaoRemover) {
+    var el = $(elementId);
+    if (!el) return;
+    if (!itens.length) { el.innerHTML = '<small style="color:var(--text-muted)">Nenhum item cadastrado.</small>'; return; }
+    el.innerHTML = itens.map(function(item, indice) {
+      var nome = obterNome(item);
+      return '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)"><span>' + escaparTextoHtml(nome) + '</span><button type="button" class="btn btn-danger btn-sm" onclick="' + funcaoRemover + '(' + indice + ')">Remover</button></div>';
+    }).join('');
+  }
+
+  function abrirGerenciadorContas() {
+    atualizarListaGerenciador('listaOrigens', origens, function(x){return x;}, 'removerOrigem');
+    $('modalOrigens').style.display = 'flex';
+  }
+  function adicionarOrigem() {
+    var nome = $('novaOrigemNome').value.trim();
+    if (!nome) return;
+    if (origens.some(function(x){return String(x).trim().toLocaleLowerCase('pt-BR') === nome.toLocaleLowerCase('pt-BR');})) { alert('Essa conta de saída já está cadastrada.'); return; }
+    origens.push(nome);
+    localStorage.setItem('origens_db', JSON.stringify(origens));
+    $('novaOrigemNome').value = '';
+    atualizarSelectsContas();
+    abrirGerenciadorContas();
+  }
+  function removerOrigem(indice) {
+    var nome = origens[indice];
+    if (contas.some(function(x){return x.contaOrigem === nome;})) { alert('Não é possível remover: há contas cadastradas usando esta origem.'); return; }
+    if (!confirm('Remover a conta de saída "' + nome + '"?')) return;
+    origens.splice(indice, 1);
+    localStorage.setItem('origens_db', JSON.stringify(origens));
+    atualizarSelectsContas(); abrirGerenciadorContas();
+  }
+
+  function abrirGerenciadorCategorias() {
+    atualizarListaGerenciador('listaCategorias', categorias, function(x){return x;}, 'removerCategoria');
+    $('modalCategorias').style.display = 'flex';
+  }
+  function adicionarCategoria() {
+    var nome = $('novaCategoriaNome').value.trim();
+    if (!nome) return;
+    if (categorias.some(function(x){return String(x).trim().toLocaleLowerCase('pt-BR') === nome.toLocaleLowerCase('pt-BR');})) { alert('Essa categoria já está cadastrada.'); return; }
+    categorias.push(nome);
+    localStorage.setItem('categorias_db', JSON.stringify(categorias));
+    $('novaCategoriaNome').value = '';
+    atualizarSelectsContas(); abrirGerenciadorCategorias();
+  }
+  function removerCategoria(indice) {
+    var nome = categorias[indice];
+    if (contas.some(function(x){return x.categoria === nome;})) { alert('Não é possível remover: há contas cadastradas usando esta categoria.'); return; }
+    if (!confirm('Remover a categoria "' + nome + '"?')) return;
+    categorias.splice(indice, 1);
+    localStorage.setItem('categorias_db', JSON.stringify(categorias));
+    atualizarSelectsContas(); abrirGerenciadorCategorias();
+  }
+
+  function abrirGerenciadorVeiculos() {
+    atualizarListaGerenciador('listaVeiculos', veiculosCapitacao, function(x){return x;}, 'removerVeiculo');
+    $('modalVeiculos').style.display = 'flex';
+  }
+  function adicionarVeiculo() {
+    var nome = $('novoVeiculoNome').value.trim();
+    if (!nome) return;
+    if (veiculosCapitacao.some(function(x){return String(x).trim().toLocaleLowerCase('pt-BR') === nome.toLocaleLowerCase('pt-BR');})) { alert('Esse veículo de captação já está cadastrado.'); return; }
+    veiculosCapitacao.push(nome);
+    localStorage.setItem('veiculos_db', JSON.stringify(veiculosCapitacao));
+    $('novoVeiculoNome').value = '';
+    atualizarSelectsVeiculos(); abrirGerenciadorVeiculos();
+  }
+  function removerVeiculo(indice) {
+    var nome = veiculosCapitacao[indice];
+    if (comissoes.some(function(x){return x.veiculoCapitacao === nome;}) || alugueis.some(function(x){return x.veiculoCapitacao === nome;})) { alert('Não é possível remover: há registros usando este veículo.'); return; }
+    if (!confirm('Remover o veículo de captação "' + nome + '"?')) return;
+    veiculosCapitacao.splice(indice, 1);
+    localStorage.setItem('veiculos_db', JSON.stringify(veiculosCapitacao));
+    atualizarSelectsVeiculos(); abrirGerenciadorVeiculos();
+  }
+
+  function abrirGerenciadorCorretores() {
+    atualizarListaGerenciador('listaCorretores', corretores, function(x){return x.nome || x;}, 'removerCorretor');
+    $('modalCorretores').style.display = 'flex';
+  }
+  function adicionarCorretor() {
+    var nome = $('novoCorretorNome').value.trim();
+    var foto = $('novoCorretorFoto').value.trim();
+    if (!nome) { alert('Informe o nome do corretor.'); return; }
+    if (corretores.some(function(x){return String(x.nome || x).trim().toLocaleLowerCase('pt-BR') === nome.toLocaleLowerCase('pt-BR');})) { alert('Esse corretor já está cadastrado.'); return; }
+    corretores.push({nome:nome, foto:foto});
+    localStorage.setItem('corretores_objs_db', JSON.stringify(corretores));
+    $('novoCorretorNome').value = ''; $('novoCorretorFoto').value = '';
+    atualizarSelectsCorretores(); renderDashboard(); renderComissoes(); abrirGerenciadorCorretores();
+  }
+  function removerCorretor(indice) {
+    var nome = corretores[indice].nome || corretores[indice];
+    if (comissoes.some(function(x){return x.corretor === nome;}) || alugueis.some(function(x){return x.corretor === nome;})) { alert('Não é possível remover: há registros associados a esse corretor.'); return; }
+    if (!confirm('Remover o corretor "' + nome + '"?')) return;
+    corretores.splice(indice, 1);
+    localStorage.setItem('corretores_objs_db', JSON.stringify(corretores));
+    atualizarSelectsCorretores(); renderDashboard(); renderComissoes(); abrirGerenciadorCorretores();
+  }
+
+  function toggleParcelas() {
+    var grupo = $('groupParcelas');
+    if (grupo) grupo.style.display = $('tipoConta').value === 'Parcelada' ? 'block' : 'none';
+  }
+  function toggleDataPrevisao() {
+    var grupo = $('groupDataPrevisao');
+    if (grupo) grupo.style.display = $('tipoPrevisao').value === 'com_data' ? 'block' : 'none';
+  }
+  function limparFormConta() {
+    if ($('formConta')) $('formConta').reset();
+    $('contaId').value = '';
+    toggleParcelas();
+  }
+  function limparFormComissao() {
+    if ($('formComissao')) $('formComissao').reset();
+    $('comissaoId').value = '';
+    toggleDataPrevisao();
+  }
+  function editarConta(id) {
+    var item = contas.find(function(x){return String(x.id) === String(id);});
+    if (!item) { alert('Conta não encontrada.'); return; }
+    $('contaId').value = item.id; $('descricao').value = item.descricao || '';
+    $('valorPrevisto').value = Number(item.valorPrevisto) || 0; $('valorReal').value = Number(item.valorReal) || 0;
+    $('vencimento').value = item.vencimento || ''; $('contaOrigem').value = item.contaOrigem || '';
+    $('tipoConta').value = item.tipo || 'Fixa'; $('categoria').value = item.categoria || '';
+    toggleParcelas(); window.scrollTo({top:0,behavior:'smooth'});
+  }
+  function excluirConta(id) {
+    if (!confirm('Deseja excluir esta conta?')) return;
+    contas = contas.filter(function(x){return String(x.id) !== String(id);});
+    localStorage.setItem('contas_db', JSON.stringify(contas));
+    sincronizarComSheets('Contas', contas); renderContas();
+  }
+  function editarComissao(id) {
+    var item = comissoes.find(function(x){return String(x.id) === String(id);});
+    if (!item) { alert('Comissão não encontrada.'); return; }
+    $('comissaoId').value = item.id; $('comprador').value = item.comprador || '';
+    $('veiculoCapitacao').value = item.veiculoCapitacao || ''; $('vendedor').value = item.vendedor || '';
+    $('corretor').value = item.corretor || ''; $('dataFechamentoComissao').value = item.dataFechamento || '';
+    $('valorVenda').value = Number(item.valorVenda) || 0; $('valorComissao').value = Number(item.valorComissao) || 0;
+    $('valorRecebido').value = Number(item.valorRecebido) || 0; $('retidoPor').value = item.retidoPor || 'Nenhum';
+    $('tipoPrevisao').value = item.tipoPrevisao || 'com_data'; $('dataPrevisao').value = item.dataPrevisao || '';
+    $('observacoesComissao').value = item.observacoes || ''; toggleDataPrevisao();
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+  function excluirComissao(id) {
+    if (!confirm('Deseja excluir esta comissão/venda?')) return;
+    comissoes = comissoes.filter(function(x){return String(x.id) !== String(id);});
+    localStorage.setItem('comissoes_db', JSON.stringify(comissoes));
+    sincronizarComSheets('Comissoes', comissoes); renderComissoes();
+  }
+
+  function gerarProximoMes() {
+    var mesSel = $('filtroMesContas').value;
+    var anoSel = $('filtroAnoContas').value;
+    var base = null;
+    if (mesSel !== 'todos' && anoSel !== 'todos') base = new Date(Number(anoSel), Number(mesSel) - 1, 1);
+    else {
+      contas.forEach(function(item) {
+        if (item._autoMarketing || !item.vencimento) return;
+        var dt = new Date(item.vencimento + 'T00:00:00');
+        if (!isNaN(dt.getTime()) && (!base || dt > base)) base = new Date(dt.getFullYear(), dt.getMonth(), 1);
+      });
+      if (!base) { var hoje = new Date(); base = new Date(hoje.getFullYear(), hoje.getMonth(), 1); }
+    }
+    var origem = contas.filter(function(item) {
+      if (item._autoMarketing || !item.vencimento || String(item.tipo).toLocaleLowerCase('pt-BR') !== 'fixa') return false;
+      var dt = new Date(item.vencimento + 'T00:00:00');
+      return dt.getFullYear() === base.getFullYear() && dt.getMonth() === base.getMonth();
+    });
+    if (!origem.length) { alert('Não encontrei contas fixas no mês de referência para gerar o próximo mês.'); return; }
+    var destino = new Date(base.getFullYear(), base.getMonth() + 1, 1);
+    var ano = destino.getFullYear(), mes = String(destino.getMonth() + 1).padStart(2, '0');
+    var novos = [];
+    origem.forEach(function(item) {
+      var diaOrigem = Number(item.vencimento.slice(8,10)) || 1;
+      var ultimoDia = new Date(ano, destino.getMonth() + 1, 0).getDate();
+      var data = ano + '-' + mes + '-' + String(Math.min(diaOrigem, ultimoDia)).padStart(2, '0');
+      var existe = contas.some(function(x){return x.vencimento === data && x.descricao === item.descricao && x.contaOrigem === item.contaOrigem;});
+      if (!existe) novos.push(Object.assign({}, item, {id:'ct_' + Date.now() + '_' + Math.random().toString(36).slice(2,7), vencimento:data, valorReal:0, status:'Pendente'}));
+    });
+    if (!novos.length) { alert('As contas fixas do próximo mês já foram geradas.'); return; }
+    if (!confirm('Gerar ' + novos.length + ' conta(s) fixa(s) para ' + mes + '/' + ano + '?')) return;
+    contas.push.apply(contas, novos);
+    localStorage.setItem('contas_db', JSON.stringify(contas));
+    sincronizarComSheets('Contas', contas); renderContas();
+    alert(novos.length + ' conta(s) do próximo mês gerada(s).');
+  }
+
   // CONTAS A PAGAR
   var formConta = $('formConta');
   if (formConta) {
