@@ -234,6 +234,9 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
         <h3 style="color: var(--primary); margin-bottom: 12px;">Lançar Nova Comissão / Venda</h3>
         <form id="formComissao">
           <input type="hidden" id="comissaoId">
+          <div class="form-group"><label>COD</label><input type="text" id="codigoComissao" placeholder="Código do negócio"></div>
+          <div class="form-group"><label>Unid. Empreendimento</label><div style="display:flex;gap:6px;"><select id="unidadeEmpreendimento" style="flex:1;"><option value="">Selecione...</option></select><button type="button" class="btn btn-secondary btn-sm" title="Cadastrar opções de empreendimento" onclick="abrirGerenciadorEmpreendimentosComissao()">⚙</button></div></div>
+          <div class="form-group"><label>Forma de pagamento</label><div style="display:flex;gap:6px;"><select id="formaPagamento" style="flex:1;"><option value="">Selecione...</option></select><button type="button" class="btn btn-secondary btn-sm" title="Cadastrar formas de pagamento" onclick="abrirGerenciadorFormasPagamentoComissao()">⚙</button></div></div>
           <div class="form-group"><label>Comprador</label><input type="text" id="comprador" required></div>
           <div class="form-group"><label>Veículo Captação</label><select id="veiculoCapitacao" required></select></div>
           <div class="form-group"><label>Vendedor / Proprietário</label><input type="text" id="vendedor" required></div>
@@ -254,7 +257,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       <div class="card">
         <div class="table-container">
           <table>
-            <thead><tr><th>Fechamento</th><th>Clientes</th><th>Captação</th><th>Corretor</th><th>Venda</th><th>Comissão Total</th><th>Já Recebido</th><th>Falta</th><th>Retenção</th><th>Status</th><th>Ações</th></tr></thead>
+            <thead><tr><th>Fechamento</th><th>COD</th><th>Unid. Empreendimento</th><th>Forma de pagamento</th><th>Clientes</th><th>Captação</th><th>Corretor</th><th>Venda</th><th>Comissão Total</th><th>Já Recebido</th><th>Falta</th><th>Retenção</th><th>Status</th><th>Ações</th></tr></thead>
             <tbody id="tabelaComissoes"></tbody>
           </table>
         </div>
@@ -456,6 +459,9 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 <div class="modal-bg" id="modalVeiculos"><div class="modal-content"><h3 style="color: var(--primary); margin-bottom: 10px;">Gerenciar Veículos de Captação</h3><div style="display:flex; gap:8px; margin-bottom:15px;"><input type="text" id="novoVeiculoNome" placeholder="Novo Veículo" style="flex:1;"><button class="btn btn-sm" onclick="adicionarVeiculo()">Add</button></div><div id="listaVeiculos" style="max-height:200px; overflow-y:auto; margin-bottom:15px;"></div><button class="btn btn-secondary" style="width:100%;" onclick="$('modalVeiculos').style.display='none';atualizarSelectsVeiculos()">Fechar</button></div></div>
 <div class="modal-bg" id="modalCorretores"><div class="modal-content"><h3 style="color: var(--primary); margin-bottom: 10px;">Cadastrar Corretor e Foto</h3><div style="display:flex; flex-direction:column; gap:8px; margin-bottom:15px; border-bottom:1px solid #ccc; padding-bottom:15px;"><input type="text" id="novoCorretorNome" placeholder="Nome do Corretor"><label for="novoCorretorFoto" style="font-weight:600;">Foto do dispositivo (opcional)</label><input type="file" id="novoCorretorFoto" accept="image/jpeg,image/png,image/webp" onchange="previewFotoCorretor(this)"><div id="previewCorretorFotoContainer" style="display:none;align-items:center;gap:10px;"><img id="previewCorretorFoto" alt="Prévia da foto do corretor" style="width:64px;height:64px;object-fit:cover;border-radius:50%;border:2px solid var(--border);"><span>Prévia da foto selecionada</span></div><small style="color:var(--text-muted);">A imagem será reduzida automaticamente para economizar espaço.</small><button type="button" class="btn btn-sm" onclick="adicionarCorretor()">Cadastrar</button></div><div id="listaCorretores" style="max-height:220px; overflow-y:auto; margin-bottom:15px;"></div><button type="button" class="btn btn-secondary" style="width:100%;" onclick="$('modalCorretores').style.display='none';atualizarSelectsCorretores()">Fechar</button></div></div>
 
+<div class="modal-bg" id="modalEmpreendimentosComissao"><div class="modal-content"><h3 style="color:var(--primary);margin-bottom:10px;">Gerenciar Empreendimentos</h3><div style="display:flex;gap:8px;margin-bottom:15px;"><input type="text" id="novoEmpreendimentoComissao" placeholder="Unidade / Empreendimento" style="flex:1;"><button type="button" class="btn btn-sm" onclick="adicionarEmpreendimentoComissao()">Adicionar</button></div><div id="listaEmpreendimentosComissao" style="max-height:220px;overflow-y:auto;margin-bottom:15px;"></div><button type="button" class="btn btn-secondary" style="width:100%;" onclick="$('modalEmpreendimentosComissao').style.display='none'">Fechar</button></div></div>
+<div class="modal-bg" id="modalFormasPagamentoComissao"><div class="modal-content"><h3 style="color:var(--primary);margin-bottom:10px;">Gerenciar Formas de Pagamento</h3><div style="display:flex;gap:8px;margin-bottom:15px;"><input type="text" id="novaFormaPagamentoComissao" placeholder="Forma de pagamento" style="flex:1;"><button type="button" class="btn btn-sm" onclick="adicionarFormaPagamentoComissao()">Adicionar</button></div><div id="listaFormasPagamentoComissao" style="max-height:220px;overflow-y:auto;margin-bottom:15px;"></div><button type="button" class="btn btn-secondary" style="width:100%;" onclick="$('modalFormasPagamentoComissao').style.display='none'">Fechar</button></div></div>
+
 <!-- MODAL CONFIG SHEETS -->
 <div class="modal-bg" id="modalSheets">
   <div class="modal-content">
@@ -520,6 +526,10 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   try { var s_ct = JSON.parse(localStorage.getItem('contas_db')); if (Array.isArray(s_ct)) contas = s_ct; } catch(e) {}
   var comissoes = [];
   try { var s_cm = JSON.parse(localStorage.getItem('comissoes_db')); if (Array.isArray(s_cm)) comissoes = s_cm; } catch(e) {}
+  var empreendimentosComissao = [];
+  try { var s_ec = JSON.parse(localStorage.getItem('empreendimentos_comissao_db')); if (Array.isArray(s_ec)) empreendimentosComissao = s_ec; } catch(e) {}
+  var formasPagamentoComissao = [];
+  try { var s_fp = JSON.parse(localStorage.getItem('formas_pagamento_comissao_db')); if (Array.isArray(s_fp)) formasPagamentoComissao = s_fp; } catch(e) {}
   var alugueis = [];
   try { var s_al = JSON.parse(localStorage.getItem('alugueis_db')); if (Array.isArray(s_al)) alugueis = s_al; } catch(e) {}
   var imoveisDB = [];
@@ -620,6 +630,72 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     atualizarSelectsVeiculos();
     atualizarSelectsCorretores();
     atualizarSelectsContas();
+    atualizarSelectsCatalogosComissao();
+  }
+
+  function preencherSelectCatalogoComissao(id, valores) {
+    var el = $(id);
+    if (!el) return;
+    var atual = el.value;
+    var html = '<option value="">Selecione...</option>';
+    valores.forEach(function(valor) {
+      var seguro = escaparTextoHtml(valor);
+      html += '<option value="' + seguro + '">' + seguro + '</option>';
+    });
+    el.innerHTML = html;
+    if (valores.indexOf(atual) >= 0) el.value = atual;
+  }
+  function atualizarSelectsCatalogosComissao() {
+    preencherSelectCatalogoComissao('unidadeEmpreendimento', empreendimentosComissao);
+    preencherSelectCatalogoComissao('formaPagamento', formasPagamentoComissao);
+  }
+  function abrirGerenciadorEmpreendimentosComissao() {
+    atualizarListaGerenciador('listaEmpreendimentosComissao', empreendimentosComissao, function(x){return x;}, 'removerEmpreendimentoComissao');
+    $('modalEmpreendimentosComissao').style.display = 'flex';
+  }
+  function adicionarEmpreendimentoComissao() {
+    var nome = $('novoEmpreendimentoComissao').value.trim();
+    if (!nome) return;
+    if (empreendimentosComissao.some(function(x){return String(x).trim().toLocaleLowerCase('pt-BR') === nome.toLocaleLowerCase('pt-BR');})) { alert('Esse empreendimento já está cadastrado.'); return; }
+    var novaLista = empreendimentosComissao.concat([nome]);
+    try { localStorage.setItem('empreendimentos_comissao_db', JSON.stringify(novaLista)); }
+    catch(e) { alert('Não foi possível salvar essa opção no navegador.'); return; }
+    empreendimentosComissao = novaLista;
+    atualizarSelectsCatalogosComissao(); $('unidadeEmpreendimento').value = nome;
+    $('novoEmpreendimentoComissao').value = '';
+    abrirGerenciadorEmpreendimentosComissao();
+  }
+  function removerEmpreendimentoComissao(indice) {
+    var nome = empreendimentosComissao[indice];
+    if (comissoes.some(function(x){return (x.unidadeEmpreendimento || x.empreendimento) === nome;})) { alert('Não é possível remover: há comissões cadastradas usando este empreendimento.'); return; }
+    if (!confirm('Remover a opção "' + nome + '"?')) return;
+    empreendimentosComissao.splice(indice, 1);
+    localStorage.setItem('empreendimentos_comissao_db', JSON.stringify(empreendimentosComissao));
+    atualizarSelectsCatalogosComissao(); abrirGerenciadorEmpreendimentosComissao();
+  }
+  function abrirGerenciadorFormasPagamentoComissao() {
+    atualizarListaGerenciador('listaFormasPagamentoComissao', formasPagamentoComissao, function(x){return x;}, 'removerFormaPagamentoComissao');
+    $('modalFormasPagamentoComissao').style.display = 'flex';
+  }
+  function adicionarFormaPagamentoComissao() {
+    var nome = $('novaFormaPagamentoComissao').value.trim();
+    if (!nome) return;
+    if (formasPagamentoComissao.some(function(x){return String(x).trim().toLocaleLowerCase('pt-BR') === nome.toLocaleLowerCase('pt-BR');})) { alert('Essa forma de pagamento já está cadastrada.'); return; }
+    var novaLista = formasPagamentoComissao.concat([nome]);
+    try { localStorage.setItem('formas_pagamento_comissao_db', JSON.stringify(novaLista)); }
+    catch(e) { alert('Não foi possível salvar essa opção no navegador.'); return; }
+    formasPagamentoComissao = novaLista;
+    atualizarSelectsCatalogosComissao(); $('formaPagamento').value = nome;
+    $('novaFormaPagamentoComissao').value = '';
+    abrirGerenciadorFormasPagamentoComissao();
+  }
+  function removerFormaPagamentoComissao(indice) {
+    var nome = formasPagamentoComissao[indice];
+    if (comissoes.some(function(x){return x.formaPagamento === nome;})) { alert('Não é possível remover: há comissões cadastradas usando esta forma de pagamento.'); return; }
+    if (!confirm('Remover a opção "' + nome + '"?')) return;
+    formasPagamentoComissao.splice(indice, 1);
+    localStorage.setItem('formas_pagamento_comissao_db', JSON.stringify(formasPagamentoComissao));
+    atualizarSelectsCatalogosComissao(); abrirGerenciadorFormasPagamentoComissao();
   }
 
   function atualizarSelectsVeiculos() {
@@ -987,7 +1063,11 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   function editarComissao(id) {
     var item = comissoes.find(function(x){return String(x.id) === String(id);});
     if (!item) { alert('Comissão não encontrada.'); return; }
-    $('comissaoId').value = item.id; $('comprador').value = item.comprador || '';
+    $('comissaoId').value = item.id; $('codigoComissao').value = item.codigo || '';
+    atualizarSelectsCatalogosComissao();
+    $('unidadeEmpreendimento').value = item.unidadeEmpreendimento || item.empreendimento || '';
+    $('formaPagamento').value = item.formaPagamento || '';
+    $('comprador').value = item.comprador || '';
     $('veiculoCapitacao').value = item.veiculoCapitacao || ''; $('vendedor').value = item.vendedor || '';
     $('corretor').value = item.corretor || ''; $('dataFechamentoComissao').value = item.dataFechamento || '';
     $('valorVenda').value = Number(item.valorVenda) || 0; $('valorComissao').value = Number(item.valorComissao) || 0;
@@ -1124,6 +1204,9 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       var id = $('comissaoId').value;
       var obj = {
         id: id || ('com_' + Date.now()),
+        codigo: $('codigoComissao').value.trim(),
+        unidadeEmpreendimento: $('unidadeEmpreendimento').value,
+        formaPagamento: $('formaPagamento').value,
         comprador: $('comprador').value.trim(),
         veiculoCapitacao: $('veiculoCapitacao').value,
         vendedor: $('vendedor').value.trim(),
@@ -1181,7 +1264,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       var badge = falta <= 0 ? 'badge-recebido' : (vRec > 0 ? 'badge-parcial' : 'badge-areceber');
       var statusTxt = falta <= 0 ? 'Recebido' : (vRec > 0 ? 'Parcial' : 'A Receber');
 
-      html += '<tr><td>' + cm.dataFechamento.split('-').reverse().join('/') + '</td><td><b>Comp:</b> ' + cm.comprador + '<br><b>Vend:</b> ' + cm.vendedor + '</td><td>' + cm.veiculoCapitacao + '</td><td>' + cm.corretor + '</td><td>' + formatarMoeda(vV) + '</td><td>' + formatarMoeda(vC) + '</td><td>' + formatarMoeda(vRec) + '</td><td>' + formatarMoeda(falta) + '</td><td>' + (cm.retidoPor || 'Nenhum') + '</td><td><span class="badge ' + badge + '">' + statusTxt + '</span></td><td><button class="btn btn-secondary btn-sm" onclick="editarComissao(\'' + cm.id + '\')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirComissao(\'' + cm.id + '\')">X</button></td></tr>';
+      html += '<tr><td>' + cm.dataFechamento.split('-').reverse().join('/') + '</td><td>' + escaparTextoHtml(cm.codigo || '-') + '</td><td>' + escaparTextoHtml(cm.unidadeEmpreendimento || cm.empreendimento || '-') + '</td><td>' + escaparTextoHtml(cm.formaPagamento || '-') + '</td><td><b>Comp:</b> ' + cm.comprador + '<br><b>Vend:</b> ' + cm.vendedor + '</td><td>' + cm.veiculoCapitacao + '</td><td>' + cm.corretor + '</td><td>' + formatarMoeda(vV) + '</td><td>' + formatarMoeda(vC) + '</td><td>' + formatarMoeda(vRec) + '</td><td>' + formatarMoeda(falta) + '</td><td>' + (cm.retidoPor || 'Nenhum') + '</td><td><span class="badge ' + badge + '">' + statusTxt + '</span></td><td><button class="btn btn-secondary btn-sm" onclick="editarComissao(\'' + cm.id + '\')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirComissao(\'' + cm.id + '\')">X</button></td></tr>';
     }
 
     $('totalVendasComissao').innerText = formatarMoeda(tVendas);
