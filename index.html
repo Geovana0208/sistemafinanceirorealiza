@@ -235,7 +235,8 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
         <form id="formComissao">
           <input type="hidden" id="comissaoId">
           <div class="form-group"><label>COD</label><input type="text" id="codigoComissao" placeholder="Código do negócio"></div>
-          <div class="form-group"><label>Unid. Empreendimento</label><div style="display:flex;gap:6px;"><select id="unidadeEmpreendimento" style="flex:1;"><option value="">Selecione...</option></select><button type="button" class="btn btn-secondary btn-sm" title="Cadastrar opções de empreendimento" onclick="abrirGerenciadorEmpreendimentosComissao()">⚙</button></div></div>
+          <div class="form-group"><label>Unid.</label><input type="text" id="unidadeComissao" placeholder="Ex.: 302"></div>
+          <div class="form-group"><label>Empreendimento</label><div style="display:flex;gap:6px;"><select id="empreendimentoComissao" style="flex:1;"><option value="">Selecione...</option></select><button type="button" class="btn btn-secondary btn-sm" title="Cadastrar opções de empreendimento" onclick="abrirGerenciadorEmpreendimentosComissao()">⚙</button></div></div>
           <div class="form-group"><label>Forma de pagamento</label><div style="display:flex;gap:6px;"><select id="formaPagamento" style="flex:1;"><option value="">Selecione...</option></select><button type="button" class="btn btn-secondary btn-sm" title="Cadastrar formas de pagamento" onclick="abrirGerenciadorFormasPagamentoComissao()">⚙</button></div></div>
           <div class="form-group"><label>Comprador</label><input type="text" id="comprador" required></div>
           <div class="form-group"><label>Veículo Captação</label><select id="veiculoCapitacao" required></select></div>
@@ -257,7 +258,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       <div class="card">
         <div class="table-container">
           <table>
-            <thead><tr><th>Fechamento</th><th>COD</th><th>Unid. Empreendimento</th><th>Forma de pagamento</th><th>Clientes</th><th>Captação</th><th>Corretor</th><th>Venda</th><th>Comissão Total</th><th>Já Recebido</th><th>Falta</th><th>Retenção</th><th>Status</th><th>Ações</th></tr></thead>
+            <thead><tr><th>Fechamento</th><th>COD</th><th>Unid.</th><th>Empreendimento</th><th>Forma de pagamento</th><th>Clientes</th><th>Captação</th><th>Corretor</th><th>Venda</th><th>Comissão Total</th><th>Já Recebido</th><th>Falta</th><th>Retenção</th><th>Status</th><th>Ações</th></tr></thead>
             <tbody id="tabelaComissoes"></tbody>
           </table>
         </div>
@@ -646,7 +647,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     if (valores.indexOf(atual) >= 0) el.value = atual;
   }
   function atualizarSelectsCatalogosComissao() {
-    preencherSelectCatalogoComissao('unidadeEmpreendimento', empreendimentosComissao);
+    preencherSelectCatalogoComissao('empreendimentoComissao', empreendimentosComissao);
     preencherSelectCatalogoComissao('formaPagamento', formasPagamentoComissao);
   }
   function abrirGerenciadorEmpreendimentosComissao() {
@@ -661,7 +662,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     try { localStorage.setItem('empreendimentos_comissao_db', JSON.stringify(novaLista)); }
     catch(e) { alert('Não foi possível salvar essa opção no navegador.'); return; }
     empreendimentosComissao = novaLista;
-    atualizarSelectsCatalogosComissao(); $('unidadeEmpreendimento').value = nome;
+    atualizarSelectsCatalogosComissao(); $('empreendimentoComissao').value = nome;
     $('novoEmpreendimentoComissao').value = '';
     abrirGerenciadorEmpreendimentosComissao();
   }
@@ -1064,8 +1065,9 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     var item = comissoes.find(function(x){return String(x.id) === String(id);});
     if (!item) { alert('Comissão não encontrada.'); return; }
     $('comissaoId').value = item.id; $('codigoComissao').value = item.codigo || '';
+    $('unidadeComissao').value = item.unidade || '';
     atualizarSelectsCatalogosComissao();
-    $('unidadeEmpreendimento').value = item.unidadeEmpreendimento || item.empreendimento || '';
+    $('empreendimentoComissao').value = item.empreendimento || item.unidadeEmpreendimento || '';
     $('formaPagamento').value = item.formaPagamento || '';
     $('comprador').value = item.comprador || '';
     $('veiculoCapitacao').value = item.veiculoCapitacao || ''; $('vendedor').value = item.vendedor || '';
@@ -1205,7 +1207,8 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       var obj = {
         id: id || ('com_' + Date.now()),
         codigo: $('codigoComissao').value.trim(),
-        unidadeEmpreendimento: $('unidadeEmpreendimento').value,
+        unidade: $('unidadeComissao').value.trim(),
+        empreendimento: $('empreendimentoComissao').value,
         formaPagamento: $('formaPagamento').value,
         comprador: $('comprador').value.trim(),
         veiculoCapitacao: $('veiculoCapitacao').value,
@@ -1264,7 +1267,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       var badge = falta <= 0 ? 'badge-recebido' : (vRec > 0 ? 'badge-parcial' : 'badge-areceber');
       var statusTxt = falta <= 0 ? 'Recebido' : (vRec > 0 ? 'Parcial' : 'A Receber');
 
-      html += '<tr><td>' + cm.dataFechamento.split('-').reverse().join('/') + '</td><td>' + escaparTextoHtml(cm.codigo || '-') + '</td><td>' + escaparTextoHtml(cm.unidadeEmpreendimento || cm.empreendimento || '-') + '</td><td>' + escaparTextoHtml(cm.formaPagamento || '-') + '</td><td><b>Comp:</b> ' + cm.comprador + '<br><b>Vend:</b> ' + cm.vendedor + '</td><td>' + cm.veiculoCapitacao + '</td><td>' + cm.corretor + '</td><td>' + formatarMoeda(vV) + '</td><td>' + formatarMoeda(vC) + '</td><td>' + formatarMoeda(vRec) + '</td><td>' + formatarMoeda(falta) + '</td><td>' + (cm.retidoPor || 'Nenhum') + '</td><td><span class="badge ' + badge + '">' + statusTxt + '</span></td><td><button class="btn btn-secondary btn-sm" onclick="editarComissao(\'' + cm.id + '\')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirComissao(\'' + cm.id + '\')">X</button></td></tr>';
+      html += '<tr><td>' + cm.dataFechamento.split('-').reverse().join('/') + '</td><td>' + escaparTextoHtml(cm.codigo || '-') + '</td><td>' + escaparTextoHtml(cm.unidade || '-') + '</td><td>' + escaparTextoHtml(cm.empreendimento || cm.unidadeEmpreendimento || '-') + '</td><td>' + escaparTextoHtml(cm.formaPagamento || '-') + '</td><td><b>Comp:</b> ' + cm.comprador + '<br><b>Vend:</b> ' + cm.vendedor + '</td><td>' + cm.veiculoCapitacao + '</td><td>' + cm.corretor + '</td><td>' + formatarMoeda(vV) + '</td><td>' + formatarMoeda(vC) + '</td><td>' + formatarMoeda(vRec) + '</td><td>' + formatarMoeda(falta) + '</td><td>' + (cm.retidoPor || 'Nenhum') + '</td><td><span class="badge ' + badge + '">' + statusTxt + '</span></td><td><button class="btn btn-secondary btn-sm" onclick="editarComissao(\'' + cm.id + '\')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirComissao(\'' + cm.id + '\')">X</button></td></tr>';
     }
 
     $('totalVendasComissao').innerText = formatarMoeda(tVendas);
