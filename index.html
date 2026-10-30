@@ -454,7 +454,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 <div class="modal-bg" id="modalOrigens"><div class="modal-content"><h3 style="color: var(--primary); margin-bottom: 10px;">Gerenciar Contas de Saída</h3><div style="display:flex; gap:8px; margin-bottom:15px;"><input type="text" id="novaOrigemNome" placeholder="Nova Conta" style="flex:1;"><button class="btn btn-sm" onclick="adicionarOrigem()">Add</button></div><div id="listaOrigens" style="max-height:200px; overflow-y:auto; margin-bottom:15px;"></div><button class="btn btn-secondary" style="width:100%;" onclick="$('modalOrigens').style.display='none';renderContas()">Fechar</button></div></div>
 <div class="modal-bg" id="modalCategorias"><div class="modal-content"><h3 style="color: var(--primary); margin-bottom: 10px;">Gerenciar Categorias</h3><div style="display:flex; gap:8px; margin-bottom:15px;"><input type="text" id="novaCategoriaNome" placeholder="Nova Categoria" style="flex:1;"><button class="btn btn-sm" onclick="adicionarCategoria()">Add</button></div><div id="listaCategorias" style="max-height:200px; overflow-y:auto; margin-bottom:15px;"></div><button class="btn btn-secondary" style="width:100%;" onclick="$('modalCategorias').style.display='none';renderContas()">Fechar</button></div></div>
 <div class="modal-bg" id="modalVeiculos"><div class="modal-content"><h3 style="color: var(--primary); margin-bottom: 10px;">Gerenciar Veículos de Captação</h3><div style="display:flex; gap:8px; margin-bottom:15px;"><input type="text" id="novoVeiculoNome" placeholder="Novo Veículo" style="flex:1;"><button class="btn btn-sm" onclick="adicionarVeiculo()">Add</button></div><div id="listaVeiculos" style="max-height:200px; overflow-y:auto; margin-bottom:15px;"></div><button class="btn btn-secondary" style="width:100%;" onclick="$('modalVeiculos').style.display='none';atualizarSelectsVeiculos()">Fechar</button></div></div>
-<div class="modal-bg" id="modalCorretores"><div class="modal-content"><h3 style="color: var(--primary); margin-bottom: 10px;">Cadastrar Corretor & Foto</h3><div style="display:flex; flex-direction:column; gap:8px; margin-bottom:15px; border-bottom:1px solid #ccc; padding-bottom:15px;"><input type="text" id="novoCorretorNome" placeholder="Nome do Corretor"><input type="text" id="novoCorretorFoto" placeholder="URL da Foto (Opcional)"><button class="btn btn-sm" onclick="adicionarCorretor()">Cadastrar</button></div><div id="listaCorretores" style="max-height:220px; overflow-y:auto; margin-bottom:15px;"></div><button class="btn btn-secondary" style="width:100%;" onclick="$('modalCorretores').style.display='none';atualizarSelectsCorretores()">Fechar</button></div></div>
+<div class="modal-bg" id="modalCorretores"><div class="modal-content"><h3 style="color: var(--primary); margin-bottom: 10px;">Cadastrar Corretor e Foto</h3><div style="display:flex; flex-direction:column; gap:8px; margin-bottom:15px; border-bottom:1px solid #ccc; padding-bottom:15px;"><input type="text" id="novoCorretorNome" placeholder="Nome do Corretor"><label for="novoCorretorFoto" style="font-weight:600;">Foto do dispositivo (opcional)</label><input type="file" id="novoCorretorFoto" accept="image/jpeg,image/png,image/webp" onchange="previewFotoCorretor(this)"><div id="previewCorretorFotoContainer" style="display:none;align-items:center;gap:10px;"><img id="previewCorretorFoto" alt="Prévia da foto do corretor" style="width:64px;height:64px;object-fit:cover;border-radius:50%;border:2px solid var(--border);"><span>Prévia da foto selecionada</span></div><small style="color:var(--text-muted);">A imagem será reduzida automaticamente para economizar espaço.</small><button type="button" class="btn btn-sm" onclick="adicionarCorretor()">Cadastrar</button></div><div id="listaCorretores" style="max-height:220px; overflow-y:auto; margin-bottom:15px;"></div><button type="button" class="btn btn-secondary" style="width:100%;" onclick="$('modalCorretores').style.display='none';atualizarSelectsCorretores()">Fechar</button></div></div>
 
 <!-- MODAL CONFIG SHEETS -->
 <div class="modal-bg" id="modalSheets">
@@ -853,18 +853,93 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     atualizarSelectsVeiculos(); abrirGerenciadorVeiculos();
   }
 
+  function previewFotoCorretor(input) {
+    var arquivo = input && input.files && input.files[0];
+    var caixa = $('previewCorretorFotoContainer');
+    var imagem = $('previewCorretorFoto');
+    if (!arquivo || !caixa || !imagem) { if (caixa) caixa.style.display = 'none'; return; }
+    var url = URL.createObjectURL(arquivo);
+    imagem.onload = function() { URL.revokeObjectURL(url); };
+    imagem.onerror = function() { URL.revokeObjectURL(url); caixa.style.display = 'none'; };
+    imagem.src = url;
+    caixa.style.display = 'flex';
+  }
+  function comprimirFotoCorretor(arquivo) {
+    return new Promise(function(resolve, reject) {
+      var leitor = new FileReader();
+      leitor.onerror = function() { reject(new Error('Não foi possível ler o arquivo de imagem.')); };
+      leitor.onload = function() {
+        var imagem = new Image();
+        imagem.onerror = function() { reject(new Error('O arquivo selecionado não é uma imagem compatível.')); };
+        imagem.onload = function() {
+          try {
+            var maximo = 320;
+            var escala = Math.min(1, maximo / Math.max(imagem.naturalWidth, imagem.naturalHeight));
+            var canvas = document.createElement('canvas');
+            canvas.width = Math.max(1, Math.round(imagem.naturalWidth * escala));
+            canvas.height = Math.max(1, Math.round(imagem.naturalHeight * escala));
+            var contexto = canvas.getContext('2d');
+            contexto.fillStyle = '#ffffff'; contexto.fillRect(0, 0, canvas.width, canvas.height);
+            contexto.drawImage(imagem, 0, 0, canvas.width, canvas.height);
+            var qualidade = 0.82;
+            var dados = canvas.toDataURL('image/jpeg', qualidade);
+            while (dados.length > 90000 && qualidade > 0.42) {
+              qualidade = Math.max(0.42, qualidade - 0.08);
+              dados = canvas.toDataURL('image/jpeg', qualidade);
+            }
+            if (dados.length > 100000) {
+              var escalaMenor = 220 / Math.max(canvas.width, canvas.height);
+              var pequeno = document.createElement('canvas');
+              pequeno.width = Math.max(1, Math.round(canvas.width * escalaMenor));
+              pequeno.height = Math.max(1, Math.round(canvas.height * escalaMenor));
+              var ctxPequeno = pequeno.getContext('2d');
+              ctxPequeno.fillStyle = '#ffffff'; ctxPequeno.fillRect(0, 0, pequeno.width, pequeno.height);
+              ctxPequeno.drawImage(canvas, 0, 0, pequeno.width, pequeno.height);
+              dados = pequeno.toDataURL('image/jpeg', 0.55);
+            }
+            if (dados.length > 100000) reject(new Error('A imagem ainda ficou grande. Escolha uma foto menor.'));
+            else resolve(dados);
+          } catch (erro) { reject(erro); }
+        };
+        imagem.src = leitor.result;
+      };
+      leitor.readAsDataURL(arquivo);
+    });
+  }
+  function atualizarListaCorretores() {
+    var el = $('listaCorretores');
+    if (!el) return;
+    if (!corretores.length) { el.innerHTML = '<small style="color:var(--text-muted)">Nenhum corretor cadastrado.</small>'; return; }
+    el.innerHTML = corretores.map(function(item, indice) {
+      var nome = item.nome || item;
+      var foto = String(item.foto || '');
+      var fotoSegura = /^(https?:\/\/|data:image\/(?:jpeg|png|webp);base64,)/i.test(foto) ? escaparTextoHtml(foto) : '';
+      var avatar = fotoSegura ? '<img src="' + fotoSegura + '" alt="Foto de ' + escaparTextoHtml(nome) + '" style="width:42px;height:42px;object-fit:cover;border-radius:50%;">' : '<div style="width:42px;height:42px;border-radius:50%;background:var(--primary);color:white;display:flex;align-items:center;justify-content:center;font-weight:bold;">' + escaparTextoHtml(String(nome).charAt(0).toUpperCase()) + '</div>';
+      return '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);"><div style="display:flex;align-items:center;gap:10px;">' + avatar + '<span>' + escaparTextoHtml(nome) + '</span></div><button type="button" class="btn btn-danger btn-sm" onclick="removerCorretor(' + indice + ')">Remover</button></div>';
+    }).join('');
+  }
   function abrirGerenciadorCorretores() {
-    atualizarListaGerenciador('listaCorretores', corretores, function(x){return x.nome || x;}, 'removerCorretor');
+    atualizarListaCorretores();
     $('modalCorretores').style.display = 'flex';
   }
-  function adicionarCorretor() {
+  async function adicionarCorretor() {
     var nome = $('novoCorretorNome').value.trim();
-    var foto = $('novoCorretorFoto').value.trim();
+    var arquivo = $('novoCorretorFoto').files && $('novoCorretorFoto').files[0];
     if (!nome) { alert('Informe o nome do corretor.'); return; }
     if (corretores.some(function(x){return String(x.nome || x).trim().toLocaleLowerCase('pt-BR') === nome.toLocaleLowerCase('pt-BR');})) { alert('Esse corretor já está cadastrado.'); return; }
-    corretores.push({nome:nome, foto:foto});
-    localStorage.setItem('corretores_objs_db', JSON.stringify(corretores));
+    var foto = '';
+    if (arquivo) {
+      if (!['image/jpeg','image/png','image/webp'].includes(arquivo.type)) { alert('Selecione uma imagem JPG, PNG ou WEBP.'); return; }
+      if (arquivo.size > 10 * 1024 * 1024) { alert('A foto deve ter no máximo 10 MB antes da compressão.'); return; }
+      try { foto = await comprimirFotoCorretor(arquivo); }
+      catch (erro) { alert(erro.message || 'Não foi possível preparar a foto.'); return; }
+    }
+    var novaLista = corretores.concat([{nome:nome, foto:foto}]);
+    try { localStorage.setItem('corretores_objs_db', JSON.stringify(novaLista)); }
+    catch (erro) { alert('Não foi possível salvar a foto: o armazenamento do navegador está cheio. Tente uma imagem menor.'); return; }
+    corretores = novaLista;
     $('novoCorretorNome').value = ''; $('novoCorretorFoto').value = '';
+    $('previewCorretorFotoContainer').style.display = 'none'; $('previewCorretorFoto').removeAttribute('src');
     atualizarSelectsCorretores(); renderDashboard(); renderComissoes(); abrirGerenciadorCorretores();
   }
   function removerCorretor(indice) {
