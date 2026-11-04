@@ -219,6 +219,8 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
           <label>Mês:</label><select id="filtroMesComissoes"><option value="todos">Todos</option><option value="01">Jan</option><option value="02">Fev</option><option value="03">Mar</option><option value="04">Abr</option><option value="05">Mai</option><option value="06">Jun</option><option value="07">Jul</option><option value="08">Ago</option><option value="09">Set</option><option value="10">Out</option><option value="11">Nov</option><option value="12">Dez</option></select>
           <label>Corretor:</label><select id="filtroCorretorComissoes"></select>
           <label>Status:</label><select id="filtroStatusComissoes"><option value="todos">Todos os status</option><option value="a_receber">A receber</option><option value="parcial">Recebido parcialmente</option><option value="recebido">Recebido</option></select>
+          <label>Empreendimento:</label><select id="filtroEmpreendimentoComissoes"><option value="todos">Todos empreendimentos</option></select>
+          <label>Previsão:</label><select id="filtroPrevisaoComissoes"><option value="todos">Todas</option><option value="mes_atual">Mês atual</option></select>
           <label>Captação:</label><select id="filtroCapitacaoComissoes"></select>
           <button class="btn btn-success btn-sm" type="button" onclick="renderComissoes()">🔎 Pesquisar</button>
           <button class="btn btn-secondary btn-sm" onclick="abrirGerenciadorCorretores()">📸 Corretores</button>
@@ -230,6 +232,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
         <div class="card"><div class="card-title">Total Comissões</div><div class="card-val" id="totalComissaoGeral" style="color: var(--primary);">R$ 0,00</div></div>
         <div class="card"><div class="card-title">A Receber</div><div class="card-val" id="totalComissaoAReceber" style="color: var(--warning);">R$ 0,00</div></div>
         <div class="card"><div class="card-title">Recebidas</div><div class="card-val" id="totalComissaoRecebida" style="color: var(--success);">R$ 0,00</div></div>
+        <div class="card"><div class="card-title">Previsto para este mês (saldo)</div><div class="card-val" id="totalComissaoPrevistaMes" style="color: var(--warning);">R$ 0,00</div><small id="qtdComissoesPrevistasMes" style="color:var(--text-muted);">0 comissões com saldo previsto</small></div>
       </div>
       <div class="card" style="margin-bottom:20px;">
         <h3 style="color: var(--primary); margin-bottom: 12px;">Lançar Nova Comissão / Venda</h3>
@@ -647,9 +650,29 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     el.innerHTML = html;
     if (valores.indexOf(atual) >= 0) el.value = atual;
   }
+  function empreendimentosDisponiveisComissao() {
+    var lista = empreendimentosComissao.slice();
+    comissoes.forEach(function(item) {
+      var nome = item.empreendimento || item.unidadeEmpreendimento || '';
+      if (nome && lista.indexOf(nome) === -1) lista.push(nome);
+    });
+    return lista;
+  }
   function atualizarSelectsCatalogosComissao() {
-    preencherSelectCatalogoComissao('empreendimentoComissao', empreendimentosComissao);
+    var empreendimentos = empreendimentosDisponiveisComissao();
+    preencherSelectCatalogoComissao('empreendimentoComissao', empreendimentos);
     preencherSelectCatalogoComissao('formaPagamento', formasPagamentoComissao);
+    var filtro = $('filtroEmpreendimentoComissoes');
+    if (filtro) {
+      var atual = filtro.value || 'todos';
+      var html = '<option value="todos">Todos empreendimentos</option>';
+      empreendimentos.forEach(function(valor) {
+        var seguro = escaparTextoHtml(valor);
+        html += '<option value="' + seguro + '">' + seguro + '</option>';
+      });
+      filtro.innerHTML = html;
+      filtro.value = empreendimentos.indexOf(atual) >= 0 ? atual : 'todos';
+    }
   }
   function abrirGerenciadorEmpreendimentosComissao() {
     atualizarListaGerenciador('listaEmpreendimentosComissao', empreendimentosComissao, function(x){return x;}, 'removerEmpreendimentoComissao');
@@ -1237,11 +1260,33 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     });
   }
 
+  function chaveMesAtualComissao() {
+    var hoje = new Date();
+    return hoje.getFullYear() + '-' + String(hoje.getMonth() + 1).padStart(2, '0');
+  }
+  function previsaoNoMesAtualComissao(item) {
+    return !!item && item.tipoPrevisao !== 'sem_previsao' && String(item.dataPrevisao || '').slice(0, 7) === chaveMesAtualComissao();
+  }
+  function atualizarCardPrevisaoComissoes() {
+    var total = 0;
+    var quantidade = 0;
+    for (var i = 0; i < comissoes.length; i++) {
+      var item = comissoes[i];
+      if (!previsaoNoMesAtualComissao(item)) continue;
+      var saldo = Math.max(0, (Number(item.valorComissao) || 0) - (Number(item.valorRecebido) || 0));
+      if (saldo > 0) { total += saldo; quantidade++; }
+    }
+    if ($('totalComissaoPrevistaMes')) $('totalComissaoPrevistaMes').innerText = formatarMoeda(total);
+    if ($('qtdComissoesPrevistasMes')) $('qtdComissoesPrevistasMes').innerText = quantidade + (quantidade === 1 ? ' comissão com saldo previsto' : ' comissões com saldo previsto');
+  }
+
   function renderComissoes() {
     var fAno = $('filtroAnoComissoes').value;
     var fMes = $('filtroMesComissoes').value;
     var fCor = $('filtroCorretorComissoes').value;
     var fStatus = $('filtroStatusComissoes').value;
+    var fEmpreendimento = $('filtroEmpreendimentoComissoes').value;
+    var fPrevisao = $('filtroPrevisaoComissoes').value;
     var fCap = $('filtroCapitacaoComissoes').value;
 
     comissoes.sort(function(a, b) { return new Date(a.dataFechamento || 0) - new Date(b.dataFechamento || 0); });
@@ -1259,6 +1304,9 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       if(fMes !== 'todos' && pMes !== fMes) continue;
       if(fCor !== 'todos' && cm.corretor !== fCor) continue;
       if(fCap !== 'todos' && cm.veiculoCapitacao !== fCap) continue;
+      var empreendimentoDaComissao = cm.empreendimento || cm.unidadeEmpreendimento || '';
+      if(fEmpreendimento !== 'todos' && empreendimentoDaComissao !== fEmpreendimento) continue;
+      if(fPrevisao === 'mes_atual' && !previsaoNoMesAtualComissao(cm)) continue;
 
       var vV = Number(cm.valorVenda) || 0;
       var vC = Number(cm.valorComissao) || 0;
@@ -1279,6 +1327,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     $('totalComissaoAReceber').innerText = formatarMoeda(tAReceber);
     $('totalComissaoRecebida').innerText = formatarMoeda(tRecebida);
     $('tabelaComissoes').innerHTML = html;
+    atualizarCardPrevisaoComissoes();
     renderDashboard();
   }
 
