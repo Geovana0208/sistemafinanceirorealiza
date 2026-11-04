@@ -80,6 +80,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       <div class="form-group" style="margin-bottom:20px;"><label>Palavra-passe</label><input type="password" id="loginPass" required placeholder="Sua senha" autocomplete="current-password"></div>
       <button type="submit" class="btn" style="width:100%; justify-content:center;">Entrar no Sistema</button>
     </form>
+    <div class="form-group" style="margin-top:16px; text-align:left;"><label for="inputSheetsLogin">Conectar ao Google Sheets (necessário em cada novo navegador)</label><input type="url" id="inputSheetsLogin" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="url"><button type="button" class="btn btn-secondary" style="width:100%; margin-top:8px; justify-content:center;" onclick="salvarSheetsAntesLogin()">Conectar / atualizar dados da planilha</button><small style="display:block;margin-top:6px;color:var(--text-muted);">Cole a mesma URL do Aplicativo Web terminada em /exec. Ela será salva apenas neste navegador.</small></div>
     <div id="loginError" style="color:var(--danger); font-size:0.8rem; margin-top:12px; font-weight:600;"></div>
     <div class="extension-help">
       <h3>Instalar extensão para consultas oficiais</h3>
@@ -503,6 +504,62 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     });
   }
 
+  var carregamentoSheetsPromise = null;
+  function normalizarRegistrosSheets(dados) {
+    return dados.map(function(registro) {
+      if (!registro || typeof registro !== 'object' || Array.isArray(registro)) return registro;
+      Object.keys(registro).forEach(function(chave) {
+        var valor = registro[chave];
+        if (typeof valor === 'string' && /^(data[A-Z_]|vencimento)/i.test(chave) && /^\d{4}-\d{2}-\d{2}T/.test(valor)) {
+          registro[chave] = valor.slice(0, 10);
+        }
+      });
+      return registro;
+    });
+  }
+  function buscarAbaSheets(nomeAba) {
+    var url = WEB_APP_URL + (WEB_APP_URL.indexOf('?') >= 0 ? '&' : '?') + 'aba=' + encodeURIComponent(nomeAba);
+    return fetch(url, { method: 'GET', cache: 'no-store' }).then(function(resp) {
+      if (!resp.ok) throw new Error('Falha HTTP ' + resp.status + ' ao ler ' + nomeAba);
+      return resp.json();
+    }).then(function(dados) {
+      if (!Array.isArray(dados)) throw new Error('Resposta inválida na aba ' + nomeAba);
+      return normalizarRegistrosSheets(dados);
+    });
+  }
+  function carregarDadosCompartilhadosSheets() {
+    if (!WEB_APP_URL) return Promise.reject(new Error('URL do Google Sheets não configurada.'));
+    if (carregamentoSheetsPromise) return carregamentoSheetsPromise;
+    if ($('loginError')) $('loginError').innerText = 'Carregando dados compartilhados do Google Sheets...';
+    if ($('statusSyncText')) $('statusSyncText').innerText = 'Carregando dados do Sheets...';
+    carregamentoSheetsPromise = Promise.all([
+      buscarAbaSheets('Contas'),
+      buscarAbaSheets('Comissoes'),
+      buscarAbaSheets('Alugueis'),
+      buscarAbaSheets('Imoveis')
+    ]).then(function(resultados) {
+      var chaves = ['contas_db', 'comissoes_db', 'alugueis_db', 'imoveis_db'];
+      for (var i = 0; i < resultados.length; i++) {
+        // A aba vazia não apaga cópias locais; abas com conteúdo da nuvem são autoritativas.
+        if (resultados[i].length > 0) {
+          localStorage.setItem(chaves[i], JSON.stringify(resultados[i]));
+        }
+      }
+      contas = resultados[0].length ? resultados[0] : contas;
+      comissoes = resultados[1].length ? resultados[1] : comissoes;
+      alugueis = resultados[2].length ? resultados[2] : alugueis;
+      imoveisDB = resultados[3].length ? resultados[3] : imoveisDB;
+      if ($('loginError')) $('loginError').innerText = '';
+      if ($('statusSyncText')) $('statusSyncText').innerText = 'Dados carregados do Google Sheets';
+      return true;
+    }).catch(function(err) {
+      carregamentoSheetsPromise = null;
+      if ($('statusSyncText')) $('statusSyncText').innerText = 'Erro ao carregar Google Sheets';
+      throw err;
+    });
+    return carregamentoSheetsPromise;
+  }
+
   function abrirConfigSheets() {
     $('inputSheetsUrl').value = WEB_APP_URL;
     $('modalSheets').style.display = 'flex';
@@ -514,6 +571,24 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     $('modalSheets').style.display = 'none';
     alert('URL do Google Sheets configurada com sucesso!');
     location.reload();
+  }
+
+  function salvarSheetsAntesLogin() {
+    var url = $('inputSheetsLogin').value.trim();
+    if (!/^https:\/\/script\.google\.com\/macros\/s\/[^\s]+\/exec(?:\?.*)?$/.test(url)) {
+      $('loginError').innerText = 'Cole a URL válida do Aplicativo Web do Apps Script, terminada em /exec.';
+      return;
+    }
+    WEB_APP_URL = url;
+    localStorage.setItem('sheets_url', WEB_APP_URL);
+    carregamentoSheetsPromise = null;
+    $('loginError').innerText = 'Conectando e carregando os dados da planilha...';
+    carregarDadosCompartilhadosSheets().then(function() {
+      $('loginError').innerText = 'Planilha conectada. Agora entre com seu usuário e senha.';
+    }).catch(function(err) {
+      $('loginError').innerText = 'Não foi possível acessar a planilha. Confira a URL e se o Apps Script está implantado como Aplicativo da Web.';
+      console.error('Falha ao conectar ao Google Sheets:', err);
+    });
   }
 
   var origens = ['Itaú', 'Bradesco', 'Caixa', 'Dinheiro / Caixinha'];
@@ -541,13 +616,15 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   try { var s_im = JSON.parse(localStorage.getItem('imoveis_db')); if (Array.isArray(s_im)) imoveisDB = s_im; } catch(e) {}
 
   document.addEventListener('DOMContentLoaded', function() {
+    if ($('inputSheetsLogin') && WEB_APP_URL) $('inputSheetsLogin').value = WEB_APP_URL;
     var formLogin = $('formLogin');
     if (formLogin) {
       formLogin.addEventListener('submit', function(e) {
         e.preventDefault();
         var u = $('loginUser').value.trim();
         var p = $('loginPass').value.trim();
-        
+        $('loginError').innerText = 'Carregando dados compartilhados do Google Sheets...';
+        carregarDadosCompartilhadosSheets().then(function() {
         if (u === 'admin' && p === '123') {
           localStorage.setItem('sessao_ativa', u);
           entrarSistema(u);
@@ -571,12 +648,21 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
         } else {
           $('loginError').innerText = 'Utilizador ou palavra-passe incorretos!';
         }
+        }).catch(function(err) {
+          $('loginError').innerText = 'Não foi possível carregar os dados do Google Sheets. Verifique a URL e a publicação do Apps Script e tente novamente.';
+          console.error('Falha ao carregar dados compartilhados:', err);
+        });
       });
     }
 
     try {
       var sessao = localStorage.getItem('sessao_ativa');
-      if (sessao) entrarSistema(sessao);
+      if (sessao) {
+        carregarDadosCompartilhadosSheets().then(function() { entrarSistema(sessao); }).catch(function(err) {
+          $('loginError').innerText = 'Não foi possível abrir o sistema: falha ao carregar os dados do Google Sheets. Atualize a página para tentar novamente.';
+          console.error('Falha ao carregar dados compartilhados:', err);
+        });
+      }
     } catch(err) {}
 
     // Os cliques de automação são encaminhados pelo content script da extensão.
