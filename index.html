@@ -68,6 +68,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--primary);background:#
 .btn-danger{background:var(--danger)} .btn-secondary{background:#536b63}
 .btn-sm{padding:6px 12px;font-size:.8rem;border-radius:6px}
 .table-container{overflow-x:auto;margin-top:15px}
+.filter-panel{margin-bottom:20px}.filter-panel summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:9px;color:var(--primary);font-weight:700;font-size:.95rem;min-height:22px}.filter-panel summary::-webkit-details-marker{display:none}.filter-panel summary:before{content:"＋";display:inline-flex;width:22px;height:22px;align-items:center;justify-content:center;border-radius:6px;background:var(--primary-light);font-size:1rem}.filter-panel[open] summary:before{content:"−"}.filter-panel-body{padding-top:14px}.filter-inline{width:100%}.filter-inline summary{padding:2px 0 10px}
 .query-progress{margin:0 0 14px;padding:12px 14px;background:#f2f5f4;border:1px solid var(--border);border-radius:9px}
 .query-progress-title{font-size:.84rem;font-weight:700;color:var(--primary);margin-bottom:5px}
 .query-progress-label{font-size:.82rem;color:var(--text-main);margin-bottom:8px;line-height:1.4}
@@ -159,6 +160,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     <!-- CONTAS -->
     <div id="tab-contas" class="tab-content active">
       <div class="card" style="margin-bottom: 20px;">
+        <details class="filter-panel"><summary>Filtros</summary><div class="filter-panel-body">
         <div class="filter-bar">
           <label>Ano:</label><select id="filtroAnoContas"></select>
           <label>Mês:</label>
@@ -170,7 +172,8 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
           <button class="btn btn-secondary btn-sm" onclick="abrirGerenciadorCategorias()">⚙️ Categorias</button>
           <button class="btn btn-secondary btn-sm" onclick="abrirGerenciadorVeiculos()">⚙️ Veículos Captação</button>
           <button class="btn btn-success btn-sm" onclick="gerarProximoMes()">🔄 Gerar Próximo Mês</button>
-        </div>
+        </div></div></details>
+      
       </div>
       <div class="grid-cards">
         <div class="card"><div class="card-title">Previsto Total</div><div class="card-val" id="totalPrevisto" style="color: var(--primary);">R$ 0,00</div></div>
@@ -208,13 +211,15 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     <!-- DASHBOARD -->
     <div id="tab-dashboard" class="tab-content">
       <div class="card" style="margin-bottom: 20px;">
+        <details class="filter-panel"><summary>Filtros</summary><div class="filter-panel-body">
         <div class="filter-bar">
           <label>Ano:</label><select id="filtroAnoDash"></select>
           <label>Mês:</label><select id="filtroMesDash"><option value="todos">Todos</option><option value="01">Jan</option><option value="02">Fev</option><option value="03">Mar</option><option value="04">Abr</option><option value="05">Mai</option><option value="06">Jun</option><option value="07">Jul</option><option value="08">Ago</option><option value="09">Set</option><option value="10">Out</option><option value="11">Nov</option><option value="12">Dez</option></select>
           <label>Corretor:</label><select id="filtroCorretorDash"></select>
           <button class="btn btn-success btn-sm" type="button" onclick="renderDashboard()">🔎 Pesquisar</button>
           <button class="btn btn-secondary btn-sm" onclick="abrirGerenciadorCorretores()">📸 Gerenciar Corretores</button>
-        </div>
+        </div></div></details>
+      
       </div>
       <div class="grid-cards">
         <div class="card"><div class="card-title">Volume Vendas</div><div class="card-val" id="dashTotalVendas" style="color: var(--primary);">R$ 0,00</div></div>
@@ -234,6 +239,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     <!-- COMISSÕES -->
     <div id="tab-comissoes" class="tab-content">
       <div class="card" style="margin-bottom: 20px;">
+        <details class="filter-panel"><summary>Filtros</summary><div class="filter-panel-body">
         <div class="filter-bar">
           <label>Ano:</label><select id="filtroAnoComissoes"></select>
           <label>Mês:</label><select id="filtroMesComissoes"><option value="todos">Todos</option><option value="01">Jan</option><option value="02">Fev</option><option value="03">Mar</option><option value="04">Abr</option><option value="05">Mai</option><option value="06">Jun</option><option value="07">Jul</option><option value="08">Ago</option><option value="09">Set</option><option value="10">Out</option><option value="11">Nov</option><option value="12">Dez</option></select>
@@ -245,7 +251,8 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
           <button class="btn btn-success btn-sm" type="button" onclick="renderComissoes()">🔎 Pesquisar</button>
           <button class="btn btn-secondary btn-sm" onclick="abrirGerenciadorCorretores()">📸 Corretores</button>
           <button class="btn btn-secondary btn-sm" onclick="abrirGerenciadorVeiculos()">⚙️ Veículos</button>
-        </div>
+        </div></div></details>
+      
       </div>
       <div class="grid-cards">
         <div class="card"><div class="card-title">Volume Vendas</div><div class="card-val" id="totalVendasComissao" style="color: var(--primary);">R$ 0,00</div></div>
@@ -294,13 +301,15 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     <!-- ALUGUEL -->
     <div id="tab-aluguel" class="tab-content">
       <div class="card" style="margin-bottom: 20px;">
+        <details class="filter-panel"><summary>Filtros</summary><div class="filter-panel-body">
         <div class="filter-bar">
           <label>Ano:</label><select id="filtroAnoAluguel"></select>
           <label>Mês:</label><select id="filtroMesAluguel"><option value="todos">Todos</option><option value="01">Jan</option><option value="02">Fev</option><option value="03">Mar</option><option value="04">Abr</option><option value="05">Mai</option><option value="06">Jun</option><option value="07">Jul</option><option value="08">Ago</option><option value="09">Set</option><option value="10">Out</option><option value="11">Nov</option><option value="12">Dez</option></select>
           <label>Corretor:</label><select id="filtroCorretorAluguel"></select>
           <label>Captação:</label><select id="filtroCapitacaoAluguel"></select>
           <button class="btn btn-success btn-sm" type="button" onclick="renderAlugueis()">🔎 Pesquisar</button>
-        </div>
+        </div></div></details>
+      
       </div>
       <div class="grid-cards">
         <div class="card"><div class="card-title">Total Locações</div><div class="card-val" id="qtdAlugueisFechados" style="color: var(--primary);">0</div></div>
@@ -387,12 +396,12 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       </div>
       <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px; flex-wrap:wrap; gap:10px;">
-          <div class="filter-bar" style="margin-bottom:0;">
+          <details class="filter-panel filter-inline"><summary>Filtros</summary><div class="filter-bar" style="margin-bottom:0;">
             <label>Pesquisar Contrato:</label><input type="text" id="filtroBuscaContratoImoveis" placeholder="Nº Contrato..." style="max-width:160px;">
             <label>Situação Contas:</label><select id="filtroStatusImoveis"><option value="todos">Todos</option><option value="em_dia">Em dia</option><option value="pendente">Com pendências</option></select>
             <label>Status Imóvel:</label><select id="filtroImovelStatus"><option value="todos">Todos</option><option value="Alugado">Alugado</option><option value="Desocupado">Desocupado</option></select>
             <button class="btn btn-success btn-sm" type="button" onclick="renderImoveis()">🔎 Pesquisar</button>
-          </div>
+          </div></details>
           <button class="btn btn-danger btn-sm" onclick="limparDuplicadosManual()">🧹 Limpar Imóveis Duplicados</button>
         </div>
         <div class="table-container">
@@ -419,9 +428,9 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
           <div class="query-progress-label" id="progressBciLabel">Nenhuma consulta iniciada.</div>
           <div class="query-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="query-progress-fill" id="progressBciBar"></div></div>
         </div>
-        <div class="filter-bar" style="margin-bottom: 15px;">
+        <details class="filter-panel filter-inline"><summary>Filtros</summary><div class="filter-bar" style="margin-bottom: 15px;">
           <label>Pesquisar Contrato:</label><input type="text" id="filtroBuscaContratoIptu" placeholder="Nº Contrato..." style="max-width:160px;"><label>Consulta:</label><select id="filtroStatusIptu"><option value="todos">Todos</option><option value="aberto">Em aberto</option><option value="emdia">Em dia</option><option value="outros">Não consultado / verificar</option></select><button class="btn btn-success btn-sm" type="button" onclick="renderBcis()">🔎 Pesquisar</button>
-        </div>
+        </div></details>
         <div class="table-container">
           <table>
             <thead><tr><th>BCI (Formato Original)</th><th>Contrato</th><th>CPF</th><th>Status Imóvel</th><th>Status da Consulta</th></tr></thead>
@@ -446,9 +455,9 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
           <div class="query-progress-label" id="progressDamaeLabel">Nenhuma consulta iniciada.</div>
           <div class="query-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="query-progress-fill" id="progressDamaeBar"></div></div>
         </div>
-        <div class="filter-bar" style="margin-bottom: 15px;">
+        <details class="filter-panel filter-inline"><summary>Filtros</summary><div class="filter-bar" style="margin-bottom: 15px;">
           <label>Pesquisar Contrato:</label><input type="text" id="filtroBuscaContratoDamae" placeholder="Nº Contrato..." style="max-width:160px;"><label>Consulta:</label><select id="filtroStatusDamae"><option value="todos">Todos</option><option value="aberto">Em aberto</option><option value="vencida">Guia vencida</option><option value="emdia">Em dia</option><option value="outros">Não consultado / verificar</option></select><button class="btn btn-success btn-sm" type="button" onclick="renderDamae()">🔎 Pesquisar</button>
-        </div>
+        </div></details>
         <div class="table-container">
           <table>
             <thead><tr><th>ID DAMAE</th><th>Contrato</th><th>Status Imóvel</th><th>Status da Consulta</th></tr></thead>
