@@ -1389,14 +1389,31 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     var total = Math.round((venda * percentual / 100 + Number.EPSILON) * 100) / 100;
     $('valorComissao').value = total.toFixed(2);
   }
+  var contaInlineId = null, comissaoInlineId = null, aluguelInlineId = null;
+  function campoInline(id, rotulo, valor, tipo) {
+    var evento = id === 'ieComVenda' || id === 'ieComPercentual' ? ' oninput="calcularComissaoInline()"' : '';
+    return '<label style="display:flex;flex-direction:column;gap:4px;font-size:.75rem;color:var(--text-muted)">' + rotulo + '<input id="' + id + '" type="' + (tipo || 'text') + '" value="' + escaparTextoHtml(valor == null ? '' : valor) + '"' + evento + ' style="min-width:110px;padding:7px 8px"></label>';
+  }
+  function calcularComissaoInline() {
+    var percentual=$('ieComPercentual'), venda=$('ieComVenda'), total=$('ieComTotal');
+    if(!percentual||!venda||!total)return;
+    if(percentual.value===''){total.value='';return;}
+    total.value=(Math.round(((Number(venda.value)||0)*(Number(percentual.value)||0)/100+Number.EPSILON)*100)/100).toFixed(2);
+  }
+  function valorInline(id) { return $(id) ? $(id).value : ''; }
   function editarConta(id) {
-    var item = contas.find(function(x){return String(x.id) === String(id);});
-    if (!item) { alert('Conta não encontrada.'); return; }
-    $('contaId').value = item.id; $('descricao').value = item.descricao || '';
-    $('valorPrevisto').value = Number(item.valorPrevisto) || 0; $('valorReal').value = Number(item.valorReal) || 0;
-    $('vencimento').value = item.vencimento || ''; $('contaOrigem').value = item.contaOrigem || '';
-    $('tipoConta').value = item.tipo || 'Fixa'; $('categoria').value = item.categoria || '';
-    toggleParcelas(); window.scrollTo({top:0,behavior:'smooth'});
+    if (!contas.some(function(x){return String(x.id) === String(id);})) { alert('Conta não encontrada.'); return; }
+    contaInlineId = String(id); renderContas();
+  }
+  function cancelarEdicaoInline(tipo) {
+    if (tipo === 'conta') { contaInlineId = null; renderContas(); }
+    if (tipo === 'comissao') { comissaoInlineId = null; renderComissoes(); }
+    if (tipo === 'aluguel') { aluguelInlineId = null; renderAlugueis(); }
+  }
+  function salvarEdicaoInlineConta(id) {
+    var item = contas.find(function(x){return String(x.id) === String(id);}); if (!item) return;
+    Object.assign(item, {descricao:valorInline('ieContaDescricao').trim(),tipo:valorInline('ieContaTipo'),contaOrigem:valorInline('ieContaOrigem'),vencimento:valorInline('ieContaVencimento'),valorPrevisto:Number(valorInline('ieContaPrevisto'))||0,valorReal:Number(valorInline('ieContaReal'))||0,categoria:valorInline('ieContaCategoria'),status:(Number(valorInline('ieContaReal'))>0?'Pago':'Pendente')});
+    localStorage.setItem('contas_db',JSON.stringify(contas)); sincronizarComSheets('Contas',contas); contaInlineId=null; renderContas();
   }
   function excluirConta(id) {
     if (!confirm('Deseja excluir esta conta?')) return;
@@ -1405,26 +1422,14 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     sincronizarComSheets('Contas', contas); renderContas();
   }
   function editarComissao(id) {
-    var item = comissoes.find(function(x){return String(x.id) === String(id);});
-    if (!item) { alert('Comissão não encontrada.'); return; }
-    $('comissaoId').value = item.id; $('codigoComissao').value = item.codigo || '';
-    $('unidadeComissao').value = item.unidade || '';
-    atualizarSelectsCatalogosComissao();
-    $('empreendimentoComissao').value = item.empreendimento || item.unidadeEmpreendimento || '';
-    $('formaPagamento').value = item.formaPagamento || '';
-    $('comprador').value = item.comprador || '';
-    $('veiculoCapitacao').value = item.veiculoCapitacao || ''; $('vendedor').value = item.vendedor || '';
-    $('corretor').value = item.corretor || ''; $('dataFechamentoComissao').value = item.dataFechamento || '';
-    var vendaAnterior = Number(item.valorVenda) || 0;
-    $('valorVenda').value = vendaAnterior;
-    $('percentualComissao').value = item.percentualComissao == null ? '' : item.percentualComissao;
-    $('valorComissao').value = item.valorComissao == null ? '' : item.valorComissao;
-    $('comissaoImobiliaria').value = Number(item.comissaoImobiliaria) || 0;
-    atualizarComissaoCalculada();
-    $('valorRecebido').value = Number(item.valorRecebido) || 0; $('retidoPor').value = item.retidoPor || 'Nenhum';
-    $('tipoPrevisao').value = item.tipoPrevisao || 'com_data'; $('dataPrevisao').value = item.dataPrevisao || '';
-    $('observacoesComissao').value = item.observacoes || ''; toggleDataPrevisao();
-    window.scrollTo({top:0,behavior:'smooth'});
+    if (!comissoes.some(function(x){return String(x.id) === String(id);})) { alert('Comissão não encontrada.'); return; }
+    comissaoInlineId = String(id); renderComissoes();
+  }
+  function salvarEdicaoInlineComissao(id) {
+    var item=comissoes.find(function(x){return String(x.id)===String(id);}); if(!item)return;
+    var percentualInline=valorInline('ieComPercentual');
+    Object.assign(item,{codigo:valorInline('ieComCodigo').trim(),unidade:valorInline('ieComUnidade').trim(),empreendimento:valorInline('ieComEmpreendimento').trim(),formaPagamento:valorInline('ieComForma').trim(),comprador:valorInline('ieComComprador').trim(),veiculoCapitacao:valorInline('ieComCaptacao').trim(),vendedor:valorInline('ieComVendedor').trim(),corretor:valorInline('ieComCorretor').trim(),dataFechamento:valorInline('ieComData'),valorVenda:Number(valorInline('ieComVenda'))||0,percentualComissao:percentualInline===''?'':Number(percentualInline),valorComissao:percentualInline===''?'':(Number(valorInline('ieComTotal'))||0),comissaoImobiliaria:Number(valorInline('ieComImobiliaria'))||0,valorRecebido:Number(valorInline('ieComRecebido'))||0,retidoPor:valorInline('ieComRetencao'),tipoPrevisao:valorInline('ieComTipoPrevisao'),dataPrevisao:valorInline('ieComDataPrevisao'),observacoes:valorInline('ieComObs').trim()});
+    normalizarCamposComissoes(); localStorage.setItem('comissoes_db',JSON.stringify(comissoes)); sincronizarComSheets('Comissoes',comissoes); comissaoInlineId=null; renderComissoes();
   }
   function excluirComissao(id) {
     if (!confirm('Deseja excluir esta comissão/venda?')) return;
@@ -1534,8 +1539,12 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       if (dVen >= hojeDate && dVen <= daqui7 && c.status !== 'Pago') proxDias += vP;
 
       var badge = c.status === 'Pago' ? 'badge-pago' : 'badge-pendente';
-      html += '<tr><td>' + c.descricao + '</td><td>' + c.tipo + '</td><td>' + c.contaOrigem + '</td><td>' + c.vencimento.split('-').reverse().join('/') + '</td><td>' + formatarMoeda(vP) + '</td><td>' + formatarMoeda(vR) + '</td><td><span class="badge ' + badge + '">' + (c.status || 'Pendente') + '</span></td>';
-      html += '<td><button class="btn btn-secondary btn-sm" onclick="editarConta(\'' + c.id + '\')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirConta(\'' + c.id + '\')">X</button></td></tr>';
+      if (contaInlineId === String(c.id)) {
+        html += '<tr><td>' + campoInline('ieContaDescricao','Descrição',c.descricao) + '<br>' + campoInline('ieContaCategoria','Categoria',c.categoria) + '</td><td>' + campoInline('ieContaTipo','Tipo',c.tipo) + '</td><td>' + campoInline('ieContaOrigem','Origem',c.contaOrigem) + '</td><td>' + campoInline('ieContaVencimento','Vencimento',c.vencimento,'date') + '</td><td>' + campoInline('ieContaPrevisto','Previsto',vP,'number') + '</td><td>' + campoInline('ieContaReal','Pago',vR,'number') + '</td><td><span class="badge ' + badge + '">' + (c.status || 'Pendente') + '</span></td><td><button class="btn btn-success btn-sm" onclick="salvarEdicaoInlineConta(\'' + escaparTextoHtml(c.id) + '\')">Salvar</button> <button class="btn btn-secondary btn-sm" onclick="cancelarEdicaoInline(\'conta\')">Cancelar</button></td></tr>';
+      } else {
+        html += '<tr><td>' + escaparTextoHtml(c.descricao) + '</td><td>' + escaparTextoHtml(c.tipo) + '</td><td>' + escaparTextoHtml(c.contaOrigem) + '</td><td>' + c.vencimento.split('-').reverse().join('/') + '</td><td>' + formatarMoeda(vP) + '</td><td>' + formatarMoeda(vR) + '</td><td><span class="badge ' + badge + '">' + (c.status || 'Pendente') + '</span></td>';
+        html += '<td><button class="btn btn-secondary btn-sm" onclick="editarConta(\'' + c.id + '\')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirConta(\'' + c.id + '\')">X</button></td></tr>';
+      }
     }
 
     $('totalPrevisto').innerText = formatarMoeda(totPrev);
@@ -1677,6 +1686,16 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       var previsaoSeguro = cm.tipoPrevisao === 'sem_previsao' ? 'Sem previsão' : (cm.dataPrevisao ? escaparTextoHtml(cm.dataPrevisao.split('-').reverse().join('/')) : '—');
       var percentualSeguro = cm.percentualComissao === '' || cm.percentualComissao == null ? '—' : escaparTextoHtml((Number(cm.percentualComissao) || 0).toLocaleString('pt-BR', {maximumFractionDigits:8}) + '%');
       var comissaoTotalSeguro = cm.valorComissao === '' || cm.valorComissao == null ? '—' : escaparTextoHtml(formatarMoeda(vC));
+      if (comissaoInlineId === String(cm.id)) {
+        html += '<tr class="inline-edit-row"><td colspan="12"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;padding:8px">';
+        html += campoInline('ieComCodigo','COD',cm.codigo) + campoInline('ieComUnidade','Unidade',cm.unidade) + campoInline('ieComEmpreendimento','Empreendimento',cm.empreendimento || cm.unidadeEmpreendimento) + campoInline('ieComForma','Forma de pagamento',cm.formaPagamento);
+        html += campoInline('ieComComprador','Comprador',cm.comprador) + campoInline('ieComVendedor','Vendedor',cm.vendedor) + campoInline('ieComCorretor','Corretor',cm.corretor) + campoInline('ieComCaptacao','Captação',cm.veiculoCapitacao);
+        html += campoInline('ieComData','Fechamento',cm.dataFechamento,'date') + campoInline('ieComVenda','Venda',vV,'number') + campoInline('ieComPercentual','Percentual',cm.percentualComissao,'number') + campoInline('ieComTotal','Comissão total',cm.valorComissao === '' || cm.valorComissao == null ? '' : vC,'number');
+        html += campoInline('ieComImobiliaria','Comissão imobiliária',comissaoImobiliaria,'number') + campoInline('ieComRecebido','Imobiliária recebido',vRec,'number') + campoInline('ieComRetencao','Retenção',cm.retidoPor) + campoInline('ieComTipoPrevisao','Tipo de previsão',cm.tipoPrevisao);
+        html += campoInline('ieComDataPrevisao','Data prevista',cm.dataPrevisao,'date') + '<label style="grid-column:1/-1;display:flex;flex-direction:column;gap:4px;font-size:.75rem;color:var(--text-muted)">Observações<textarea id="ieComObs" rows="2">' + escaparTextoHtml(cm.observacoes || '') + '</textarea></label>';
+        html += '<div style="grid-column:1/-1;display:flex;gap:8px"><button class="btn btn-success btn-sm" onclick="salvarEdicaoInlineComissao(\'' + escaparTextoHtml(cm.id) + '\')">Salvar alterações</button><button class="btn btn-secondary btn-sm" onclick="cancelarEdicaoInline(\'comissao\')">Cancelar</button></div></div></td></tr>';
+        continue;
+      }
       html += '<tr><td>' + escaparTextoHtml(cm.dataFechamento.split('-').reverse().join('/')) + '</td>';
       html += '<td>' + escaparTextoHtml(cm.codigo || '-') + '</td><td>' + empreendimentoSeguro + '</td>';
       html += '<td><b>Comprador:</b> ' + compradorSeguro + '<br><b>Vendedor:</b> ' + vendedorSeguro + '</td><td>' + corretorSeguro + '</td><td>' + formatarMoeda(vV) + '</td>';
@@ -1758,7 +1777,11 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       totalVal += val;
       if(al.veiculoCapitacao && al.veiculoCapitacao.toLowerCase().includes('marketing')) qtdMkt++;
 
-      html += '<tr><td>' + al.dataFechamento.split('-').reverse().join('/') + '</td><td>' + al.inquilino + '</td><td>' + al.veiculoCapitacao + '</td><td>' + al.proprietario + '</td><td>' + al.corretor + '</td><td>' + formatarMoeda(val) + '</td><td>' + (al.veiculoCapitacao && al.veiculoCapitacao.toLowerCase().includes('marketing') ? 'R$ 50,00' : '-') + '</td><td><button class="btn btn-secondary btn-sm" onclick="editarAluguel(\'' + al.id + '\')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirAluguel(\'' + al.id + '\')">X</button></td></tr>';
+      if (aluguelInlineId === String(al.id)) {
+        html += '<tr><td>' + campoInline('ieAlData','Fechamento',al.dataFechamento,'date') + '</td><td>' + campoInline('ieAlInquilino','Inquilino',al.inquilino) + '</td><td>' + campoInline('ieAlCaptacao','Captação',al.veiculoCapitacao) + '</td><td>' + campoInline('ieAlProprietario','Proprietário',al.proprietario) + '</td><td>' + campoInline('ieAlCorretor','Corretor',al.corretor) + '</td><td>' + campoInline('ieAlValor','Valor aluguel',val,'number') + '</td><td>' + (al.veiculoCapitacao && al.veiculoCapitacao.toLowerCase().includes('marketing') ? 'R$ 50,00' : '-') + '</td><td><button class="btn btn-success btn-sm" onclick="salvarEdicaoInlineAluguel(\'' + escaparTextoHtml(al.id) + '\')">Salvar</button> <button class="btn btn-secondary btn-sm" onclick="cancelarEdicaoInline(\'aluguel\')">Cancelar</button></td></tr>';
+      } else {
+        html += '<tr><td>' + al.dataFechamento.split('-').reverse().join('/') + '</td><td>' + escaparTextoHtml(al.inquilino) + '</td><td>' + escaparTextoHtml(al.veiculoCapitacao) + '</td><td>' + escaparTextoHtml(al.proprietario) + '</td><td>' + escaparTextoHtml(al.corretor) + '</td><td>' + formatarMoeda(val) + '</td><td>' + (al.veiculoCapitacao && al.veiculoCapitacao.toLowerCase().includes('marketing') ? 'R$ 50,00' : '-') + '</td><td><button class="btn btn-secondary btn-sm" onclick="editarAluguel(\'' + al.id + '\')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirAluguel(\'' + al.id + '\')">X</button></td></tr>';
+      }
     }
 
     $('qtdAlugueisFechados').innerText = alugueis.length;
@@ -1775,14 +1798,13 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   function editarAluguel(id) {
     var item = alugueis.find(function(x) { return String(x.id) === String(id); });
     if (!item) { alert('Locação não encontrada.'); return; }
-    $('aluguelId').value = item.id;
-    $('inquilino').value = item.inquilino || '';
-    $('veiculoCapitacaoAluguel').value = item.veiculoCapitacao || '';
-    $('proprietarioAluguel').value = item.proprietario || '';
-    $('valorAluguel').value = Number(item.valorAluguel) || 0;
-    $('dataFechamentoAluguel').value = item.dataFechamento || '';
-    $('corretorAluguel').value = item.corretor || '';
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    aluguelInlineId = String(id); renderAlugueis();
+  }
+
+  function salvarEdicaoInlineAluguel(id) {
+    var item=alugueis.find(function(x){return String(x.id)===String(id);}); if(!item)return;
+    Object.assign(item,{dataFechamento:valorInline('ieAlData'),inquilino:valorInline('ieAlInquilino').trim(),veiculoCapitacao:valorInline('ieAlCaptacao').trim(),proprietario:valorInline('ieAlProprietario').trim(),corretor:valorInline('ieAlCorretor').trim(),valorAluguel:Number(valorInline('ieAlValor'))||0});
+    localStorage.setItem('alugueis_db',JSON.stringify(alugueis)); sincronizarComSheets('Alugueis',alugueis); aluguelInlineId=null; renderAlugueis();
   }
 
   function excluirAluguel(id) {
