@@ -1514,7 +1514,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     var fPrevisao = $('filtroPrevisaoComissoes').value;
     var fCap = $('filtroCapitacaoComissoes').value;
 
-    comissoes.sort(function(a, b) { return new Date(a.dataFechamento || 0) - new Date(b.dataFechamento || 0); });
+    comissoes.sort(function(a, b) { return new Date(b.dataFechamento || 0) - new Date(a.dataFechamento || 0); });
 
     var html = '';
     var tVendas = 0, tComissao = 0, tAReceber = 0, tRecebida = 0;
@@ -1590,7 +1590,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     var fCor = $('filtroCorretorAluguel').value;
     var fCap = $('filtroCapitacaoAluguel').value;
 
-    alugueis.sort(function(a, b) { return new Date(a.dataFechamento || 0) - new Date(b.dataFechamento || 0); });
+    alugueis.sort(function(a, b) { return new Date(b.dataFechamento || 0) - new Date(a.dataFechamento || 0); });
 
     var html = '';
     var totalVal = 0, qtdMkt = 0;
