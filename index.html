@@ -1467,11 +1467,12 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     var evento = id === 'ieComVenda' || id === 'ieComPercentual' ? ' oninput="calcularComissaoInline()"' : '';
     return '<label style="display:flex;flex-direction:column;gap:4px;font-size:.75rem;color:var(--text-muted)">' + rotulo + '<input id="' + id + '" type="' + (tipo || 'text') + '" value="' + escaparTextoHtml(valor == null ? '' : valor) + '"' + evento + ' style="min-width:110px;padding:7px 8px"></label>';
   }
-  function selectInline(id, rotulo, atual, opcoes) {
+  function selectInline(id, rotulo, atual, opcoes, onchangeHandler) {
     var valorAtual = String(atual == null ? '' : atual);
     var lista = (opcoes || []).map(function(op) { return typeof op === 'string' ? {value:op,label:op} : op; });
     if (valorAtual && !lista.some(function(op) { return String(op.value) === valorAtual; })) lista.unshift({value:valorAtual,label:valorAtual});
-    var html = '<label style="display:flex;flex-direction:column;gap:4px;font-size:.75rem;color:var(--text-muted)">' + rotulo + '<select id="' + id + '" style="min-width:130px;padding:7px 8px"><option value="">Selecione...</option>';
+    var evento = onchangeHandler ? ' onchange="' + onchangeHandler + '"' : '';
+    var html = '<label style="display:flex;flex-direction:column;gap:4px;font-size:.75rem;color:var(--text-muted)">' + rotulo + '<select id="' + id + '"' + evento + ' style="min-width:130px;padding:7px 8px"><option value="">Selecione...</option>';
     lista.forEach(function(op) { html += '<option value="' + escaparTextoHtml(op.value) + '"' + (String(op.value) === valorAtual ? ' selected' : '') + '>' + escaparTextoHtml(op.label) + '</option>'; });
     return html + '</select></label>';
   }
@@ -1482,6 +1483,23 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     total.value=(Math.round(((Number(venda.value)||0)*(Number(percentual.value)||0)/100+Number.EPSILON)*100)/100).toFixed(2);
   }
   function valorInline(id) { return $(id) ? $(id).value : ''; }
+  function atualizarCamposParcelaInlineConta() {
+    var grupo = $('groupParcelasInlineConta');
+    var tipo = $('ieContaTipo');
+    if (!grupo || !tipo) return;
+    var mostrar = tipo.value === 'Parcelada';
+    grupo.style.display = mostrar ? 'flex' : 'none';
+    if (mostrar) {
+      if ($('ieContaParcelaAtual') && !$('ieContaParcelaAtual').value) $('ieContaParcelaAtual').value = '1';
+      if ($('ieContaParcelaTotal') && !$('ieContaParcelaTotal').value) $('ieContaParcelaTotal').value = '12';
+    }
+  }
+  function camposParcelasInlineConta(item) {
+    var atual = item.parcelaAtual == null || item.parcelaAtual === '' ? 1 : item.parcelaAtual;
+    var total = item.parcelaTotal == null || item.parcelaTotal === '' ? 12 : item.parcelaTotal;
+    var display = item.tipo === 'Parcelada' ? 'flex' : 'none';
+    return '<div id="groupParcelasInlineConta" style="display:' + display + ';gap:5px;margin-top:6px;align-items:flex-end;">' + campoInline('ieContaParcelaAtual','Parcela atual',atual,'number') + campoInline('ieContaParcelaTotal','Total de parcelas',total,'number') + '</div>';
+  }
   function editarConta(id) {
     if (!contas.some(function(x){return String(x.id) === String(id);})) { alert('Conta não encontrada.'); return; }
     contaInlineId = String(id); renderContas();
@@ -1493,7 +1511,8 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   }
   function salvarEdicaoInlineConta(id) {
     var item = contas.find(function(x){return String(x.id) === String(id);}); if (!item) return;
-    Object.assign(item, {descricao:valorInline('ieContaDescricao').trim(),observacao:valorInline('ieContaObs').trim(),tipo:valorInline('ieContaTipo'),contaOrigem:valorInline('ieContaOrigem'),vencimento:valorInline('ieContaVencimento'),valorPrevisto:Number(valorInline('ieContaPrevisto'))||0,valorReal:Number(valorInline('ieContaReal'))||0,categoria:valorInline('ieContaCategoria'),status:(Number(valorInline('ieContaReal'))>0?'Pago':'Pendente')});
+    var tipoContaInline = valorInline('ieContaTipo');
+    Object.assign(item, {descricao:valorInline('ieContaDescricao').trim(),observacao:valorInline('ieContaObs').trim(),tipo:tipoContaInline,parcelaAtual:tipoContaInline==='Parcelada'?(Number(valorInline('ieContaParcelaAtual'))||1):'',parcelaTotal:tipoContaInline==='Parcelada'?(Number(valorInline('ieContaParcelaTotal'))||12):'',contaOrigem:valorInline('ieContaOrigem'),vencimento:valorInline('ieContaVencimento'),valorPrevisto:Number(valorInline('ieContaPrevisto'))||0,valorReal:Number(valorInline('ieContaReal'))||0,categoria:valorInline('ieContaCategoria'),status:(Number(valorInline('ieContaReal'))>0?'Pago':'Pendente')});
     localStorage.setItem('contas_db',JSON.stringify(contas)); sincronizarComSheets('Contas',contas); contaInlineId=null; renderContas();
   }
   function excluirConta(id) {
@@ -1572,6 +1591,8 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
         vencimento: $('vencimento').value,
         contaOrigem: $('contaOrigem').value,
         tipo: $('tipoConta').value,
+        parcelaAtual: $('tipoConta').value === 'Parcelada' ? (Number($('parcAtual').value) || 1) : '',
+        parcelaTotal: $('tipoConta').value === 'Parcelada' ? (Number($('parcTotal').value) || 12) : '',
         categoria: $('categoria').value,
         status: (Number($('valorReal').value) > 0) ? 'Pago' : 'Pendente'
       };
@@ -1641,7 +1662,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       var idMarketing = String(c.id || '');
       var observacaoConta = c.observacao || (idMarketing.indexOf('auto_mkt_a_') === 0 ? 'Aluguel' : (idMarketing.indexOf('auto_mkt_v_') === 0 ? 'Venda' : '—'));
       if (contaInlineId === String(c.id)) {
-        html += '<tr><td>' + campoInline('ieContaDescricao','Descrição',c.descricao) + '<br>' + selectInline('ieContaCategoria','Categoria',c.categoria,categorias) + '</td><td>' + campoInline('ieContaObs','Obs.',observacaoConta) + '</td><td>' + selectInline('ieContaTipo','Tipo',c.tipo,['Fixa','Variável','Parcelada']) + '</td><td>' + selectInline('ieContaOrigem','Origem',c.contaOrigem,origens) + '</td><td>' + campoInline('ieContaVencimento','Vencimento',c.vencimento,'date') + '</td><td>' + campoInline('ieContaPrevisto','Previsto',vP,'number') + '</td><td>' + campoInline('ieContaReal','Pago',vR,'number') + '</td><td><span class="badge ' + badge + '">' + (c.status || 'Pendente') + '</span></td><td><button class="btn btn-success btn-sm" onclick="salvarEdicaoInlineConta(\'' + escaparTextoHtml(c.id) + '\')">Salvar</button> <button class="btn btn-secondary btn-sm" onclick="cancelarEdicaoInline(\'conta\')">Cancelar</button></td></tr>';
+        html += '<tr><td>' + campoInline('ieContaDescricao','Descrição',c.descricao) + '<br>' + selectInline('ieContaCategoria','Categoria',c.categoria,categorias) + '</td><td>' + campoInline('ieContaObs','Obs.',observacaoConta) + '</td><td>' + selectInline('ieContaTipo','Tipo',c.tipo,['Fixa','Variável','Parcelada'],'atualizarCamposParcelaInlineConta()') + camposParcelasInlineConta(c) + '</td><td>' + selectInline('ieContaOrigem','Origem',c.contaOrigem,origens) + '</td><td>' + campoInline('ieContaVencimento','Vencimento',c.vencimento,'date') + '</td><td>' + campoInline('ieContaPrevisto','Previsto',vP,'number') + '</td><td>' + campoInline('ieContaReal','Pago',vR,'number') + '</td><td><span class="badge ' + badge + '">' + (c.status || 'Pendente') + '</span></td><td><button class="btn btn-success btn-sm" onclick="salvarEdicaoInlineConta(\'' + escaparTextoHtml(c.id) + '\')">Salvar</button> <button class="btn btn-secondary btn-sm" onclick="cancelarEdicaoInline(\'conta\')">Cancelar</button></td></tr>';
       } else {
         html += '<tr><td>' + escaparTextoHtml(c.descricao) + '</td><td><small>' + escaparTextoHtml(observacaoConta) + '</small></td><td>' + escaparTextoHtml(c.tipo) + '</td><td>' + escaparTextoHtml(c.contaOrigem) + '</td><td>' + c.vencimento.split('-').reverse().join('/') + '</td><td>' + formatarMoeda(vP) + '</td><td>' + formatarMoeda(vR) + '</td><td><span class="badge ' + badge + '">' + (c.status || 'Pendente') + '</span></td>';
         html += '<td><button class="btn btn-secondary btn-sm" onclick="editarConta(\'' + c.id + '\')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirConta(\'' + c.id + '\')">X</button></td></tr>';
