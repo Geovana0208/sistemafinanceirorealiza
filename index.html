@@ -1635,14 +1635,15 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       var comissaoTotalSeguro = cm.valorComissao === '' || cm.valorComissao == null ? '—' : escaparTextoHtml(formatarMoeda(vC));
       html += '<tr><td>' + escaparTextoHtml(cm.dataFechamento.split('-').reverse().join('/')) + '</td>';
       html += '<td>' + escaparTextoHtml(cm.codigo || '-') + '</td><td>' + empreendimentoSeguro + '</td>';
-      html += '<td>' + compradorSeguro + '</td><td>' + corretorSeguro + '</td><td>' + formatarMoeda(vV) + '</td>';
+      html += '<td><b>Comprador:</b> ' + compradorSeguro + '<br><b>Vendedor:</b> ' + vendedorSeguro + '</td><td>' + corretorSeguro + '</td><td>' + formatarMoeda(vV) + '</td>';
       html += '<td>' + formatarMoeda(comissaoImobiliaria) + '</td><td>' + formatarMoeda(vRec) + '</td><td>' + formatarMoeda(falta) + '</td>';
       html += '<td><span class="badge ' + badge + '">' + statusTxt + '</span></td>';
       html += '<td><button type="button" class="btn btn-secondary btn-sm" id="btn-' + detalheId + '" onclick="toggleDetalhesComissao(' + i + ')">Ver</button></td>';
       html += '<td><button class="btn btn-secondary btn-sm" onclick="editarComissao(\'' + cm.id + '\')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirComissao(\'' + cm.id + '\')">X</button></td></tr>';
       html += '<tr id="' + detalheId + '" class="commission-detail-row" style="display:none"><td colspan="12"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;padding:8px 4px;white-space:normal">';
+      html += '<div><b>Comprador:</b> ' + compradorSeguro + '</div>';
       html += '<div><b>Unidade:</b> ' + escaparTextoHtml(cm.unidade || '—') + '</div>';
-      html += '<div><b>Vendedor / proprietário:</b> ' + vendedorSeguro + '</div>';
+      html += '<div><b>Vendedor:</b> ' + vendedorSeguro + '</div>';
       html += '<div><b>Forma de pagamento:</b> ' + escaparTextoHtml(cm.formaPagamento || '—') + '</div>';
       html += '<div><b>Veículo de captação:</b> ' + escaparTextoHtml(cm.veiculoCapitacao || '—') + '</div>';
       html += '<div><b>Percentual:</b> ' + percentualSeguro + '</div><div><b>Comissão total:</b> ' + comissaoTotalSeguro + '</div>';
