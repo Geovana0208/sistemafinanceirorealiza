@@ -204,7 +204,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
         <div class="card"><div class="card-title">Recebidas</div><div class="card-val" id="dashComissaoRecebida" style="color: var(--success);">R$ 0,00</div></div>
       </div>
       <div class="grid-main">
-        <div class="card"><div class="chart-box"><canvas id="chartVendasCorretor"></canvas></div></div>
+        <div class="card"><h3 style="color:var(--primary);margin-bottom:12px;">Vendas por mês</h3><p id="tituloGraficoVendasMes" style="font-size:0.8rem;color:var(--text-muted);margin:-6px 0 8px;">Valor das vendas ao longo dos meses</p><div class="chart-box"><canvas id="chartVendasCorretor" aria-label="Gráfico de linhas dos valores de vendas por mês" role="img"></canvas></div></div>
         <div class="card">
           <h3 style="color: var(--primary); margin-bottom: 15px;">🏆 Ranking de Vendas (Decrescente)</h3>
           <div id="listaRankingCorretores" style="max-height:300px; overflow-y:auto;"></div>
@@ -1719,12 +1719,74 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   }
 
   // DASHBOARD
+  var vendasGraficoAtual = [0,0,0,0,0,0,0,0,0,0,0,0];
+  window.addEventListener('resize', function() { desenharGraficoVendasMes(vendasGraficoAtual); });
+  function desenharGraficoVendasMes(valores) {
+    var canvas = $('chartVendasCorretor');
+    if (!canvas) return;
+    var largura = canvas.clientWidth;
+    var altura = canvas.clientHeight;
+    if (!largura || !altura) return;
+    var escala = window.devicePixelRatio || 1;
+    canvas.width = Math.round(largura * escala);
+    canvas.height = Math.round(altura * escala);
+    var ctx = canvas.getContext('2d');
+    ctx.setTransform(escala, 0, 0, escala, 0, 0);
+    ctx.clearRect(0, 0, largura, altura);
+
+    var margem = {top:14, right:14, bottom:34, left:66};
+    var graficoW = Math.max(1, largura - margem.left - margem.right);
+    var graficoH = Math.max(1, altura - margem.top - margem.bottom);
+    var maxValor = Math.max.apply(null, valores.concat([0]));
+    var passo = maxValor > 0 ? Math.pow(10, Math.floor(Math.log10(maxValor))) : 1;
+    var topo = maxValor > 0 ? Math.ceil(maxValor / passo) * passo : 1;
+    var formatarEixo = function(v) {
+      if (v >= 1000000) return 'R$' + (v/1000000).toLocaleString('pt-BR',{maximumFractionDigits:1}) + ' mi';
+      if (v >= 1000) return 'R$' + (v/1000).toLocaleString('pt-BR',{maximumFractionDigits:0}) + ' mil';
+      return 'R$' + Math.round(v).toLocaleString('pt-BR');
+    };
+    var meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    var css = getComputedStyle(document.documentElement);
+    var corLinha = (css.getPropertyValue('--primary') || '').trim() || '#2a5045';
+    var corTexto = (css.getPropertyValue('--text-muted') || '').trim() || '#64748b';
+    var corGrade = (css.getPropertyValue('--border') || '').trim() || '#e2e8f0';
+
+    ctx.font = '11px Segoe UI, sans-serif';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    for (var i=0; i<=4; i++) {
+      var valorEixo = topo * i / 4;
+      var y = margem.top + graficoH - graficoH * i / 4;
+      ctx.beginPath(); ctx.strokeStyle = corGrade; ctx.lineWidth = 1;
+      ctx.moveTo(margem.left,y); ctx.lineTo(margem.left+graficoW,y); ctx.stroke();
+      ctx.fillStyle = corTexto; ctx.fillText(formatarEixo(valorEixo),margem.left-8,y);
+    }
+
+    var pontos=[];
+    for (var m=0; m<12; m++) {
+      var x=margem.left + (12===1 ? 0 : graficoW*m/11);
+      var y=margem.top + graficoH - (valores[m]/topo)*graficoH;
+      pontos.push({x:x,y:y});
+      ctx.fillStyle=corTexto; ctx.textAlign='center'; ctx.textBaseline='top';
+      ctx.fillText(meses[m],x,altura-margem.bottom+10);
+    }
+    ctx.beginPath();
+    pontos.forEach(function(pt,idx){if(idx===0)ctx.moveTo(pt.x,pt.y);else ctx.lineTo(pt.x,pt.y);});
+    ctx.strokeStyle=corLinha; ctx.lineWidth=2.5; ctx.lineJoin='round'; ctx.lineCap='round'; ctx.stroke();
+    pontos.forEach(function(pt,idx){
+      ctx.beginPath(); ctx.arc(pt.x,pt.y,3.5,0,Math.PI*2); ctx.fillStyle='#ffffff'; ctx.fill();
+      ctx.lineWidth=2; ctx.strokeStyle=corLinha; ctx.stroke();
+      if(valores[idx]>0){ctx.beginPath();ctx.arc(pt.x,pt.y,1.5,0,Math.PI*2);ctx.fillStyle=corLinha;ctx.fill();}
+    });
+  }
+
   function renderDashboard() {
     var fAno = $('filtroAnoDash').value;
     var fMes = $('filtroMesDash').value;
     var fCor = $('filtroCorretorDash').value;
 
     var tVendas = 0, tComissao = 0, cAReceber = 0, cRecebida = 0;
+    var vendasPorMes = [0,0,0,0,0,0,0,0,0,0,0,0];
     var vendasPorCorretor = {};
 
     for(var i=0; i<corretores.length; i++) {
@@ -1737,6 +1799,11 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       if(!cm.dataFechamento) continue;
       var pAno = cm.dataFechamento.substring(0,4);
       var pMes = cm.dataFechamento.substring(5,7);
+
+      var mesNumero = Number(pMes);
+      if ((fAno === 'todos' || pAno === fAno) && (fCor === 'todos' || cm.corretor === fCor) && mesNumero >= 1 && mesNumero <= 12) {
+        vendasPorMes[mesNumero - 1] += Number(cm.valorVenda) || 0;
+      }
 
       if(fAno !== 'todos' && pAno !== fAno) continue;
       if(fMes !== 'todos' && pMes !== fMes) continue;
@@ -1761,6 +1828,9 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     $('dashTotalComissao').innerText = formatarMoeda(tComissao);
     $('dashComissaoAReceber').innerText = formatarMoeda(cAReceber);
     $('dashComissaoRecebida').innerText = formatarMoeda(cRecebida);
+    if ($('tituloGraficoVendasMes')) $('tituloGraficoVendasMes').innerText = (fAno === 'todos' ? 'Todos os anos' : fAno) + (fCor === 'todos' ? ' · todos os corretores' : ' · ' + fCor) + ' — valor de vendas por mês';
+    vendasGraficoAtual = vendasPorMes;
+    desenharGraficoVendasMes(vendasGraficoAtual);
 
     var rankingArr = [];
     for(var key in vendasPorCorretor) rankingArr.push(vendasPorCorretor[key]);
