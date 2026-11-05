@@ -532,8 +532,35 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 
   var WEB_APP_URL = localStorage.getItem('sheets_url') || '';
 
+  function normalizarContasUnicas(registros) {
+    var resultado = [], indicePorId = {};
+    (registros || []).forEach(function(registro) {
+      if (!registro || typeof registro !== 'object' || Array.isArray(registro)) return;
+      var temConteudo = Object.keys(registro).some(function(chave) { return chave !== '_autoMarketing' && registro[chave] !== '' && registro[chave] !== null && registro[chave] !== undefined; });
+      if (!temConteudo) return;
+      var id = String(registro.id || '').trim();
+      if (!id) { resultado.push(registro); return; }
+      if (!Object.prototype.hasOwnProperty.call(indicePorId, id)) {
+        indicePorId[id] = resultado.length;
+        resultado.push(registro);
+        return;
+      }
+      var existente = resultado[indicePorId[id]];
+      Object.keys(registro).forEach(function(chave) {
+        var valor = registro[chave];
+        if (valor !== '' && valor !== null && valor !== undefined) existente[chave] = valor;
+      });
+    });
+    return resultado;
+  }
+
   function sincronizarComSheets(aba, dadosArray) {
     if (!WEB_APP_URL) return Promise.resolve(false);
+    if (aba === 'Contas') {
+      dadosArray = normalizarContasUnicas(dadosArray);
+      contas = dadosArray;
+      try { localStorage.setItem('contas_db', JSON.stringify(contas)); } catch (e) { console.warn('Não foi possível atualizar o cache local das contas.', e); }
+    }
     if ($('statusSyncText')) $('statusSyncText').innerText = 'Sincronizando com Sheets...';
     return fetch(WEB_APP_URL, {
       method: 'POST',
@@ -709,6 +736,9 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       buscarAbaSheets('EmpreendimentosComissao'),
       buscarAbaSheets('FormasPagamentoComissao')
     ]).then(function(resultados) {
+      var quantidadeContasLidas = resultados[0].length;
+      resultados[0] = normalizarContasUnicas(resultados[0]);
+      var precisaLimparContasSheets = resultados[0].length !== quantidadeContasLidas;
       var chaves = ['contas_db', 'comissoes_db', 'alugueis_db', 'imoveis_db'];
       for (var i = 0; i < chaves.length; i++) {
         if (resultados[i].length > 0) localStorage.setItem(chaves[i], JSON.stringify(resultados[i]));
@@ -717,6 +747,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       comissoes = resultados[1].length ? resultados[1] : comissoes;
       alugueis = resultados[2].length ? resultados[2] : alugueis;
       imoveisDB = resultados[3].length ? resultados[3] : imoveisDB;
+      if (precisaLimparContasSheets) sincronizarComSheets('Contas', contas);
 
       var catalogos = [
         {idx:4, key:'origens_db', apply:function(v){origens=v;}},
@@ -1640,6 +1671,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   function renderContas() {
     processarMarketingAutomatico();
     atualizarBotaoImportacaoContasImagem();
+    contas.sort(function(a, b) { return String(a.vencimento || '9999-12-31').slice(0,10).localeCompare(String(b.vencimento || '9999-12-31').slice(0,10)); });
     var fAno = $('filtroAnoContas').value;
     var fMes = $('filtroMesContas').value;
     atualizarOpcoesFiltroDescricaoContas();
