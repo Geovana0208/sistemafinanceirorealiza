@@ -233,7 +233,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
         <div class="card"><div class="card-title">Total Comissões</div><div class="card-val" id="totalComissaoGeral" style="color: var(--primary);">R$ 0,00</div></div>
         <div class="card"><div class="card-title">A Receber</div><div class="card-val" id="totalComissaoAReceber" style="color: var(--warning);">R$ 0,00</div></div>
         <div class="card"><div class="card-title">Recebidas</div><div class="card-val" id="totalComissaoRecebida" style="color: var(--success);">R$ 0,00</div></div>
-        <div class="card"><div class="card-title">Previsto para este mês (saldo)</div><div class="card-val" id="totalComissaoPrevistaMes" style="color: var(--warning);">R$ 0,00</div><small id="qtdComissoesPrevistasMes" style="color:var(--text-muted);">0 comissões com saldo previsto</small></div>
+        <div class="card"><div class="card-title">Saldo da Imobiliária previsto este mês</div><div class="card-val" id="totalComissaoPrevistaMes" style="color: var(--warning);">R$ 0,00</div><small id="qtdComissoesPrevistasMes" style="color:var(--text-muted);">0 comissões imobiliárias com saldo previsto</small></div>
       </div>
       <div class="card" style="margin-bottom:20px;">
         <h3 style="color: var(--primary); margin-bottom: 12px;">Lançar Nova Comissão / Venda</h3>
@@ -248,9 +248,11 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
           <div class="form-group"><label>Vendedor / Proprietário</label><input type="text" id="vendedor" required></div>
           <div class="form-group"><label>Corretor Responsável</label><select id="corretor" required></select></div>
           <div class="form-group"><label>Data Fechamento</label><input type="date" id="dataFechamentoComissao" required></div>
-          <div class="form-group"><label>Valor da Venda (R$)</label><input type="number" step="0.01" id="valorVenda" required></div>
-          <div class="form-group"><label>Comissão Total (R$)</label><input type="number" step="0.01" id="valorComissao" required></div>
-          <div class="form-group"><label>Já Recebido (R$)</label><input type="number" step="0.01" id="valorRecebido"></div>
+          <div class="form-group"><label>Valor da Venda (R$)</label><input type="number" step="0.01" min="0" id="valorVenda" required oninput="atualizarComissaoCalculada()"></div>
+          <div class="form-group"><label>Percentual da Comissão (%)</label><input type="number" step="any" min="0" id="percentualComissao" oninput="atualizarComissaoCalculada()" placeholder="Ex.: 5"></div>
+          <div class="form-group"><label>Comissão Total calculada (R$)</label><input type="number" step="0.01" id="valorComissao" readonly placeholder="Calculada automaticamente"></div>
+          <div class="form-group"><label>Comissão da Imobiliária (R$)</label><input type="number" step="0.01" min="0" id="comissaoImobiliaria" placeholder="Informe o valor da imobiliária"></div>
+          <div class="form-group"><label>Já Recebido (R$)</label><input type="number" step="0.01" min="0" id="valorRecebido"></div>
           <div class="form-group"><label>Retenção Parcial / Total</label>
             <select id="retidoPor"><option value="Nenhum">Selecione...</option><option value="Imobiliária">Completa com Imobiliária</option><option value="Corretor">Completo com Corretor</option><option value="50/50">Metade / Metade (50/50)</option></select>
           </div>
@@ -263,7 +265,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       <div class="card">
         <div class="table-container">
           <table>
-            <thead><tr><th>Fechamento</th><th>COD</th><th>Unid.</th><th>Empreendimento</th><th>Forma de pagamento</th><th>Clientes</th><th>Captação</th><th>Corretor</th><th>Venda</th><th>Comissão Total</th><th>Já Recebido</th><th>Falta</th><th>Retenção</th><th>Status</th><th>Ações</th></tr></thead>
+            <thead><tr><th>Fechamento</th><th>COD</th><th>Unid.</th><th>Empreendimento</th><th>Forma de pagamento</th><th>Clientes</th><th>Captação</th><th>Corretor</th><th>Venda</th><th>Percentual</th><th>Comissão Total</th><th>Comissão Imobiliária</th><th>Imobiliária Recebido</th><th>Imobiliária Falta</th><th>Retenção</th><th>Status Imobiliária</th><th>Ações</th></tr></thead>
             <tbody id="tabelaComissoes"></tbody>
           </table>
         </div>
@@ -1290,10 +1292,57 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     $('contaId').value = '';
     toggleParcelas();
   }
+  function obterBaseComissao(item) {
+    var taxa = item && item.percentualComissao;
+    if (taxa !== undefined && taxa !== null && taxa !== '') return Number(item.valorComissao) || 0;
+    if (item && item.valorComissao !== undefined && item.valorComissao !== null && item.valorComissao !== '') return Number(item.valorComissao) || 0;
+    return Number(item && item.comissaoImobiliaria) || 0;
+  }
+  function normalizarCamposComissoes() {
+    var alterou = false;
+    comissoes.forEach(function(item) {
+      var temPercentual = item.percentualComissao !== undefined && item.percentualComissao !== null && item.percentualComissao !== '';
+      if (!temPercentual) {
+        // Migração legada solicitada: valor antigo da comissão passa para a imobiliária.
+        if (item.valorComissao !== undefined && item.valorComissao !== null && item.valorComissao !== '') {
+          item.comissaoImobiliaria = Number(item.valorComissao) || 0;
+          item.valorComissao = '';
+          alterou = true;
+        } else if (item.comissaoImobiliaria === undefined || item.comissaoImobiliaria === null || item.comissaoImobiliaria === '') {
+          item.comissaoImobiliaria = 0;
+          alterou = true;
+        }
+        if (item.percentualComissao !== '') { item.percentualComissao = ''; alterou = true; }
+      } else {
+        if (item.valorComissao === undefined || item.valorComissao === null || item.valorComissao === '') {
+          var valorVenda = Number(item.valorVenda) || 0;
+          item.valorComissao = (Math.round((valorVenda * (Number(item.percentualComissao) || 0) / 100 + Number.EPSILON) * 100) / 100).toFixed(2);
+          alterou = true;
+        }
+        if (item.comissaoImobiliaria === undefined || item.comissaoImobiliaria === null || item.comissaoImobiliaria === '') {
+          item.comissaoImobiliaria = 0;
+          alterou = true;
+        }
+      }
+    });
+    if (alterou) {
+      localStorage.setItem('comissoes_db', JSON.stringify(comissoes));
+      sincronizarComSheets('Comissoes', comissoes);
+    }
+  }
   function limparFormComissao() {
     if ($('formComissao')) $('formComissao').reset();
     $('comissaoId').value = '';
+    atualizarComissaoCalculada();
     toggleDataPrevisao();
+  }
+  function atualizarComissaoCalculada() {
+    var venda = Number($('valorVenda').value) || 0;
+    var percentualTexto = $('percentualComissao').value;
+    if (percentualTexto === '') { $('valorComissao').value = ''; return; }
+    var percentual = Number(percentualTexto) || 0;
+    var total = Math.round((venda * percentual / 100 + Number.EPSILON) * 100) / 100;
+    $('valorComissao').value = total.toFixed(2);
   }
   function editarConta(id) {
     var item = contas.find(function(x){return String(x.id) === String(id);});
@@ -1321,7 +1370,12 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     $('comprador').value = item.comprador || '';
     $('veiculoCapitacao').value = item.veiculoCapitacao || ''; $('vendedor').value = item.vendedor || '';
     $('corretor').value = item.corretor || ''; $('dataFechamentoComissao').value = item.dataFechamento || '';
-    $('valorVenda').value = Number(item.valorVenda) || 0; $('valorComissao').value = Number(item.valorComissao) || 0;
+    var vendaAnterior = Number(item.valorVenda) || 0;
+    $('valorVenda').value = vendaAnterior;
+    $('percentualComissao').value = item.percentualComissao == null ? '' : item.percentualComissao;
+    $('valorComissao').value = item.valorComissao == null ? '' : item.valorComissao;
+    $('comissaoImobiliaria').value = Number(item.comissaoImobiliaria) || 0;
+    atualizarComissaoCalculada();
     $('valorRecebido').value = Number(item.valorRecebido) || 0; $('retidoPor').value = item.retidoPor || 'Nenhum';
     $('tipoPrevisao').value = item.tipoPrevisao || 'com_data'; $('dataPrevisao').value = item.dataPrevisao || '';
     $('observacoesComissao').value = item.observacoes || ''; toggleDataPrevisao();
@@ -1330,6 +1384,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   function excluirComissao(id) {
     if (!confirm('Deseja excluir esta comissão/venda?')) return;
     comissoes = comissoes.filter(function(x){return String(x.id) !== String(id);});
+    normalizarCamposComissoes();
     localStorage.setItem('comissoes_db', JSON.stringify(comissoes));
     sincronizarComSheets('Comissoes', comissoes); renderComissoes();
   }
@@ -1453,6 +1508,14 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     formComissao.addEventListener('submit', function(e) {
       e.preventDefault();
       var id = $('comissaoId').value;
+      var registroAnterior = id ? comissoes.find(function(x){return String(x.id) === String(id);}) : null;
+      var percentualTexto = $('percentualComissao').value.trim();
+      var legadoSemPercentual = !!registroAnterior && (registroAnterior.percentualComissao === undefined || registroAnterior.percentualComissao === null || registroAnterior.percentualComissao === '') && (registroAnterior.valorComissao === undefined || registroAnterior.valorComissao === null || registroAnterior.valorComissao === '');
+      if (percentualTexto === '' && !legadoSemPercentual) {
+        alert('Informe o percentual da comissão. Para novos cadastros esse campo é obrigatório.');
+        $('percentualComissao').focus();
+        return;
+      }
       var obj = {
         id: id || ('com_' + Date.now()),
         codigo: $('codigoComissao').value.trim(),
@@ -1465,7 +1528,9 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
         corretor: $('corretor').value,
         dataFechamento: $('dataFechamentoComissao').value,
         valorVenda: Number($('valorVenda').value) || 0,
-        valorComissao: Number($('valorComissao').value) || 0,
+        percentualComissao: percentualTexto === '' ? '' : Number(percentualTexto),
+        valorComissao: percentualTexto === '' ? '' : (Number($('valorComissao').value) || 0),
+        comissaoImobiliaria: Number($('comissaoImobiliaria').value) || 0,
         valorRecebido: Number($('valorRecebido').value) || 0,
         retidoPor: $('retidoPor').value,
         tipoPrevisao: $('tipoPrevisao').value,
@@ -1477,6 +1542,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       } else {
         comissoes.push(obj);
       }
+      normalizarCamposComissoes();
       localStorage.setItem('comissoes_db', JSON.stringify(comissoes));
       sincronizarComSheets('Comissoes', comissoes);
       limparFormComissao();
@@ -1498,14 +1564,17 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     for (var i = 0; i < comissoes.length; i++) {
       var item = comissoes[i];
       if (!previsaoNoMesAtualComissao(item)) continue;
-      var saldo = Math.max(0, (Number(item.valorComissao) || 0) - (Number(item.valorRecebido) || 0));
-      if (saldo > 0) { total += saldo; quantidade++; }
+      var valorImobiliaria = Number(item.comissaoImobiliaria) || 0;
+      var valorRecebido = Number(item.valorRecebido) || 0;
+      var saldoImobiliaria = Math.max(0, valorImobiliaria - valorRecebido);
+      if (saldoImobiliaria > 0) { total += saldoImobiliaria; quantidade++; }
     }
     if ($('totalComissaoPrevistaMes')) $('totalComissaoPrevistaMes').innerText = formatarMoeda(total);
-    if ($('qtdComissoesPrevistasMes')) $('qtdComissoesPrevistasMes').innerText = quantidade + (quantidade === 1 ? ' comissão com saldo previsto' : ' comissões com saldo previsto');
+    if ($('qtdComissoesPrevistasMes')) $('qtdComissoesPrevistasMes').innerText = quantidade + (quantidade === 1 ? ' comissão imobiliária com saldo previsto' : ' comissões imobiliárias com saldo previsto');
   }
 
   function renderComissoes() {
+    normalizarCamposComissoes();
     var fAno = $('filtroAnoComissoes').value;
     var fMes = $('filtroMesComissoes').value;
     var fCor = $('filtroCorretorComissoes').value;
@@ -1535,16 +1604,18 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 
       var vV = Number(cm.valorVenda) || 0;
       var vC = Number(cm.valorComissao) || 0;
+      var baseComissao = obterBaseComissao(cm);
       var vRec = Number(cm.valorRecebido) || 0;
-      var falta = vC - vRec;
+      var comissaoImobiliaria = Number(cm.comissaoImobiliaria) || 0;
+      var falta = comissaoImobiliaria - vRec;
       var statusFiltro = falta <= 0 ? 'recebido' : (vRec > 0 ? 'parcial' : 'a_receber');
       if(fStatus !== 'todos' && fStatus !== statusFiltro) continue;
 
-      tVendas += vV; tComissao += vC; tAReceber += falta; tRecebida += vRec;
+      tVendas += vV; tComissao += baseComissao; tAReceber += falta; tRecebida += vRec;
       var badge = falta <= 0 ? 'badge-recebido' : (vRec > 0 ? 'badge-parcial' : 'badge-areceber');
       var statusTxt = falta <= 0 ? 'Recebido' : (vRec > 0 ? 'Parcial' : 'A Receber');
 
-      html += '<tr><td>' + cm.dataFechamento.split('-').reverse().join('/') + '</td><td>' + escaparTextoHtml(cm.codigo || '-') + '</td><td>' + escaparTextoHtml(cm.unidade || '-') + '</td><td>' + escaparTextoHtml(cm.empreendimento || cm.unidadeEmpreendimento || '-') + '</td><td>' + escaparTextoHtml(cm.formaPagamento || '-') + '</td><td><b>Comp:</b> ' + cm.comprador + '<br><b>Vend:</b> ' + cm.vendedor + '</td><td>' + cm.veiculoCapitacao + '</td><td>' + cm.corretor + '</td><td>' + formatarMoeda(vV) + '</td><td>' + formatarMoeda(vC) + '</td><td>' + formatarMoeda(vRec) + '</td><td>' + formatarMoeda(falta) + '</td><td>' + (cm.retidoPor || 'Nenhum') + '</td><td><span class="badge ' + badge + '">' + statusTxt + '</span></td><td><button class="btn btn-secondary btn-sm" onclick="editarComissao(\'' + cm.id + '\')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirComissao(\'' + cm.id + '\')">X</button></td></tr>';
+      html += '<tr><td>' + cm.dataFechamento.split('-').reverse().join('/') + '</td><td>' + escaparTextoHtml(cm.codigo || '-') + '</td><td>' + escaparTextoHtml(cm.unidade || '-') + '</td><td>' + escaparTextoHtml(cm.empreendimento || cm.unidadeEmpreendimento || '-') + '</td><td>' + escaparTextoHtml(cm.formaPagamento || '-') + '</td><td><b>Comp:</b> ' + cm.comprador + '<br><b>Vend:</b> ' + cm.vendedor + '</td><td>' + cm.veiculoCapitacao + '</td><td>' + cm.corretor + '</td><td>' + formatarMoeda(vV) + '</td><td>' + (cm.percentualComissao === '' || cm.percentualComissao == null ? '' : (Number(cm.percentualComissao) || 0).toLocaleString('pt-BR', {maximumFractionDigits:8}) + '%') + '</td><td>' + (cm.valorComissao === '' || cm.valorComissao == null ? '' : formatarMoeda(vC)) + '</td><td>' + formatarMoeda(Number(cm.comissaoImobiliaria) || 0) + '</td><td>' + formatarMoeda(vRec) + '</td><td>' + formatarMoeda(falta) + '</td><td>' + (cm.retidoPor || 'Nenhum') + '</td><td><span class="badge ' + badge + '">' + statusTxt + '</span></td><td><button class="btn btn-secondary btn-sm" onclick="editarComissao(\'' + cm.id + '\')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirComissao(\'' + cm.id + '\')">X</button></td></tr>';
     }
 
     $('totalVendasComissao').innerText = formatarMoeda(tVendas);
@@ -1672,9 +1743,10 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       if(fCor !== 'todos' && cm.corretor !== fCor) continue;
 
       var vV = Number(cm.valorVenda) || 0;
-      var vC = Number(cm.valorComissao) || 0;
+      var vC = obterBaseComissao(cm);
       var vRec = Number(cm.valorRecebido) || 0;
-      var falta = vC - vRec;
+      var comissaoImobiliaria = Number(cm.comissaoImobiliaria) || 0;
+      var falta = comissaoImobiliaria - vRec;
 
       tVendas += vV; tComissao += vC; cAReceber += falta; cRecebida += vRec;
 
