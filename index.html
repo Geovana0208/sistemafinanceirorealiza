@@ -183,7 +183,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       <div class="grid-cards">
         <div class="card"><div class="card-title">Previsto Total</div><div class="card-val" id="totalPrevisto" style="color: var(--primary);">R$ 0,00</div></div>
         <div class="card"><div class="card-title">Realizado / Pago</div><div class="card-val" id="totalReal" style="color: var(--success);">R$ 0,00</div></div>
-        <div class="card"><div class="card-title">Variação das Pagas (Previsto − Pago)</div><div class="card-val" id="totalVariacao">R$ 0,00</div></div>
+        <div class="card"><div class="card-title">Diferença em Contas em Aberto</div><div class="card-val" id="totalVariacao">R$ 0,00</div></div>
         <div class="card"><div class="card-title">Total Geral Devido</div><div class="card-val" id="totalPendente" style="color: var(--danger);">R$ 0,00</div></div>
         <div class="card"><div class="card-title">Despesas Vencidas</div><div class="card-val" id="totalVencidas" style="color: var(--danger);">R$ 0,00</div><small id="qtdVencidas">0 contas</small></div>
         <div class="card"><div class="card-title">Vencem Hoje</div><div class="card-val" id="totalVencemHoje" style="color: var(--warning);">R$ 0,00</div></div>
@@ -1698,8 +1698,9 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       var vR = Number(c.valorReal) || 0;
       totPrev += vP;
       totReal += vR;
-      if (vR > 0) variacaoPagas += vP - vR;
-      var rest = Math.max(0, vP - vR);
+      var contaPaga = c.status === 'Pago';
+      if (!contaPaga && vR > 0) variacaoPagas += vP - vR;
+      var rest = contaPaga ? 0 : Math.max(0, vP - vR);
       totPend += rest;
       if (rest > 0 && vencimentoConta < hojeStr) { totalVencidas += rest; quantidadeVencidas++; }
 
