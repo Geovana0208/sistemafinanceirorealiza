@@ -1171,6 +1171,8 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   // AUTOMAÇÃO DE MARKETING MÊS SEGUINTE
   function processarMarketingAutomatico() {
     var contasAntes = JSON.stringify(contas);
+    var contasMarketingExistentes = {};
+    contas.forEach(function(ct) { if (ct && ct._autoMarketing && ct.id) contasMarketingExistentes[String(ct.id)] = ct; });
     contas = contas.filter(function(ct) { return !ct._autoMarketing; });
     var marketingPorMes = {};
     function adicionarCustoMarketing(registro, tipo, valor) {
@@ -1189,8 +1191,9 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     Object.keys(marketingPorMes).forEach(function(chave) {
       var partes = chave.split('|');
       var tipo = partes[0], anoMesKey = partes[1];
-      contas.push({
-        id: 'auto_mkt_' + (tipo === 'alugueis' ? 'a_' : 'v_') + anoMesKey,
+      var idMarketing = 'auto_mkt_' + (tipo === 'alugueis' ? 'a_' : 'v_') + anoMesKey;
+      var contaMarketing = {
+        id: idMarketing,
         descricao: 'Custos de Marketing',
         observacao: tipo === 'alugueis' ? 'Aluguel' : 'Venda',
         valorPrevisto: marketingPorMes[chave],
@@ -1201,7 +1204,12 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
         categoria: 'Marketing',
         status: 'Pendente',
         _autoMarketing: true
-      });
+      };
+      var contaExistente = contasMarketingExistentes[idMarketing];
+      if (contaExistente && contaExistente._autoMarketingEditado) {
+        contaMarketing = Object.assign({}, contaMarketing, contaExistente, {_autoMarketing:true, _autoMarketingEditado:true});
+      }
+      contas.push(contaMarketing);
     });
 
     var contasDepois = JSON.stringify(contas);
@@ -1517,6 +1525,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     var item = contas.find(function(x){return String(x.id) === String(id);}); if (!item) return;
     var tipoContaInline = valorInline('ieContaTipo');
     Object.assign(item, {descricao:valorInline('ieContaDescricao').trim(),observacao:valorInline('ieContaObs').trim(),tipo:tipoContaInline,parcelaAtual:tipoContaInline==='Parcelada'?(Number(valorInline('ieContaParcelaAtual'))||1):'',parcelaTotal:tipoContaInline==='Parcelada'?(Number(valorInline('ieContaParcelaTotal'))||12):'',contaOrigem:valorInline('ieContaOrigem'),vencimento:valorInline('ieContaVencimento'),valorPrevisto:Number(valorInline('ieContaPrevisto'))||0,valorReal:Number(valorInline('ieContaReal'))||0,categoria:valorInline('ieContaCategoria'),status:(Number(valorInline('ieContaReal'))>0?'Pago':'Pendente')});
+    if (item._autoMarketing) item._autoMarketingEditado = true;
     localStorage.setItem('contas_db',JSON.stringify(contas)); sincronizarComSheets('Contas',contas); contaInlineId=null; renderContas();
   }
   function excluirConta(id) {
