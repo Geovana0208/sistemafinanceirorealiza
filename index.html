@@ -1518,7 +1518,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     var total = Math.round((venda * percentual / 100 + Number.EPSILON) * 100) / 100;
     $('valorComissao').value = total.toFixed(2);
   }
-  var contaInlineId = null, comissaoInlineId = null, aluguelInlineId = null;
+  var contaInlineId = null, comissaoInlineId = null, aluguelInlineId = null, imovelInlineId = null;
   function campoInline(id, rotulo, valor, tipo) {
     var evento = id === 'ieComVenda' || id === 'ieComPercentual' ? ' oninput="calcularComissaoInline()"' : '';
     return '<label style="display:flex;flex-direction:column;gap:4px;font-size:.75rem;color:var(--text-muted)">' + rotulo + '<input id="' + id + '" type="' + (tipo || 'text') + '" value="' + escaparTextoHtml(valor == null ? '' : valor) + '"' + evento + ' style="min-width:110px;padding:7px 8px"></label>';
@@ -1564,6 +1564,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     if (tipo === 'conta') { contaInlineId = null; renderContas(); }
     if (tipo === 'comissao') { comissaoInlineId = null; renderComissoes(); }
     if (tipo === 'aluguel') { aluguelInlineId = null; renderAlugueis(); }
+    if (tipo === 'imovel') { imovelInlineId = null; renderImoveis(); }
   }
   function salvarEdicaoInlineConta(id) {
     var item = contas.find(function(x){return String(x.id) === String(id);}); if (!item) return;
@@ -2146,6 +2147,48 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     if (contrato) { contrato.required = !desocupado; contrato.placeholder = desocupado ? 'Opcional enquanto desocupado' : 'Obrigatório para imóvel alugado'; }
   }
 
+  function atualizarObrigatoriedadeInlineImovel() {
+    var desocupado = valorInline('ieImovelStatus') === 'Desocupado';
+    var cpf = $('ieImovelCpf'), contrato = $('ieImovelContrato');
+    if (cpf) { cpf.required = desocupado; cpf.placeholder = desocupado ? 'Obrigatório para imóvel desocupado' : 'Opcional para imóvel alugado'; }
+    if (contrato) { contrato.required = !desocupado; contrato.placeholder = desocupado ? 'Opcional enquanto desocupado' : 'Obrigatório para imóvel alugado'; }
+  }
+
+  function editarImovel(id) {
+    if (!imoveisDB.some(function(item) { return String(item.id) === String(id); })) { alert('Imóvel não encontrado.'); return; }
+    imovelInlineId = String(id);
+    renderImoveis();
+  }
+
+  function salvarEdicaoInlineImovel(id) {
+    var item = imoveisDB.find(function(x) { return String(x.id) === String(id); });
+    if (!item) return;
+    var bci = valorInline('ieImovelBci').trim();
+    var damaeId = valorInline('ieImovelDamae').trim();
+    var cpfCnpj = valorInline('ieImovelCpf').trim();
+    var contrato = valorInline('ieImovelContrato').trim();
+    var status = valorInline('ieImovelStatus');
+    if (!bci) { alert('Preencha o número do BCI.'); $('ieImovelBci').focus(); return; }
+    if (status === 'Desocupado' && !cpfCnpj) { alert('Para imóvel desocupado, informe o CPF/CNPJ do proprietário.'); $('ieImovelCpf').focus(); return; }
+    if (status === 'Alugado' && !contrato) { alert('Para imóvel alugado, informe o Código do Contrato.'); $('ieImovelContrato').focus(); return; }
+    var normalizar = function(valor) { return String(valor || '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('pt-BR'); };
+    var conflitos = [
+      {campo:'BCI',valor:bci,chave:'bci'},
+      {campo:'ID eletrônico DAMAE',valor:damaeId,chave:'damaeId'},
+      {campo:'Contrato',valor:contrato,chave:'contrato'}
+    ].filter(function(regra) {
+      return !!regra.valor && imoveisDB.some(function(outro) {
+        return String(outro.id) !== String(id) && normalizar(outro[regra.chave]) === normalizar(regra.valor);
+      });
+    });
+    if (conflitos.length) { alert('Não foi possível salvar. Já existe outro imóvel com este(s) dado(s): ' + conflitos.map(function(x){return x.campo;}).join(', ') + '.'); return; }
+    item.bci = bci; item.damaeId = damaeId; item.cpfCnpj = cpfCnpj; item.contrato = contrato; item.status = status;
+    localStorage.setItem('imoveis_db', JSON.stringify(imoveisDB));
+    sincronizarComSheets('Imoveis', imoveisDB);
+    imovelInlineId = null;
+    renderImoveis(); renderBcis(); renderDamae();
+  }
+
   function salvarImovelForm() {
     var internalId = $('imovelInternalId').value;
     var bci = $('imovelBciInput').value.trim();
@@ -2218,20 +2261,6 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     alert('✅ Imóvel salvo com sucesso!');
   }
 
-  function editarImovel(id) {
-    var item = imoveisDB.find(x => x.id == id);
-    if (item) {
-      $('imovelInternalId').value = item.id;
-      $('imovelBciInput').value = item.bci || '';
-      $('imovelDamaeInput').value = item.damaeId || '';
-      $('imovelCpfInput').value = item.cpfCnpj || '';
-      $('imovelContratoInput').value = item.contrato || '';
-      $('imovelStatusInput').value = item.status || 'Alugado';
-      atualizarObrigatoriedadeImovel();
-      mudarAba('imoveis');
-    }
-  }
-
   function excluirImovel(id) {
     if (confirm('Deseja excluir este imóvel?')) {
       imoveisDB = imoveisDB.filter(x => x.id != id);
@@ -2264,10 +2293,15 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       if (contasFiltro === 'pendente' && !temPendente) continue;
       if (contasFiltro === 'em_dia' && !tudoEmDia) continue;
       var badge = item.status === 'Alugado' ? 'badge-alugado' : 'badge-desocupado';
-      html += '<tr><td><b>' + item.contrato + '</b></td><td>' + item.bci + '</td><td>' + (item.damaeId || '-') + '</td><td>' + (item.cpfCnpj || '-') + '</td><td><span class="badge ' + badge + '">' + item.status + '</span></td><td><small>IPTU: ' + (item.statusBci || 'Em dia') + '<br>DAMAE: ' + (item.statusDamae || 'Em dia') + '</small></td>';
-      html += '<td><button class="btn btn-secondary btn-sm" onclick="editarImovel(' + item.id + ')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirImovel(' + item.id + ')">X</button></td></tr>';
+      if (imovelInlineId === String(item.id)) {
+        html += '<tr class="inline-edit-row"><td>' + campoInline('ieImovelContrato','Código do Contrato',item.contrato || '') + '</td><td>' + campoInline('ieImovelBci','Número do BCI',item.bci || '') + '</td><td>' + campoInline('ieImovelDamae','ID Eletrônico DAMAE (opcional)',item.damaeId || '') + '</td><td>' + campoInline('ieImovelCpf','CPF / CNPJ Proprietário',item.cpfCnpj || '') + '</td><td>' + selectInline('ieImovelStatus','Status do Imóvel',item.status || 'Alugado',['Alugado','Desocupado'],'atualizarObrigatoriedadeInlineImovel()') + '</td><td><small>IPTU: ' + (item.statusBci || 'Em dia') + '<br>DAMAE: ' + (item.statusDamae || 'Em dia') + '</small></td><td><button class="btn btn-success btn-sm" onclick="salvarEdicaoInlineImovel(\'' + escaparTextoHtml(item.id) + '\')">Salvar</button> <button class="btn btn-secondary btn-sm" onclick="cancelarEdicaoInline(\'imovel\')">Cancelar</button></td></tr>';
+        continue;
+      }
+      html += '<tr><td><b>' + escaparTextoHtml(item.contrato || '—') + '</b></td><td>' + escaparTextoHtml(item.bci || '') + '</td><td>' + escaparTextoHtml(item.damaeId || '-') + '</td><td>' + escaparTextoHtml(item.cpfCnpj || '-') + '</td><td><span class="badge ' + badge + '">' + escaparTextoHtml(item.status || '') + '</span></td><td><small>IPTU: ' + (item.statusBci || 'Em dia') + '<br>DAMAE: ' + (item.statusDamae || 'Em dia') + '</small></td>';
+      html += '<td><button class="btn btn-secondary btn-sm" onclick="editarImovel(\'' + escaparTextoHtml(item.id) + '\')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirImovel(\'' + escaparTextoHtml(item.id) + '\')">X</button></td></tr>';
     }
     if ($('tabelaImoveisResumo')) $('tabelaImoveisResumo').innerHTML = html;
+    if (imovelInlineId !== null) atualizarObrigatoriedadeInlineImovel();
   }
 
   function renderBcis() {
