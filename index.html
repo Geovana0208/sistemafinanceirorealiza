@@ -618,6 +618,46 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       return registro;
     });
   }
+  function importarContasImagemNov2026() {
+    var registros = [
+      ['01','2026-11-02','Cemig','Contas Imovel',150,125.38,'Locação','Pago'],
+      ['02','2026-11-05','gesso','Investimentos',215,215,'Locação','Pago'],
+      ['03','2026-11-05','Damae','Contas Imovel',110,109.79,'Locação','Pago'],
+      ['04','2026-11-04','Salários','Prestadores de Serviço',6000,0,'','Atrasado'],
+      ['05','2026-11-10','Aluguel','Contas Imovel',5750,0,'','Pendente'],
+      ['06','2026-11-10','Impressora','Contas Sistemas',125.49,0,'','Pendente'],
+      ['07','2026-11-10','Vista Office','Contas Sistemas',683.78,0,'','Pendente'],
+      ['08','2026-11-10','Contabilidade','Prestadores de Serviço',350,0,'','Pendente'],
+      ['09','2026-11-15','Seguro Incendio','Prestadores de Serviço',6927.52,0,'','Pendente'],
+      ['10','2026-11-16','Telefone','Contas Conexões',516.14,0,'','Pendente'],
+      ['11','2026-11-17','Augusto','Contas Sistemas',400,0,'','Pendente'],
+      ['12','2026-11-18','Aporte Júnior','Investimentos',22000,0,'','Pendente'],
+      ['13','2026-11-19','Advogado','Prestadores de Serviço',800,0,'','Pendente'],
+      ['14','2026-11-20','Internet','Contas Conexões',99,0,'','Pendente'],
+      ['15','2026-11-20','Trafego e Google ADS','Investimentos',1800,0,'','Pendente'],
+      ['16','2026-11-20','Marketing','Prestadores de Serviço',1500,0,'','Pendente'],
+      ['17','2026-11-20','Simples Nacional','Impostos',148.61,0,'','Pendente'],
+      ['18','2026-11-20','Arrecadação DAS','Impostos',356.62,0,'','Pendente'],
+      ['19','2026-11-25','Retirada Bruna e Vinicius','Prestadores de Serviço',10000,0,'','Pendente'],
+      ['20','2026-11-25','ACI Del Rei','Prestadores de Serviço',163.80,0,'','Pendente'],
+      ['21','2026-11-25','Telefone Movel','Contas Conexões',382.75,0,'','Pendente'],
+      ['22','2026-11-29','Plano Bradesco','Prestadores de Serviço',0,0,'','Pendente']
+    ];
+    var idsExistentes = {};
+    contas.forEach(function(item) { if (item && item.id != null) idsExistentes[String(item.id)] = true; });
+    var adicionadas = 0;
+    registros.forEach(function(r) {
+      var id = 'imp_contas_nov2026_' + r[0];
+      if (idsExistentes[id]) return;
+      contas.push({id:id, descricao:r[2], observacao:r[0] === '22' ? 'Valor não legível na imagem; revisar' : '', valorPrevisto:r[4], valorReal:r[5], vencimento:r[1], contaOrigem:r[6], tipo:'Variável', categoria:r[3], status:r[7]});
+      idsExistentes[id] = true;
+      adicionadas++;
+    });
+    if (adicionadas) {
+      localStorage.setItem('contas_db', JSON.stringify(contas));
+      sincronizarComSheets('Contas', contas);
+    }
+  }
   function buscarAbaSheets(nomeAba) {
     var url = WEB_APP_URL + (WEB_APP_URL.indexOf('?') >= 0 ? '&' : '?') + 'aba=' + encodeURIComponent(nomeAba);
     return fetch(url, { method: 'GET', cache: 'no-store' }).then(function(resp) {
@@ -672,6 +712,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
         corretores=normalizarCorretoresSheets(resultados[6]);
         localStorage.setItem('corretores_objs_db', JSON.stringify(corretores));
       }
+      importarContasImagemNov2026();
       if ($('loginError')) $('loginError').innerText = '';
       if ($('statusSyncText')) $('statusSyncText').innerText = 'Dados e opções carregados do Google Sheets';
       return true;
