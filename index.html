@@ -183,7 +183,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       <div class="grid-cards">
         <div class="card"><div class="card-title">Previsto Total</div><div class="card-val" id="totalPrevisto" style="color: var(--primary);">R$ 0,00</div></div>
         <div class="card"><div class="card-title">Realizado / Pago</div><div class="card-val" id="totalReal" style="color: var(--success);">R$ 0,00</div></div>
-        <div class="card"><div class="card-title">Diferença em Contas em Aberto</div><div class="card-val" id="totalVariacao">R$ 0,00</div></div>
+        <div class="card"><div class="card-title">Economia nas Contas Pagas (Previsto − Pago)</div><div class="card-val" id="totalVariacao">R$ 0,00</div></div>
         <div class="card"><div class="card-title">Total Geral Devido</div><div class="card-val" id="totalPendente" style="color: var(--danger);">R$ 0,00</div></div>
         <div class="card"><div class="card-title">Despesas Vencidas</div><div class="card-val" id="totalVencidas" style="color: var(--danger);">R$ 0,00</div><small id="qtdVencidas">0 contas</small></div>
         <div class="card"><div class="card-title">Vencem Hoje</div><div class="card-val" id="totalVencemHoje" style="color: var(--warning);">R$ 0,00</div></div>
@@ -532,7 +532,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 
   var WEB_APP_URL = localStorage.getItem('sheets_url') || '';
 
-  function normalizarContasUnicas(registros) {
+  function normalizarRegistrosUnicosPorId(registros) {
     var resultado = [], indicePorId = {};
     (registros || []).forEach(function(registro) {
       if (!registro || typeof registro !== 'object' || Array.isArray(registro)) return;
@@ -556,10 +556,14 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 
   function sincronizarComSheets(aba, dadosArray) {
     if (!WEB_APP_URL) return Promise.resolve(false);
-    if (aba === 'Contas') {
-      dadosArray = normalizarContasUnicas(dadosArray);
-      contas = dadosArray;
-      try { localStorage.setItem('contas_db', JSON.stringify(contas)); } catch (e) { console.warn('Não foi possível atualizar o cache local das contas.', e); }
+    var chavesPorAba = {Contas:'contas_db',Comissoes:'comissoes_db',Alugueis:'alugueis_db',Imoveis:'imoveis_db'};
+    if (chavesPorAba[aba]) {
+      dadosArray = normalizarRegistrosUnicosPorId(dadosArray);
+      if (aba === 'Contas') contas = dadosArray;
+      if (aba === 'Comissoes') comissoes = dadosArray;
+      if (aba === 'Alugueis') alugueis = dadosArray;
+      if (aba === 'Imoveis') imoveisDB = dadosArray;
+      try { localStorage.setItem(chavesPorAba[aba], JSON.stringify(dadosArray)); } catch (e) { console.warn('Não foi possível atualizar o cache local de ' + aba + '.', e); }
     }
     if ($('statusSyncText')) $('statusSyncText').innerText = 'Sincronizando com Sheets...';
     return fetch(WEB_APP_URL, {
@@ -737,8 +741,13 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       buscarAbaSheets('FormasPagamentoComissao')
     ]).then(function(resultados) {
       var quantidadeContasLidas = resultados[0].length;
-      resultados[0] = normalizarContasUnicas(resultados[0]);
+      var quantidadeComissoesLidas = resultados[1].length;
+      resultados[0] = normalizarRegistrosUnicosPorId(resultados[0]);
+      resultados[1] = normalizarRegistrosUnicosPorId(resultados[1]);
+      resultados[2] = normalizarRegistrosUnicosPorId(resultados[2]);
+      resultados[3] = normalizarRegistrosUnicosPorId(resultados[3]);
       var precisaLimparContasSheets = resultados[0].length !== quantidadeContasLidas;
+      var precisaLimparComissoesSheets = resultados[1].length !== quantidadeComissoesLidas;
       var chaves = ['contas_db', 'comissoes_db', 'alugueis_db', 'imoveis_db'];
       for (var i = 0; i < chaves.length; i++) {
         if (resultados[i].length > 0) localStorage.setItem(chaves[i], JSON.stringify(resultados[i]));
@@ -748,6 +757,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       alugueis = resultados[2].length ? resultados[2] : alugueis;
       imoveisDB = resultados[3].length ? resultados[3] : imoveisDB;
       if (precisaLimparContasSheets) sincronizarComSheets('Contas', contas);
+      if (precisaLimparComissoesSheets) sincronizarComSheets('Comissoes', comissoes);
 
       var catalogos = [
         {idx:4, key:'origens_db', apply:function(v){origens=v;}},
@@ -985,12 +995,15 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 
   function initAnoSelectors() {
     var ids = ['filtroAnoContas', 'filtroAnoDash', 'filtroAnoComissoes', 'filtroAnoAluguel'];
+    var anoAtual = new Date().getFullYear();
     for (var i = 0; i < ids.length; i++) {
       var sel = $(ids[i]);
       if (!sel) continue;
       sel.innerHTML = '<option value="todos" selected>Todos Anos</option>';
-      for (var a = 2024; a <= 2028; a++) sel.innerHTML += '<option value="' + a + '">' + a + '</option>';
+      for (var a = 2024; a <= Math.max(2028, anoAtual + 2); a++) sel.innerHTML += '<option value="' + a + '">' + a + '</option>';
     }
+    if ($('filtroAnoContas')) $('filtroAnoContas').value = String(anoAtual);
+    if ($('filtroMesContas')) $('filtroMesContas').value = String(new Date().getMonth() + 1).padStart(2, '0');
   }
 
   function atualizarSelectsGerais() {
@@ -1677,7 +1690,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     atualizarOpcoesFiltroDescricaoContas();
     var fDescricao = ($('filtroDescricaoContas') || {}).value || '';
     var html = '';
-    var totPrev = 0, totReal = 0, totPend = 0, variacaoPagas = 0, vencHoje = 0, proxDias = 0, totalVencidas = 0, quantidadeVencidas = 0;
+    var totPrev = 0, totReal = 0, totPend = 0, economiaPagas = 0, vencHoje = 0, proxDias = 0, totalVencidas = 0, quantidadeVencidas = 0;
     var agora = new Date();
     var hojeStr = agora.getFullYear() + '-' + String(agora.getMonth() + 1).padStart(2, '0') + '-' + String(agora.getDate()).padStart(2, '0');
     var hojeDate = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate());
@@ -1699,7 +1712,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       totPrev += vP;
       totReal += vR;
       var contaPaga = c.status === 'Pago';
-      if (!contaPaga && vR > 0) variacaoPagas += vP - vR;
+      if (contaPaga) economiaPagas += vP - vR;
       var rest = contaPaga ? 0 : Math.max(0, vP - vR);
       totPend += rest;
       if (rest > 0 && vencimentoConta < hojeStr) { totalVencidas += rest; quantidadeVencidas++; }
@@ -1722,8 +1735,8 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 
     $('totalPrevisto').innerText = formatarMoeda(totPrev);
     $('totalReal').innerText = formatarMoeda(totReal);
-    $('totalVariacao').innerText = formatarMoeda(variacaoPagas);
-    $('totalVariacao').style.color = variacaoPagas >= 0 ? 'var(--success)' : 'var(--danger)';
+    $('totalVariacao').innerText = formatarMoeda(economiaPagas);
+    $('totalVariacao').style.color = economiaPagas >= 0 ? 'var(--success)' : 'var(--danger)';
     $('totalPendente').innerText = formatarMoeda(totPend);
     $('totalVencidas').innerText = formatarMoeda(totalVencidas);
     $('qtdVencidas').innerText = quantidadeVencidas + (quantidadeVencidas === 1 ? ' conta' : ' contas');
