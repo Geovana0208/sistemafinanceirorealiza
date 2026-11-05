@@ -167,6 +167,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
           <select id="filtroMesContas">
             <option value="todos">Ano Todo (Consolidado)</option><option value="01">Jan</option><option value="02">Fev</option><option value="03">Mar</option><option value="04">Abr</option><option value="05">Mai</option><option value="06">Jun</option><option value="07">Jul</option><option value="08">Ago</option><option value="09">Set</option><option value="10">Out</option><option value="11">Nov</option><option value="12">Dez</option>
           </select>
+          <label for="filtroDescricaoContas">Descrição:</label><input type="search" id="filtroDescricaoContas" placeholder="Pesquisar descrição..." style="max-width:220px;">
           <button class="btn btn-success btn-sm" type="button" onclick="renderContas()">🔎 Pesquisar</button>
           <button class="btn btn-secondary btn-sm" onclick="abrirGerenciadorContas()">⚙️ Contas de Saída</button>
           <button class="btn btn-secondary btn-sm" onclick="abrirGerenciadorCategorias()">⚙️ Categorias</button>
@@ -1103,39 +1104,45 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 
   // AUTOMAÇÃO DE MARKETING MÊS SEGUINTE
   function processarMarketingAutomatico() {
-    contas = contas.filter(ct => !ct._autoMarketing);
-
-    var marketingComissoesPorMes = {};
-    for(var i=0; i<comissoes.length; i++) {
-      var cm = comissoes[i];
-      if (cm.veiculoCapitacao && cm.veiculoCapitacao.toLowerCase().includes('marketing') && cm.dataFechamento) {
-        var dtF = new Date(cm.dataFechamento + 'T00:00:00');
-        if (!isNaN(dtF.getTime())) {
-          dtF.setMonth(dtF.getMonth() + 1);
-          var anoMesKey = dtF.getFullYear() + '-' + String(dtF.getMonth() + 1).padStart(2, '0');
-          marketingComissoesPorMes[anoMesKey] = (marketingComissoesPorMes[anoMesKey] || 0) + 300;
-        }
-      }
+    var contasAntes = JSON.stringify(contas);
+    contas = contas.filter(function(ct) { return !ct._autoMarketing; });
+    var marketingPorMes = {};
+    function adicionarCustoMarketing(registro, tipo, valor) {
+      if (!registro || !registro.veiculoCapitacao || !String(registro.veiculoCapitacao).toLocaleLowerCase('pt-BR').includes('marketing') || !registro.dataFechamento) return;
+      var partesData = String(registro.dataFechamento).split('-');
+      var ano = Number(partesData[0]), mes = Number(partesData[1]);
+      if (!ano || !mes || mes < 1 || mes > 12) return;
+      var proximoMes = new Date(ano, mes, 1);
+      var anoMesKey = proximoMes.getFullYear() + '-' + String(proximoMes.getMonth() + 1).padStart(2, '0');
+      var chave = tipo + '|' + anoMesKey;
+      marketingPorMes[chave] = (marketingPorMes[chave] || 0) + valor;
     }
+    for (var i = 0; i < comissoes.length; i++) adicionarCustoMarketing(comissoes[i], 'vendas', 300);
+    for (var j = 0; j < alugueis.length; j++) adicionarCustoMarketing(alugueis[j], 'alugueis', 50);
 
-    for(var key in marketingComissoesPorMes) {
-      var parts = key.split('-');
-      var vencimentoStr = parts[0] + '-' + parts[1] + '-10';
+    Object.keys(marketingPorMes).forEach(function(chave) {
+      var partes = chave.split('|');
+      var tipo = partes[0], anoMesKey = partes[1];
+      var descricaoTipo = tipo === 'alugueis' ? 'Aluguéis' : 'Vendas';
       contas.push({
-        id: 'auto_mkt_v_' + key,
-        descricao: 'Custos Mkt Vendas (' + key + ')',
-        valorPrevisto: marketingComissoesPorMes[key],
+        id: 'auto_mkt_' + (tipo === 'alugueis' ? 'a_' : 'v_') + anoMesKey,
+        descricao: 'Custos Mkt ' + descricaoTipo + ' (' + anoMesKey + ')',
+        valorPrevisto: marketingPorMes[chave],
         valorReal: 0,
-        vencimento: vencimentoStr,
+        vencimento: anoMesKey + '-10',
         contaOrigem: origens[0] || 'Itaú',
         tipo: 'Variável',
         categoria: 'Marketing',
         status: 'Pendente',
         _autoMarketing: true
       });
-    }
+    });
 
-    localStorage.setItem('contas_db', JSON.stringify(contas));
+    var contasDepois = JSON.stringify(contas);
+    if (contasDepois !== contasAntes) {
+      localStorage.setItem('contas_db', contasDepois);
+      sincronizarComSheets('Contas', contas);
+    }
   }
 
   // AÇÕES DOS FORMULÁRIOS, FILTROS E GERENCIADORES
@@ -1524,6 +1531,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     processarMarketingAutomatico();
     var fAno = $('filtroAnoContas').value;
     var fMes = $('filtroMesContas').value;
+    var fDescricao = (($('filtroDescricaoContas') || {}).value || '').trim().toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     var html = '';
     var totPrev = 0, totReal = 0, totPend = 0, vencHoje = 0, proxDias = 0;
     var hojeStr = new Date().toISOString().split('T')[0];
@@ -1538,6 +1546,8 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 
       if (fAno !== 'todos' && pAno !== fAno) continue;
       if (fMes !== 'todos' && pMes !== fMes) continue;
+      var descricaoConta = String(c.descricao || '').toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      if (fDescricao && descricaoConta.indexOf(fDescricao) === -1) continue;
 
       var vP = Number(c.valorPrevisto) || 0;
       var vR = Number(c.valorReal) || 0;
@@ -1757,6 +1767,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       }
       localStorage.setItem('alugueis_db', JSON.stringify(alugueis));
       sincronizarComSheets('Alugueis', alugueis);
+      processarMarketingAutomatico();
       limparFormAluguel();
       renderAlugueis();
       alert('Locação salva com sucesso!');
@@ -1816,7 +1827,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   function salvarEdicaoInlineAluguel(id) {
     var item=alugueis.find(function(x){return String(x.id)===String(id);}); if(!item)return;
     Object.assign(item,{dataFechamento:valorInline('ieAlData'),inquilino:valorInline('ieAlInquilino').trim(),veiculoCapitacao:valorInline('ieAlCaptacao').trim(),proprietario:valorInline('ieAlProprietario').trim(),corretor:valorInline('ieAlCorretor').trim(),valorAluguel:Number(valorInline('ieAlValor'))||0});
-    localStorage.setItem('alugueis_db',JSON.stringify(alugueis)); sincronizarComSheets('Alugueis',alugueis); aluguelInlineId=null; renderAlugueis();
+    localStorage.setItem('alugueis_db',JSON.stringify(alugueis)); sincronizarComSheets('Alugueis',alugueis); processarMarketingAutomatico(); aluguelInlineId=null; renderAlugueis();
   }
 
   function excluirAluguel(id) {
@@ -1826,6 +1837,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     alugueis = alugueis.filter(function(x) { return String(x.id) !== String(id); });
     localStorage.setItem('alugueis_db', JSON.stringify(alugueis));
     sincronizarComSheets('Alugueis', alugueis);
+    processarMarketingAutomatico();
     renderAlugueis();
   }
 
