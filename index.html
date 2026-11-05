@@ -167,7 +167,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
           <select id="filtroMesContas">
             <option value="todos">Ano Todo (Consolidado)</option><option value="01">Jan</option><option value="02">Fev</option><option value="03">Mar</option><option value="04">Abr</option><option value="05">Mai</option><option value="06">Jun</option><option value="07">Jul</option><option value="08">Ago</option><option value="09">Set</option><option value="10">Out</option><option value="11">Nov</option><option value="12">Dez</option>
           </select>
-          <label for="filtroDescricaoContas">Descrição:</label><input type="search" id="filtroDescricaoContas" placeholder="Pesquisar descrição..." style="max-width:220px;">
+          <label for="filtroDescricaoContas">Descrição:</label><select id="filtroDescricaoContas" style="max-width:260px;"><option value="">Todas as descrições</option></select>
           <button class="btn btn-success btn-sm" type="button" onclick="renderContas()">🔎 Pesquisar</button>
           <button class="btn btn-secondary btn-sm" onclick="abrirGerenciadorContas()">⚙️ Contas de Saída</button>
           <button class="btn btn-secondary btn-sm" onclick="abrirGerenciadorCategorias()">⚙️ Categorias</button>
@@ -189,6 +189,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
         <form id="formConta">
           <input type="hidden" id="contaId">
           <div class="form-group" style="grid-column: 1 / -1;"><label>Descrição / Fornecedor</label><input type="text" id="descricao" required></div>
+          <div class="form-group"><label>Obs. (opcional)</label><input type="text" id="observacaoConta" maxlength="40" placeholder="Ex.: Venda ou Aluguel"></div>
           <div class="form-group"><label>Valor Previsto (R$)</label><input type="number" step="0.01" id="valorPrevisto" required></div>
           <div class="form-group"><label>Valor Pago (R$)</label><input type="number" step="0.01" id="valorReal"></div>
           <div class="form-group"><label>Vencimento</label><input type="date" id="vencimento" required></div>
@@ -202,7 +203,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       <div class="card">
         <div class="table-container">
           <table>
-            <thead><tr><th>Descrição</th><th>Tipo</th><th>Origem</th><th>Vencimento</th><th>Previsto</th><th>Pago</th><th>Status</th><th>Ações</th></tr></thead>
+            <thead><tr><th>Descrição</th><th>Obs.</th><th>Tipo</th><th>Origem</th><th>Vencimento</th><th>Previsto</th><th>Pago</th><th>Status</th><th>Ações</th></tr></thead>
             <tbody id="tabelaContas"></tbody>
           </table>
         </div>
@@ -1123,10 +1124,10 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     Object.keys(marketingPorMes).forEach(function(chave) {
       var partes = chave.split('|');
       var tipo = partes[0], anoMesKey = partes[1];
-      var descricaoTipo = tipo === 'alugueis' ? 'Aluguéis' : 'Vendas';
       contas.push({
         id: 'auto_mkt_' + (tipo === 'alugueis' ? 'a_' : 'v_') + anoMesKey,
-        descricao: 'Custos Mkt ' + descricaoTipo + ' (' + anoMesKey + ')',
+        descricao: 'Custos de Marketing',
+        observacao: tipo === 'alugueis' ? 'Aluguel' : 'Venda',
         valorPrevisto: marketingPorMes[chave],
         valorReal: 0,
         vencimento: anoMesKey + '-10',
@@ -1431,7 +1432,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   }
   function salvarEdicaoInlineConta(id) {
     var item = contas.find(function(x){return String(x.id) === String(id);}); if (!item) return;
-    Object.assign(item, {descricao:valorInline('ieContaDescricao').trim(),tipo:valorInline('ieContaTipo'),contaOrigem:valorInline('ieContaOrigem'),vencimento:valorInline('ieContaVencimento'),valorPrevisto:Number(valorInline('ieContaPrevisto'))||0,valorReal:Number(valorInline('ieContaReal'))||0,categoria:valorInline('ieContaCategoria'),status:(Number(valorInline('ieContaReal'))>0?'Pago':'Pendente')});
+    Object.assign(item, {descricao:valorInline('ieContaDescricao').trim(),observacao:valorInline('ieContaObs').trim(),tipo:valorInline('ieContaTipo'),contaOrigem:valorInline('ieContaOrigem'),vencimento:valorInline('ieContaVencimento'),valorPrevisto:Number(valorInline('ieContaPrevisto'))||0,valorReal:Number(valorInline('ieContaReal'))||0,categoria:valorInline('ieContaCategoria'),status:(Number(valorInline('ieContaReal'))>0?'Pago':'Pendente')});
     localStorage.setItem('contas_db',JSON.stringify(contas)); sincronizarComSheets('Contas',contas); contaInlineId=null; renderContas();
   }
   function excluirConta(id) {
@@ -1504,6 +1505,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       var obj = {
         id: id || ('ct_' + Date.now()),
         descricao: $('descricao').value.trim(),
+        observacao: $('observacaoConta').value.trim(),
         valorPrevisto: Number($('valorPrevisto').value) || 0,
         valorReal: Number($('valorReal').value) || 0,
         vencimento: $('vencimento').value,
@@ -1527,11 +1529,25 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     });
   }
 
+  function atualizarOpcoesFiltroDescricaoContas() {
+    var filtro = $('filtroDescricaoContas');
+    if (!filtro) return;
+    var atual = filtro.value;
+    var descricoes = Array.from(new Set(contas.map(function(item) { return String(item.descricao || '').trim(); }).filter(Boolean)));
+    descricoes.sort(function(a,b) { return a.localeCompare(b,'pt-BR',{sensitivity:'base'}); });
+    filtro.innerHTML = '<option value="">Todas as descrições</option>' + descricoes.map(function(descricao) {
+      var seguro = escaparTextoHtml(descricao);
+      return '<option value="' + seguro + '">' + seguro + '</option>';
+    }).join('');
+    if (descricoes.indexOf(atual) !== -1) filtro.value = atual;
+  }
+
   function renderContas() {
     processarMarketingAutomatico();
     var fAno = $('filtroAnoContas').value;
     var fMes = $('filtroMesContas').value;
-    var fDescricao = (($('filtroDescricaoContas') || {}).value || '').trim().toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    atualizarOpcoesFiltroDescricaoContas();
+    var fDescricao = ($('filtroDescricaoContas') || {}).value || '';
     var html = '';
     var totPrev = 0, totReal = 0, totPend = 0, vencHoje = 0, proxDias = 0;
     var hojeStr = new Date().toISOString().split('T')[0];
@@ -1546,8 +1562,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 
       if (fAno !== 'todos' && pAno !== fAno) continue;
       if (fMes !== 'todos' && pMes !== fMes) continue;
-      var descricaoConta = String(c.descricao || '').toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-      if (fDescricao && descricaoConta.indexOf(fDescricao) === -1) continue;
+      if (fDescricao && String(c.descricao || '') !== fDescricao) continue;
 
       var vP = Number(c.valorPrevisto) || 0;
       var vR = Number(c.valorReal) || 0;
@@ -1562,9 +1577,9 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 
       var badge = c.status === 'Pago' ? 'badge-pago' : 'badge-pendente';
       if (contaInlineId === String(c.id)) {
-        html += '<tr><td>' + campoInline('ieContaDescricao','Descrição',c.descricao) + '<br>' + campoInline('ieContaCategoria','Categoria',c.categoria) + '</td><td>' + campoInline('ieContaTipo','Tipo',c.tipo) + '</td><td>' + campoInline('ieContaOrigem','Origem',c.contaOrigem) + '</td><td>' + campoInline('ieContaVencimento','Vencimento',c.vencimento,'date') + '</td><td>' + campoInline('ieContaPrevisto','Previsto',vP,'number') + '</td><td>' + campoInline('ieContaReal','Pago',vR,'number') + '</td><td><span class="badge ' + badge + '">' + (c.status || 'Pendente') + '</span></td><td><button class="btn btn-success btn-sm" onclick="salvarEdicaoInlineConta(\'' + escaparTextoHtml(c.id) + '\')">Salvar</button> <button class="btn btn-secondary btn-sm" onclick="cancelarEdicaoInline(\'conta\')">Cancelar</button></td></tr>';
+        html += '<tr><td>' + campoInline('ieContaDescricao','Descrição',c.descricao) + '<br>' + campoInline('ieContaCategoria','Categoria',c.categoria) + '</td><td>' + campoInline('ieContaObs','Obs.',c.observacao) + '</td><td>' + campoInline('ieContaTipo','Tipo',c.tipo) + '</td><td>' + campoInline('ieContaOrigem','Origem',c.contaOrigem) + '</td><td>' + campoInline('ieContaVencimento','Vencimento',c.vencimento,'date') + '</td><td>' + campoInline('ieContaPrevisto','Previsto',vP,'number') + '</td><td>' + campoInline('ieContaReal','Pago',vR,'number') + '</td><td><span class="badge ' + badge + '">' + (c.status || 'Pendente') + '</span></td><td><button class="btn btn-success btn-sm" onclick="salvarEdicaoInlineConta(\'' + escaparTextoHtml(c.id) + '\')">Salvar</button> <button class="btn btn-secondary btn-sm" onclick="cancelarEdicaoInline(\'conta\')">Cancelar</button></td></tr>';
       } else {
-        html += '<tr><td>' + escaparTextoHtml(c.descricao) + '</td><td>' + escaparTextoHtml(c.tipo) + '</td><td>' + escaparTextoHtml(c.contaOrigem) + '</td><td>' + c.vencimento.split('-').reverse().join('/') + '</td><td>' + formatarMoeda(vP) + '</td><td>' + formatarMoeda(vR) + '</td><td><span class="badge ' + badge + '">' + (c.status || 'Pendente') + '</span></td>';
+        html += '<tr><td>' + escaparTextoHtml(c.descricao) + '</td><td><small>' + escaparTextoHtml(c.observacao || '—') + '</small></td><td>' + escaparTextoHtml(c.tipo) + '</td><td>' + escaparTextoHtml(c.contaOrigem) + '</td><td>' + c.vencimento.split('-').reverse().join('/') + '</td><td>' + formatarMoeda(vP) + '</td><td>' + formatarMoeda(vR) + '</td><td><span class="badge ' + badge + '">' + (c.status || 'Pendente') + '</span></td>';
         html += '<td><button class="btn btn-secondary btn-sm" onclick="editarConta(\'' + c.id + '\')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirConta(\'' + c.id + '\')">X</button></td></tr>';
       }
     }
