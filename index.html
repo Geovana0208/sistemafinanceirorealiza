@@ -472,7 +472,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 <div class="modal-bg" id="modalSheets">
   <div class="modal-content">
     <h3 style="color: var(--primary); margin-bottom: 10px;">🔗 Configurar Google Sheets</h3>
-    <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:15px;">Cole abaixo a URL do Aplicativo Web gerada no Google Apps Script:</p>
+    <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:15px;">Cole a URL do Aplicativo Web do Google Apps Script, terminada em /exec.</p>
     <div class="form-group" style="margin-bottom:15px;">
       <input type="text" id="inputSheetsUrl" placeholder="https://script.google.com/macros/s/.../exec">
     </div>
@@ -480,6 +480,9 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       <button class="btn" style="flex:1;" onclick="salvarConfigSheets()">Salvar e Sincronizar</button>
       <button class="btn btn-secondary" onclick="$('modalSheets').style.display='none'">Cancelar</button>
     </div>
+    <hr style="margin:16px 0;border:0;border-top:1px solid var(--border);">
+    <p style="font-size:0.82rem;color:var(--text-muted);">As opções antigas de contas, categorias, corretores, veículos, empreendimentos e formas de pagamento podem estar somente neste navegador. No computador que contém as opções corretas, use o botão abaixo uma vez; ele combina as listas locais com as existentes na planilha.</p>
+    <button type="button" class="btn btn-secondary" style="width:100%;" onclick="publicarOpcoesLocaisComSheets()">Compartilhar opções deste navegador</button>
   </div>
 </div>
 
@@ -490,18 +493,81 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   var WEB_APP_URL = localStorage.getItem('sheets_url') || '';
 
   function sincronizarComSheets(aba, dadosArray) {
-    if (!WEB_APP_URL) return;
-    $('statusSyncText').innerText = 'Sincronizando com Sheets...';
-    fetch(WEB_APP_URL, {
+    if (!WEB_APP_URL) return Promise.resolve(false);
+    if ($('statusSyncText')) $('statusSyncText').innerText = 'Sincronizando com Sheets...';
+    return fetch(WEB_APP_URL, {
       method: 'POST',
       mode: 'no-cors',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
       body: JSON.stringify({ aba: aba, dados: dadosArray })
     }).then(function() {
-      $('statusSyncText').innerText = 'Sincronizado na Nuvem (Sheets)';
+      if ($('statusSyncText')) $('statusSyncText').innerText = 'Solicitação enviada ao Google Sheets';
+      return true;
     }).catch(function(err) {
-      $('statusSyncText').innerText = 'Erro ao sincronizar Sheets';
+      if ($('statusSyncText')) $('statusSyncText').innerText = 'Erro ao sincronizar Sheets';
+      console.error('Falha ao enviar para Sheets (' + aba + '):', err);
+      return false;
     });
+  }
+  function valorLinhaCatalogoSheets(registro) {
+    if (typeof registro === 'string' || typeof registro === 'number') return String(registro).trim();
+    if (!registro || typeof registro !== 'object' || registro._catalogoVazio) return '';
+    var valor = registro.valor || registro.nome || registro.name || registro.value;
+    if (!valor) {
+      var chaves = Object.keys(registro);
+      for (var i = 0; i < chaves.length; i++) {
+        if (chaves[i] !== '_catalogoVazio' && registro[chaves[i]]) { valor = registro[chaves[i]]; break; }
+      }
+    }
+    return valor == null ? '' : String(valor).trim();
+  }
+  function lerListaCatalogoSheets(registros) {
+    var lista = [];
+    (registros || []).forEach(function(registro) {
+      var valor = valorLinhaCatalogoSheets(registro);
+      if (valor && !lista.some(function(x){return x.toLocaleLowerCase('pt-BR') === valor.toLocaleLowerCase('pt-BR');})) lista.push(valor);
+    });
+    return lista;
+  }
+  function serializarListaCatalogoSheets(lista) {
+    return lista.length ? lista.map(function(valor){return {valor:String(valor)};}) : [{valor:'', _catalogoVazio:true}];
+  }
+  function sincronizarListaCatalogoComSheets(aba, lista) {
+    return sincronizarComSheets(aba, serializarListaCatalogoSheets(lista));
+  }
+  function sincronizarCorretoresComSheets() {
+    var dados = corretores.length ? corretores.map(function(item) {
+      var foto = String(item.foto || '');
+      return {nome:String(item.nome || item), foto:foto.length <= 45000 ? foto : ''};
+    }) : [{nome:'', foto:'', _catalogoVazio:true}];
+    return sincronizarComSheets('Corretores', dados);
+  }
+  function normalizarCorretoresSheets(registros) {
+    var fotosLocais = {};
+    (corretores || []).forEach(function(item){var nome=String(item.nome || item);if(nome)fotosLocais[nome.toLocaleLowerCase('pt-BR')]=item.foto || '';});
+    return (registros || []).filter(function(item){return item && !item._catalogoVazio;}).map(function(item){
+      var nome=valorLinhaCatalogoSheets(item);
+      if (item && typeof item==='object' && item.nome) nome=String(item.nome).trim();
+      if (!nome) return null;
+      var foto=item && typeof item==='object' ? (item.foto || fotosLocais[nome.toLocaleLowerCase('pt-BR')] || '') : (fotosLocais[nome.toLocaleLowerCase('pt-BR')] || '');
+      return {nome:nome, foto:foto};
+    }).filter(Boolean);
+  }
+  function opcoesUnicasComissao(a,b) {
+    var saida=[], vistos={};
+    (a||[]).concat(b||[]).forEach(function(valor){var nome=String(valor || '').trim();var chave=nome.toLocaleLowerCase('pt-BR');if(nome && !vistos[chave]){vistos[chave]=true;saida.push(nome);}});
+    return saida;
+  }
+  function mesclarCorretoresSheets(remotos, locais) {
+    var saida=[], porNome={};
+    (remotos||[]).concat(locais||[]).forEach(function(item){
+      var nome=String((item && item.nome) || item || '').trim(); if(!nome)return;
+      var chave=nome.toLocaleLowerCase('pt-BR');
+      var foto=(item && typeof item==='object' && item.foto) || '';
+      if(!porNome[chave]){porNome[chave]={nome:nome,foto:foto};saida.push(porNome[chave]);}
+      else if(!porNome[chave].foto && foto) porNome[chave].foto=foto;
+    });
+    return saida;
   }
 
   var carregamentoSheetsPromise = null;
@@ -536,21 +602,43 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       buscarAbaSheets('Contas'),
       buscarAbaSheets('Comissoes'),
       buscarAbaSheets('Alugueis'),
-      buscarAbaSheets('Imoveis')
+      buscarAbaSheets('Imoveis'),
+      buscarAbaSheets('ContasOrigens'),
+      buscarAbaSheets('Categorias'),
+      buscarAbaSheets('Corretores'),
+      buscarAbaSheets('Veiculos'),
+      buscarAbaSheets('EmpreendimentosComissao'),
+      buscarAbaSheets('FormasPagamentoComissao')
     ]).then(function(resultados) {
       var chaves = ['contas_db', 'comissoes_db', 'alugueis_db', 'imoveis_db'];
-      for (var i = 0; i < resultados.length; i++) {
-        // A aba vazia não apaga cópias locais; abas com conteúdo da nuvem são autoritativas.
-        if (resultados[i].length > 0) {
-          localStorage.setItem(chaves[i], JSON.stringify(resultados[i]));
-        }
+      for (var i = 0; i < chaves.length; i++) {
+        if (resultados[i].length > 0) localStorage.setItem(chaves[i], JSON.stringify(resultados[i]));
       }
       contas = resultados[0].length ? resultados[0] : contas;
       comissoes = resultados[1].length ? resultados[1] : comissoes;
       alugueis = resultados[2].length ? resultados[2] : alugueis;
       imoveisDB = resultados[3].length ? resultados[3] : imoveisDB;
+
+      var catalogos = [
+        {idx:4, key:'origens_db', apply:function(v){origens=v;}},
+        {idx:5, key:'categorias_db', apply:function(v){categorias=v;}},
+        {idx:7, key:'veiculos_db', apply:function(v){veiculosCapitacao=v;}},
+        {idx:8, key:'empreendimentos_comissao_db', apply:function(v){empreendimentosComissao=v;}},
+        {idx:9, key:'formas_pagamento_comissao_db', apply:function(v){formasPagamentoComissao=v;}}
+      ];
+      catalogos.forEach(function(c){
+        if (resultados[c.idx].length > 0) {
+          var valores=lerListaCatalogoSheets(resultados[c.idx]);
+          c.apply(valores);
+          localStorage.setItem(c.key, JSON.stringify(valores));
+        }
+      });
+      if (resultados[6].length > 0) {
+        corretores=normalizarCorretoresSheets(resultados[6]);
+        localStorage.setItem('corretores_objs_db', JSON.stringify(corretores));
+      }
       if ($('loginError')) $('loginError').innerText = '';
-      if ($('statusSyncText')) $('statusSyncText').innerText = 'Dados carregados do Google Sheets';
+      if ($('statusSyncText')) $('statusSyncText').innerText = 'Dados e opções carregados do Google Sheets';
       return true;
     }).catch(function(err) {
       carregamentoSheetsPromise = null;
@@ -589,6 +677,45 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       $('loginError').innerText = 'Não foi possível acessar a planilha. Confira a URL e se o Apps Script está implantado como Aplicativo da Web.';
       console.error('Falha ao conectar ao Google Sheets:', err);
     });
+  }
+
+  async function publicarOpcoesLocaisComSheets() {
+    if (!WEB_APP_URL) { alert('Configure primeiro a URL do Google Sheets.'); return; }
+    if (!confirm('Vou combinar as opções deste navegador com as listas existentes na planilha e gravar somente as abas de opções. As abas principais de dados não serão alteradas. Continuar?')) return;
+    if ($('statusSyncText')) $('statusSyncText').innerText = 'Lendo opções atuais da planilha...';
+    try {
+      var remotos = await Promise.all([
+        buscarAbaSheets('ContasOrigens'), buscarAbaSheets('Categorias'), buscarAbaSheets('Corretores'),
+        buscarAbaSheets('Veiculos'), buscarAbaSheets('EmpreendimentosComissao'), buscarAbaSheets('FormasPagamentoComissao')
+      ]);
+      origens=opcoesUnicasComissao(lerListaCatalogoSheets(remotos[0]), origens);
+      categorias=opcoesUnicasComissao(lerListaCatalogoSheets(remotos[1]), categorias);
+      corretores=mesclarCorretoresSheets(normalizarCorretoresSheets(remotos[2]), corretores);
+      veiculosCapitacao=opcoesUnicasComissao(lerListaCatalogoSheets(remotos[3]), veiculosCapitacao);
+      empreendimentosComissao=opcoesUnicasComissao(lerListaCatalogoSheets(remotos[4]), empreendimentosComissao);
+      formasPagamentoComissao=opcoesUnicasComissao(lerListaCatalogoSheets(remotos[5]), formasPagamentoComissao);
+      localStorage.setItem('origens_db',JSON.stringify(origens));
+      localStorage.setItem('categorias_db',JSON.stringify(categorias));
+      localStorage.setItem('corretores_objs_db',JSON.stringify(corretores));
+      localStorage.setItem('veiculos_db',JSON.stringify(veiculosCapitacao));
+      localStorage.setItem('empreendimentos_comissao_db',JSON.stringify(empreendimentosComissao));
+      localStorage.setItem('formas_pagamento_comissao_db',JSON.stringify(formasPagamentoComissao));
+      atualizarSelectsGerais();
+      var resultados=[];
+      resultados.push(await sincronizarListaCatalogoComSheets('ContasOrigens',origens));
+      resultados.push(await sincronizarListaCatalogoComSheets('Categorias',categorias));
+      resultados.push(await sincronizarCorretoresComSheets());
+      resultados.push(await sincronizarListaCatalogoComSheets('Veiculos',veiculosCapitacao));
+      resultados.push(await sincronizarListaCatalogoComSheets('EmpreendimentosComissao',empreendimentosComissao));
+      resultados.push(await sincronizarListaCatalogoComSheets('FormasPagamentoComissao',formasPagamentoComissao));
+      if (resultados.some(function(ok){return !ok;})) throw new Error('Uma ou mais solicitações de gravação falharam.');
+      if ($('statusSyncText')) $('statusSyncText').innerText = 'Opções enviadas ao Google Sheets';
+      alert('Opções combinadas e enviadas. Aguarde alguns segundos e conecte novamente os outros navegadores.');
+    } catch(err) {
+      if ($('statusSyncText')) $('statusSyncText').innerText = 'Falha ao compartilhar opções';
+      console.error('Falha ao compartilhar listas:',err);
+      alert('Não foi possível compartilhar as opções. Confira a URL e tente novamente.');
+    }
   }
 
   var origens = ['Itaú', 'Bradesco', 'Caixa', 'Dinheiro / Caixinha'];
@@ -769,7 +896,8 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     if (!nome) return;
     if (empreendimentosComissao.some(function(x){return String(x).trim().toLocaleLowerCase('pt-BR') === nome.toLocaleLowerCase('pt-BR');})) { alert('Esse empreendimento já está cadastrado.'); return; }
     var novaLista = empreendimentosComissao.concat([nome]);
-    try { localStorage.setItem('empreendimentos_comissao_db', JSON.stringify(novaLista)); }
+    try { localStorage.setItem('empreendimentos_comissao_db', JSON.stringify(novaLista));
+    sincronizarListaCatalogoComSheets('EmpreendimentosComissao', novaLista); }
     catch(e) { alert('Não foi possível salvar essa opção no navegador.'); return; }
     empreendimentosComissao = novaLista;
     atualizarSelectsCatalogosComissao(); $('empreendimentoComissao').value = nome;
@@ -782,6 +910,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     if (!confirm('Remover a opção "' + nome + '"?')) return;
     empreendimentosComissao.splice(indice, 1);
     localStorage.setItem('empreendimentos_comissao_db', JSON.stringify(empreendimentosComissao));
+    sincronizarListaCatalogoComSheets('EmpreendimentosComissao', empreendimentosComissao);
     atualizarSelectsCatalogosComissao(); abrirGerenciadorEmpreendimentosComissao();
   }
   function abrirGerenciadorFormasPagamentoComissao() {
@@ -793,7 +922,8 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     if (!nome) return;
     if (formasPagamentoComissao.some(function(x){return String(x).trim().toLocaleLowerCase('pt-BR') === nome.toLocaleLowerCase('pt-BR');})) { alert('Essa forma de pagamento já está cadastrada.'); return; }
     var novaLista = formasPagamentoComissao.concat([nome]);
-    try { localStorage.setItem('formas_pagamento_comissao_db', JSON.stringify(novaLista)); }
+    try { localStorage.setItem('formas_pagamento_comissao_db', JSON.stringify(novaLista));
+    sincronizarListaCatalogoComSheets('FormasPagamentoComissao', novaLista); }
     catch(e) { alert('Não foi possível salvar essa opção no navegador.'); return; }
     formasPagamentoComissao = novaLista;
     atualizarSelectsCatalogosComissao(); $('formaPagamento').value = nome;
@@ -806,6 +936,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     if (!confirm('Remover a opção "' + nome + '"?')) return;
     formasPagamentoComissao.splice(indice, 1);
     localStorage.setItem('formas_pagamento_comissao_db', JSON.stringify(formasPagamentoComissao));
+    sincronizarListaCatalogoComSheets('FormasPagamentoComissao', formasPagamentoComissao);
     atualizarSelectsCatalogosComissao(); abrirGerenciadorFormasPagamentoComissao();
   }
 
@@ -983,6 +1114,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     if (origens.some(function(x){return String(x).trim().toLocaleLowerCase('pt-BR') === nome.toLocaleLowerCase('pt-BR');})) { alert('Essa conta de saída já está cadastrada.'); return; }
     origens.push(nome);
     localStorage.setItem('origens_db', JSON.stringify(origens));
+    sincronizarListaCatalogoComSheets('ContasOrigens', origens);
     $('novaOrigemNome').value = '';
     atualizarSelectsContas();
     abrirGerenciadorContas();
@@ -993,6 +1125,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     if (!confirm('Remover a conta de saída "' + nome + '"?')) return;
     origens.splice(indice, 1);
     localStorage.setItem('origens_db', JSON.stringify(origens));
+    sincronizarListaCatalogoComSheets('ContasOrigens', origens);
     atualizarSelectsContas(); abrirGerenciadorContas();
   }
 
@@ -1006,6 +1139,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     if (categorias.some(function(x){return String(x).trim().toLocaleLowerCase('pt-BR') === nome.toLocaleLowerCase('pt-BR');})) { alert('Essa categoria já está cadastrada.'); return; }
     categorias.push(nome);
     localStorage.setItem('categorias_db', JSON.stringify(categorias));
+    sincronizarListaCatalogoComSheets('Categorias', categorias);
     $('novaCategoriaNome').value = '';
     atualizarSelectsContas(); abrirGerenciadorCategorias();
   }
@@ -1015,6 +1149,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     if (!confirm('Remover a categoria "' + nome + '"?')) return;
     categorias.splice(indice, 1);
     localStorage.setItem('categorias_db', JSON.stringify(categorias));
+    sincronizarListaCatalogoComSheets('Categorias', categorias);
     atualizarSelectsContas(); abrirGerenciadorCategorias();
   }
 
@@ -1028,6 +1163,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     if (veiculosCapitacao.some(function(x){return String(x).trim().toLocaleLowerCase('pt-BR') === nome.toLocaleLowerCase('pt-BR');})) { alert('Esse veículo de captação já está cadastrado.'); return; }
     veiculosCapitacao.push(nome);
     localStorage.setItem('veiculos_db', JSON.stringify(veiculosCapitacao));
+    sincronizarListaCatalogoComSheets('Veiculos', veiculosCapitacao);
     $('novoVeiculoNome').value = '';
     atualizarSelectsVeiculos(); abrirGerenciadorVeiculos();
   }
@@ -1037,6 +1173,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     if (!confirm('Remover o veículo de captação "' + nome + '"?')) return;
     veiculosCapitacao.splice(indice, 1);
     localStorage.setItem('veiculos_db', JSON.stringify(veiculosCapitacao));
+    sincronizarListaCatalogoComSheets('Veiculos', veiculosCapitacao);
     atualizarSelectsVeiculos(); abrirGerenciadorVeiculos();
   }
 
@@ -1125,6 +1262,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     try { localStorage.setItem('corretores_objs_db', JSON.stringify(novaLista)); }
     catch (erro) { alert('Não foi possível salvar a foto: o armazenamento do navegador está cheio. Tente uma imagem menor.'); return; }
     corretores = novaLista;
+    sincronizarCorretoresComSheets();
     $('novoCorretorNome').value = ''; $('novoCorretorFoto').value = '';
     $('previewCorretorFotoContainer').style.display = 'none'; $('previewCorretorFoto').removeAttribute('src');
     atualizarSelectsCorretores(); renderDashboard(); renderComissoes(); abrirGerenciadorCorretores();
@@ -1135,6 +1273,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     if (!confirm('Remover o corretor "' + nome + '"?')) return;
     corretores.splice(indice, 1);
     localStorage.setItem('corretores_objs_db', JSON.stringify(corretores));
+    sincronizarCorretoresComSheets();
     atualizarSelectsCorretores(); renderDashboard(); renderComissoes(); abrirGerenciadorCorretores();
   }
 
