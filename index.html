@@ -20,7 +20,11 @@ body{background-color:var(--bg-color);color:var(--text-main);display:flex;height
 .login-box p{color:var(--text-muted);font-size:.85rem;margin-bottom:25px}
 .app-layout{display:none;width:100%;height:100vh;grid-template-columns:260px 1fr}
 .app-layout.authenticated{display:grid}
+.app-layout.sidebar-collapsed{grid-template-columns:76px 1fr}
 .sidebar{background:var(--primary);color:white;display:flex;flex-direction:column;justify-content:space-between;padding:20px;box-shadow:4px 0 15px rgba(0,0,0,.05);z-index:10}
+.sidebar{position:relative;transition:padding .2s ease}
+.sidebar-toggle{position:absolute;top:12px;right:12px;width:34px;height:34px;padding:0;border:1px solid rgba(255,255,255,.35);border-radius:8px;background:rgba(255,255,255,.12);color:#fff;font-size:1.15rem;cursor:pointer;z-index:2}
+.sidebar-toggle:hover{background:rgba(255,255,255,.24)}
 .sidebar-brand{display:flex;align-items:center;gap:12px;padding-bottom:20px;border-bottom:1px solid rgba(255,255,255,.15);margin-bottom:20px}
 .logo-box{width:44px;height:44px;background-color:#fff;border-radius:8px;display:flex;justify-content:center;align-items:center;padding:5px}
 .brand-title h1{font-size:1.1rem;color:#fff;font-weight:700}
@@ -29,6 +33,19 @@ body{background-color:var(--bg-color);color:var(--text-main);display:flex;height
 .nav-btn{width:100%;padding:10px 14px;border:none;background:0 0;color:#b8d0c8;font-weight:600;font-size:.9rem;border-radius:8px;cursor:pointer;transition:.2s;display:flex;align-items:center;gap:10px;text-align:left}
 .nav-btn:hover{background:rgba(255,255,255,.1);color:#fff}
 .nav-btn.active{background:#fff;color:var(--primary);font-weight:700;box-shadow:0 4px 10px rgba(0,0,0,.1)}
+.sidebar-collapsed .sidebar{padding:56px 8px 12px}
+.sidebar-collapsed .sidebar-brand{justify-content:center;padding-bottom:14px;margin-bottom:14px}
+.sidebar-collapsed .brand-title{display:none}
+.sidebar-collapsed .sidebar-toggle{right:21px;top:12px}
+.sidebar-collapsed .nav-btn{justify-content:center;padding:11px 4px;font-size:0;gap:0}
+.sidebar-collapsed .nav-btn:before{content:attr(data-icon);font-size:1.15rem;line-height:1}
+.sidebar-collapsed .sidebar-menu{overflow-x:hidden}
+.sidebar-collapsed .sidebar>div:last-child{align-items:center}
+.sidebar-collapsed .sidebar>div:last-child #userLogadoTxt{display:none}
+.sidebar-collapsed .sidebar>div:last-child .btn{font-size:0;padding:9px 5px;width:100%;min-height:36px}
+.sidebar-collapsed .sidebar>div:last-child .btn:before{font-size:1rem}
+.sidebar-collapsed .sidebar>div:last-child .btn:first-child:before{content:'⚙️'}
+.sidebar-collapsed .sidebar>div:last-child .btn:last-child:before{content:'↪'}
 .main-content{overflow-y:auto;padding:25px;background:var(--bg-color);height:100vh}
 .header-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;background:#fff;padding:15px 25px;border-radius:12px;border:1px solid var(--border)}
 .tab-content{display:none} .tab-content.active{display:block}
@@ -102,6 +119,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 <div class="app-layout" id="appLayout">
   <aside class="sidebar">
     <div>
+      <button type="button" class="sidebar-toggle" id="sidebarToggle" onclick="alternarMenuLateral()" aria-label="Recolher menu" title="Recolher menu">‹</button>
       <div class="sidebar-brand">
         <div class="logo-box">
           <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -111,15 +129,15 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
         <div class="brand-title"><h1>Realiza Imóveis</h1><p>Gestão Financeira</p></div>
       </div>
       <nav class="sidebar-menu">
-        <button class="nav-btn active" onclick="mudarAba('contas')">💳 Contas a Pagar</button>
-        <button class="nav-btn" onclick="mudarAba('dashboard')">📊 Dashboard</button>
-        <button class="nav-btn" onclick="mudarAba('comissoes')">🏠 Comissões a Receber</button>
-        <button class="nav-btn" onclick="mudarAba('aluguel')">🔑 Aluguel Fechado</button>
-        <button class="nav-btn" onclick="mudarAba('rescisao')">📄 Rescisão</button>
-        <button class="nav-btn" onclick="mudarAba('imoveis')">🏢 Imóveis</button>
-        <button class="nav-btn" onclick="mudarAba('buscas')">🔍 Consultas IPTU</button>
-        <button class="nav-btn" onclick="mudarAba('damae')">💧 Consultas DAMAE</button>
-        <button class="nav-btn" onclick="mudarAba('usuarios')">👤 Gerir Utilizadores</button>
+        <button class="nav-btn active" data-icon="💳" title="Contas a Pagar" onclick="mudarAba('contas')">💳 Contas a Pagar</button>
+        <button class="nav-btn" data-icon="📊" title="Dashboard" onclick="mudarAba('dashboard')">📊 Dashboard</button>
+        <button class="nav-btn" data-icon="🏠" title="Comissões a Receber" onclick="mudarAba('comissoes')">🏠 Comissões a Receber</button>
+        <button class="nav-btn" data-icon="🔑" title="Aluguel Fechado" onclick="mudarAba('aluguel')">🔑 Aluguel Fechado</button>
+        <button class="nav-btn" data-icon="📄" title="Rescisão" onclick="mudarAba('rescisao')">📄 Rescisão</button>
+        <button class="nav-btn" data-icon="🏢" title="Imóveis" onclick="mudarAba('imoveis')">🏢 Imóveis</button>
+        <button class="nav-btn" data-icon="🔍" title="Consultas IPTU" onclick="mudarAba('buscas')">🔍 Consultas IPTU</button>
+        <button class="nav-btn" data-icon="💧" title="Consultas DAMAE" onclick="mudarAba('damae')">💧 Consultas DAMAE</button>
+        <button class="nav-btn" data-icon="👤" title="Gerir Utilizadores" onclick="mudarAba('usuarios')">👤 Gerir Utilizadores</button>
       </nav>
     </div>
     <div style="display:flex; flex-direction:column; gap:8px;">
@@ -801,6 +819,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   function entrarSistema(user) {
     $('loginScreen').style.display = 'none';
     $('appLayout').classList.add('authenticated');
+    aplicarEstadoMenuLateral(localStorage.getItem('menu_lateral_recolhido') === 'true');
     $('userLogadoTxt').innerText = 'Logado como: ' + user;
     initAnoSelectors();
     atualizarSelectsGerais();
@@ -812,6 +831,22 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     renderBcis();
     renderDamae();
     renderUsuarios();
+  }
+
+  function aplicarEstadoMenuLateral(recolhido) {
+    var layout = $('appLayout');
+    var botao = $('sidebarToggle');
+    if (!layout || !botao) return;
+    layout.classList.toggle('sidebar-collapsed', recolhido);
+    botao.innerText = recolhido ? '›' : '‹';
+    botao.title = recolhido ? 'Expandir menu' : 'Recolher menu';
+    botao.setAttribute('aria-label', botao.title);
+  }
+
+  function alternarMenuLateral() {
+    var recolhido = !$('appLayout').classList.contains('sidebar-collapsed');
+    aplicarEstadoMenuLateral(recolhido);
+    localStorage.setItem('menu_lateral_recolhido', String(recolhido));
   }
 
   function sairSistema() { 
