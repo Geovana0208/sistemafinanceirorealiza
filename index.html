@@ -169,6 +169,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
           </select>
           <label for="filtroDescricaoContas">Descrição:</label><select id="filtroDescricaoContas" style="max-width:260px;"><option value="">Todas as descrições</option></select>
           <button class="btn btn-success btn-sm" type="button" onclick="renderContas()">🔎 Pesquisar</button>
+          <button class="btn btn-secondary btn-sm" type="button" id="btnImportarContasImagem" onclick="importarContasImagemManualmente()" style="display:none;">📥 Importar lançamentos da imagem</button>
           <button class="btn btn-secondary btn-sm" onclick="abrirGerenciadorContas()">⚙️ Contas de Saída</button>
           <button class="btn btn-secondary btn-sm" onclick="abrirGerenciadorCategorias()">⚙️ Categorias</button>
           <button class="btn btn-secondary btn-sm" onclick="abrirGerenciadorVeiculos()">⚙️ Veículos Captação</button>
@@ -657,6 +658,25 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       localStorage.setItem('contas_db', JSON.stringify(contas));
       sincronizarComSheets('Contas', contas);
     }
+    return adicionadas;
+  }
+  function atualizarBotaoImportacaoContasImagem() {
+    var botao = $('btnImportarContasImagem');
+    if (!botao) return;
+    var faltantes = 0;
+    for (var i = 1; i <= 22; i++) {
+      var id = 'imp_contas_nov2026_' + String(i).padStart(2, '0');
+      if (!contas.some(function(item) { return item && String(item.id) === id; })) faltantes++;
+    }
+    botao.style.display = faltantes ? 'inline-flex' : 'none';
+    botao.textContent = faltantes ? '📥 Importar lançamentos da imagem (' + faltantes + ')' : '📥 Lançamentos da imagem importados';
+  }
+  function importarContasImagemManualmente() {
+    var quantidade = importarContasImagemNov2026();
+    atualizarBotaoImportacaoContasImagem();
+    renderContas();
+    if (quantidade) alert(quantidade + ' lançamento(s) foram adicionados e enviados para sincronização com o Google Sheets.');
+    else alert('Os lançamentos da imagem já estão cadastrados; nenhum registro foi duplicado.');
   }
   function buscarAbaSheets(nomeAba) {
     var url = WEB_APP_URL + (WEB_APP_URL.indexOf('?') >= 0 ? '&' : '?') + 'aba=' + encodeURIComponent(nomeAba);
@@ -1585,6 +1605,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 
   function renderContas() {
     processarMarketingAutomatico();
+    atualizarBotaoImportacaoContasImagem();
     var fAno = $('filtroAnoContas').value;
     var fMes = $('filtroMesContas').value;
     atualizarOpcoesFiltroDescricaoContas();
