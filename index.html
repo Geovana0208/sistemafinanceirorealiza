@@ -381,18 +381,21 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     </div>
 
     <!-- IMÓVEIS -->
-    <div id="tab-imoveis" class="tab-content">
+      <div id="tab-imoveis" class="tab-content">
       <div class="card" style="margin-bottom: 20px;">
         <h3 style="color: var(--primary); margin-bottom: 12px;">Cadastrar / Gerenciar Imóvel</h3>
         <form id="formImovel" onsubmit="event.preventDefault(); salvarImovelForm();">
           <input type="hidden" id="imovelInternalId">
           <div class="form-group"><label>Número do BCI</label><input type="text" id="imovelBciInput" required placeholder="Ex: 01.12.008.00073.004"></div>
           <div class="form-group"><label>ID Eletrônico DAMAE (Opcional)</label><input type="text" id="imovelDamaeInput" placeholder="Ex: 74315927@02"></div>
-          <div class="form-group"><label>CPF / CNPJ Proprietário</label><input type="text" id="imovelCpfInput" placeholder="Ex: 12345678900"></div>
-          <div class="form-group"><label>Código do Contrato (Interno)</label><input type="text" id="imovelContratoInput" required placeholder="Ex: CONT-2026-01"></div>
-          <div class="form-group"><label>Status do Imóvel</label><select id="imovelStatusInput" required><option value="Alugado">Alugado</option><option value="Desocupado">Desocupado</option></select></div>
+          <div class="form-group"><label for="imovelCpfInput">CPF / CNPJ Proprietário</label><input type="text" id="imovelCpfInput" placeholder="Ex: 12345678900"></div>
+          <div class="form-group"><label for="imovelContratoInput">Código do Contrato (Interno)</label><input type="text" id="imovelContratoInput" placeholder="Ex: CONT-2026-01"></div>
+          <div class="form-group"><label>Status do Imóvel</label><select id="imovelStatusInput" required onchange="atualizarObrigatoriedadeImovel()"><option value="Alugado">Alugado</option><option value="Desocupado">Desocupado</option></select></div>
           <div style="grid-column: 1 / -1; display:flex; gap:10px;"><button type="submit" class="btn" style="flex:1;">Salvar Imóvel</button><button type="button" class="btn btn-secondary" onclick="limparFormImovel()">Limpar</button></div>
         </form>
+      </div>
+      <div class="grid-cards" style="margin-bottom:15px;">
+        <div class="card"><div class="card-title">Imóveis cadastrados</div><div class="card-val" id="qtdImoveisCadastrados" style="color:var(--primary);">0</div></div>
       </div>
       <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px; flex-wrap:wrap; gap:10px;">
@@ -774,6 +777,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 
   document.addEventListener('DOMContentLoaded', function() {
     if ($('inputSheetsLogin') && WEB_APP_URL) $('inputSheetsLogin').value = WEB_APP_URL;
+    atualizarObrigatoriedadeImovel();
     var formLogin = $('formLogin');
     if (formLogin) {
       formLogin.addEventListener('submit', function(e) {
@@ -1948,6 +1952,13 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   }
 
   // IMÓVEIS
+  function atualizarObrigatoriedadeImovel() {
+    var desocupado = $('imovelStatusInput') && $('imovelStatusInput').value === 'Desocupado';
+    var cpf = $('imovelCpfInput'), contrato = $('imovelContratoInput');
+    if (cpf) { cpf.required = !!desocupado; cpf.placeholder = desocupado ? 'Obrigatório para imóvel desocupado' : 'Ex: 12345678900'; }
+    if (contrato) { contrato.required = !desocupado; contrato.placeholder = desocupado ? 'Opcional enquanto desocupado' : 'Obrigatório para imóvel alugado'; }
+  }
+
   function salvarImovelForm() {
     var internalId = $('imovelInternalId').value;
     var bci = $('imovelBciInput').value.trim();
@@ -1956,8 +1967,19 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     var contrato = $('imovelContratoInput').value.trim();
     var status = $('imovelStatusInput').value;
 
-    if (!bci || !contrato) {
-      alert('Preencha o BCI e o Código do Contrato.');
+    if (!bci) {
+      alert('Preencha o número do BCI.');
+      $('imovelBciInput').focus();
+      return;
+    }
+    if (status === 'Desocupado' && !cpfCnpj) {
+      alert('Para imóvel desocupado, informe o CPF/CNPJ do proprietário.');
+      $('imovelCpfInput').focus();
+      return;
+    }
+    if (status === 'Alugado' && !contrato) {
+      alert('Para imóvel alugado, informe o Código do Contrato.');
+      $('imovelContratoInput').focus();
       return;
     }
 
@@ -2018,6 +2040,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       $('imovelCpfInput').value = item.cpfCnpj || '';
       $('imovelContratoInput').value = item.contrato || '';
       $('imovelStatusInput').value = item.status || 'Alugado';
+      atualizarObrigatoriedadeImovel();
       mudarAba('imoveis');
     }
   }
@@ -2031,10 +2054,12 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     }
   }
 
-  function limparFormImovel() { $('formImovel').reset(); $('imovelInternalId').value = ''; }
+  function limparFormImovel() { $('formImovel').reset(); $('imovelInternalId').value = ''; atualizarObrigatoriedadeImovel(); }
 
   function renderImoveis() {
     var html = '';
+    var totalImoveisCadastrados = imoveisDB.filter(function(item) { return !!item; }).length;
+    if ($('qtdImoveisCadastrados')) $('qtdImoveisCadastrados').innerText = totalImoveisCadastrados.toLocaleString('pt-BR');
     var imoveisOrdenados = imoveisDB.slice().sort(function(a, b) {
       return String(a.contrato || '').localeCompare(String(b.contrato || ''), 'pt-BR', { numeric: true, sensitivity: 'base' });
     });
