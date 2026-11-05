@@ -77,6 +77,9 @@ input:focus,select:focus,textarea:focus{border-color:var(--primary);background:#
 table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden}
 th,td{padding:12px 14px;text-align:left;border-bottom:1px solid var(--border);font-size:.88rem;vertical-align:middle}
 th{background:var(--primary-light);color:var(--primary);font-weight:700}
+.conta-a-vencer td{background:#fff7cc}
+.conta-vencida td{background:#fee2e2;color:#991b1b}
+.conta-paga td{background:#d1fae5;color:#065f46}
 .badge{padding:4px 8px;border-radius:12px;font-size:.75rem;font-weight:700;display:inline-block}
 .badge-pago,.badge-recebido{background:#d1fae5;color:#065f46}
 .badge-pendente,.badge-areceber{background:#fee2e2;color:#991b1b}
@@ -180,8 +183,9 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       <div class="grid-cards">
         <div class="card"><div class="card-title">Previsto Total</div><div class="card-val" id="totalPrevisto" style="color: var(--primary);">R$ 0,00</div></div>
         <div class="card"><div class="card-title">Realizado / Pago</div><div class="card-val" id="totalReal" style="color: var(--success);">R$ 0,00</div></div>
-        <div class="card"><div class="card-title">Variação</div><div class="card-val" id="totalVariacao">R$ 0,00</div></div>
+        <div class="card"><div class="card-title">Variação das Pagas (Previsto − Pago)</div><div class="card-val" id="totalVariacao">R$ 0,00</div></div>
         <div class="card"><div class="card-title">Total Geral Devido</div><div class="card-val" id="totalPendente" style="color: var(--danger);">R$ 0,00</div></div>
+        <div class="card"><div class="card-title">Despesas Vencidas</div><div class="card-val" id="totalVencidas" style="color: var(--danger);">R$ 0,00</div><small id="qtdVencidas">0 contas</small></div>
         <div class="card"><div class="card-title">Vencem Hoje</div><div class="card-val" id="totalVencemHoje" style="color: var(--warning);">R$ 0,00</div></div>
         <div class="card"><div class="card-title">Próximos 7 Dias</div><div class="card-val" id="totalProximosDias" style="color: var(--primary);">R$ 0,00</div></div>
       </div>
@@ -1632,16 +1636,18 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     atualizarOpcoesFiltroDescricaoContas();
     var fDescricao = ($('filtroDescricaoContas') || {}).value || '';
     var html = '';
-    var totPrev = 0, totReal = 0, totPend = 0, vencHoje = 0, proxDias = 0;
-    var hojeStr = new Date().toISOString().split('T')[0];
-    var hojeDate = new Date(hojeStr);
-    var daqui7 = new Date(); daqui7.setDate(hojeDate.getDate() + 7);
+    var totPrev = 0, totReal = 0, totPend = 0, variacaoPagas = 0, vencHoje = 0, proxDias = 0, totalVencidas = 0, quantidadeVencidas = 0;
+    var agora = new Date();
+    var hojeStr = agora.getFullYear() + '-' + String(agora.getMonth() + 1).padStart(2, '0') + '-' + String(agora.getDate()).padStart(2, '0');
+    var hojeDate = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate());
+    var daqui7 = new Date(hojeDate); daqui7.setDate(daqui7.getDate() + 7);
 
     for (var i = 0; i < contas.length; i++) {
       var c = contas[i];
       if (!c.vencimento) continue;
-      var pAno = c.vencimento.substring(0,4);
-      var pMes = c.vencimento.substring(5,7);
+      var vencimentoConta = String(c.vencimento).slice(0,10);
+      var pAno = vencimentoConta.substring(0,4);
+      var pMes = vencimentoConta.substring(5,7);
 
       if (fAno !== 'todos' && pAno !== fAno) continue;
       if (fMes !== 'todos' && pMes !== fMes) continue;
@@ -1651,28 +1657,34 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       var vR = Number(c.valorReal) || 0;
       totPrev += vP;
       totReal += vR;
-      var rest = vP - vR;
-      if (c.status !== 'Pago') totPend += rest;
+      if (vR > 0) variacaoPagas += vP - vR;
+      var rest = Math.max(0, vP - vR);
+      totPend += rest;
+      if (rest > 0 && vencimentoConta < hojeStr) { totalVencidas += rest; quantidadeVencidas++; }
 
-      var dVen = new Date(c.vencimento);
-      if (c.vencimento === hojeStr && c.status !== 'Pago') vencHoje += vP;
-      if (dVen >= hojeDate && dVen <= daqui7 && c.status !== 'Pago') proxDias += vP;
+      var dVen = new Date(vencimentoConta + 'T00:00:00');
+      if (vencimentoConta === hojeStr && rest > 0) vencHoje += rest;
+      if (dVen >= hojeDate && dVen <= daqui7 && rest > 0) proxDias += rest;
 
       var badge = c.status === 'Pago' ? 'badge-pago' : 'badge-pendente';
+      var classeVencimento = c.status === 'Pago' ? 'conta-paga' : (rest <= 0 ? '' : (vencimentoConta < hojeStr ? 'conta-vencida' : 'conta-a-vencer'));
       var idMarketing = String(c.id || '');
       var observacaoConta = c.observacao || (idMarketing.indexOf('auto_mkt_a_') === 0 ? 'Aluguel' : (idMarketing.indexOf('auto_mkt_v_') === 0 ? 'Venda' : '—'));
       if (contaInlineId === String(c.id)) {
-        html += '<tr><td>' + campoInline('ieContaDescricao','Descrição',c.descricao) + '<br>' + selectInline('ieContaCategoria','Categoria',c.categoria,categorias) + '</td><td>' + campoInline('ieContaObs','Obs.',observacaoConta) + '</td><td>' + selectInline('ieContaTipo','Tipo',c.tipo,['Fixa','Variável','Parcelada'],'atualizarCamposParcelaInlineConta()') + camposParcelasInlineConta(c) + '</td><td>' + selectInline('ieContaOrigem','Origem',c.contaOrigem,origens) + '</td><td>' + campoInline('ieContaVencimento','Vencimento',c.vencimento,'date') + '</td><td>' + campoInline('ieContaPrevisto','Previsto',vP,'number') + '</td><td>' + campoInline('ieContaReal','Pago',vR,'number') + '</td><td><span class="badge ' + badge + '">' + (c.status || 'Pendente') + '</span></td><td><button class="btn btn-success btn-sm" onclick="salvarEdicaoInlineConta(\'' + escaparTextoHtml(c.id) + '\')">Salvar</button> <button class="btn btn-secondary btn-sm" onclick="cancelarEdicaoInline(\'conta\')">Cancelar</button></td></tr>';
+        html += '<tr class="' + classeVencimento + '"><td>' + campoInline('ieContaDescricao','Descrição',c.descricao) + '<br>' + selectInline('ieContaCategoria','Categoria',c.categoria,categorias) + '</td><td>' + campoInline('ieContaObs','Obs.',observacaoConta) + '</td><td>' + selectInline('ieContaTipo','Tipo',c.tipo,['Fixa','Variável','Parcelada'],'atualizarCamposParcelaInlineConta()') + camposParcelasInlineConta(c) + '</td><td>' + selectInline('ieContaOrigem','Origem',c.contaOrigem,origens) + '</td><td>' + campoInline('ieContaVencimento','Vencimento',c.vencimento,'date') + '</td><td>' + campoInline('ieContaPrevisto','Previsto',vP,'number') + '</td><td>' + campoInline('ieContaReal','Pago',vR,'number') + '</td><td><span class="badge ' + badge + '">' + (c.status || 'Pendente') + '</span></td><td><button class="btn btn-success btn-sm" onclick="salvarEdicaoInlineConta(\'' + escaparTextoHtml(c.id) + '\')">Salvar</button> <button class="btn btn-secondary btn-sm" onclick="cancelarEdicaoInline(\'conta\')">Cancelar</button></td></tr>';
       } else {
-        html += '<tr><td>' + escaparTextoHtml(c.descricao) + '</td><td><small>' + escaparTextoHtml(observacaoConta) + '</small></td><td>' + escaparTextoHtml(c.tipo) + '</td><td>' + escaparTextoHtml(c.contaOrigem) + '</td><td>' + c.vencimento.split('-').reverse().join('/') + '</td><td>' + formatarMoeda(vP) + '</td><td>' + formatarMoeda(vR) + '</td><td><span class="badge ' + badge + '">' + (c.status || 'Pendente') + '</span></td>';
+        html += '<tr class="' + classeVencimento + '"><td>' + escaparTextoHtml(c.descricao) + '</td><td><small>' + escaparTextoHtml(observacaoConta) + '</small></td><td>' + escaparTextoHtml(c.tipo) + '</td><td>' + escaparTextoHtml(c.contaOrigem) + '</td><td>' + vencimentoConta.split('-').reverse().join('/') + '</td><td>' + formatarMoeda(vP) + '</td><td>' + formatarMoeda(vR) + '</td><td><span class="badge ' + badge + '">' + (c.status || 'Pendente') + '</span></td>';
         html += '<td><button class="btn btn-secondary btn-sm" onclick="editarConta(\'' + c.id + '\')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirConta(\'' + c.id + '\')">X</button></td></tr>';
       }
     }
 
     $('totalPrevisto').innerText = formatarMoeda(totPrev);
     $('totalReal').innerText = formatarMoeda(totReal);
-    $('totalVariacao').innerText = formatarMoeda(totReal - totPrev);
+    $('totalVariacao').innerText = formatarMoeda(variacaoPagas);
+    $('totalVariacao').style.color = variacaoPagas >= 0 ? 'var(--success)' : 'var(--danger)';
     $('totalPendente').innerText = formatarMoeda(totPend);
+    $('totalVencidas').innerText = formatarMoeda(totalVencidas);
+    $('qtdVencidas').innerText = quantidadeVencidas + (quantidadeVencidas === 1 ? ' conta' : ' contas');
     $('totalVencemHoje').innerText = formatarMoeda(vencHoje);
     $('totalProximosDias').innerText = formatarMoeda(proxDias);
     $('tabelaContas').innerHTML = html;
