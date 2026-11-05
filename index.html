@@ -67,7 +67,8 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 .badge-desocupado{background:#f3f4f6;color:#374151}
 .modal-bg{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);display:none;justify-content:center;align-items:center;z-index:100}
 .modal-content{background:#fff;padding:25px;border-radius:12px;max-width:500px;width:90%}
-.chart-box{height:280px;position:relative}
+.chart-box{height:420px;position:relative;width:100%}.chart-box canvas{display:block;width:100%;height:100%}
+.commission-table-container{max-height:calc(100vh - 260px);overflow:auto}.commission-table-container table{min-width:1050px}.commission-table-container thead th{position:sticky;top:0;z-index:5}
 </style>
 </head>
 <body>
@@ -263,9 +264,9 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
         </form>
       </div>
       <div class="card">
-        <div class="table-container">
+        <div class="table-container commission-table-container">
           <table>
-            <thead><tr><th>Fechamento</th><th>COD</th><th>Unid.</th><th>Empreendimento</th><th>Forma de pagamento</th><th>Clientes</th><th>Captação</th><th>Corretor</th><th>Venda</th><th>Percentual</th><th>Comissão Total</th><th>Comissão Imobiliária</th><th>Imobiliária Recebido</th><th>Imobiliária Falta</th><th>Retenção</th><th>Status Imobiliária</th><th>Ações</th></tr></thead>
+            <thead><tr><th>Fechamento</th><th>COD</th><th>Empreendimento</th><th>Clientes</th><th>Corretor</th><th>Venda</th><th>Comissão Imobiliária</th><th>Imobiliária Recebido</th><th>Imobiliária Falta</th><th>Status</th><th>Detalhes</th><th>Ações</th></tr></thead>
             <tbody id="tabelaComissoes"></tbody>
           </table>
         </div>
@@ -1573,6 +1574,15 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     if ($('qtdComissoesPrevistasMes')) $('qtdComissoesPrevistasMes').innerText = quantidade + (quantidade === 1 ? ' comissão imobiliária com saldo previsto' : ' comissões imobiliárias com saldo previsto');
   }
 
+  function toggleDetalhesComissao(indice) {
+    var linha = $('detalhe-comissao-' + indice);
+    var botao = $('btn-detalhe-comissao-' + indice);
+    if (!linha) return;
+    var abrir = linha.style.display === 'none' || !linha.style.display;
+    linha.style.display = abrir ? 'table-row' : 'none';
+    if (botao) botao.innerText = abrir ? 'Fechar' : 'Ver';
+  }
+
   function renderComissoes() {
     normalizarCamposComissoes();
     var fAno = $('filtroAnoComissoes').value;
@@ -1615,7 +1625,29 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       var badge = falta <= 0 ? 'badge-recebido' : (vRec > 0 ? 'badge-parcial' : 'badge-areceber');
       var statusTxt = falta <= 0 ? 'Recebido' : (vRec > 0 ? 'Parcial' : 'A Receber');
 
-      html += '<tr><td>' + cm.dataFechamento.split('-').reverse().join('/') + '</td><td>' + escaparTextoHtml(cm.codigo || '-') + '</td><td>' + escaparTextoHtml(cm.unidade || '-') + '</td><td>' + escaparTextoHtml(cm.empreendimento || cm.unidadeEmpreendimento || '-') + '</td><td>' + escaparTextoHtml(cm.formaPagamento || '-') + '</td><td><b>Comp:</b> ' + cm.comprador + '<br><b>Vend:</b> ' + cm.vendedor + '</td><td>' + cm.veiculoCapitacao + '</td><td>' + cm.corretor + '</td><td>' + formatarMoeda(vV) + '</td><td>' + (cm.percentualComissao === '' || cm.percentualComissao == null ? '' : (Number(cm.percentualComissao) || 0).toLocaleString('pt-BR', {maximumFractionDigits:8}) + '%') + '</td><td>' + (cm.valorComissao === '' || cm.valorComissao == null ? '' : formatarMoeda(vC)) + '</td><td>' + formatarMoeda(Number(cm.comissaoImobiliaria) || 0) + '</td><td>' + formatarMoeda(vRec) + '</td><td>' + formatarMoeda(falta) + '</td><td>' + (cm.retidoPor || 'Nenhum') + '</td><td><span class="badge ' + badge + '">' + statusTxt + '</span></td><td><button class="btn btn-secondary btn-sm" onclick="editarComissao(\'' + cm.id + '\')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirComissao(\'' + cm.id + '\')">X</button></td></tr>';
+      var detalheId = 'detalhe-comissao-' + i;
+      var compradorSeguro = escaparTextoHtml(cm.comprador || '-');
+      var vendedorSeguro = escaparTextoHtml(cm.vendedor || '-');
+      var corretorSeguro = escaparTextoHtml(cm.corretor || '-');
+      var empreendimentoSeguro = escaparTextoHtml(cm.empreendimento || cm.unidadeEmpreendimento || '-');
+      var previsaoSeguro = cm.tipoPrevisao === 'sem_previsao' ? 'Sem previsão' : (cm.dataPrevisao ? escaparTextoHtml(cm.dataPrevisao.split('-').reverse().join('/')) : '—');
+      var percentualSeguro = cm.percentualComissao === '' || cm.percentualComissao == null ? '—' : escaparTextoHtml((Number(cm.percentualComissao) || 0).toLocaleString('pt-BR', {maximumFractionDigits:8}) + '%');
+      var comissaoTotalSeguro = cm.valorComissao === '' || cm.valorComissao == null ? '—' : escaparTextoHtml(formatarMoeda(vC));
+      html += '<tr><td>' + escaparTextoHtml(cm.dataFechamento.split('-').reverse().join('/')) + '</td>';
+      html += '<td>' + escaparTextoHtml(cm.codigo || '-') + '</td><td>' + empreendimentoSeguro + '</td>';
+      html += '<td>' + compradorSeguro + '</td><td>' + corretorSeguro + '</td><td>' + formatarMoeda(vV) + '</td>';
+      html += '<td>' + formatarMoeda(comissaoImobiliaria) + '</td><td>' + formatarMoeda(vRec) + '</td><td>' + formatarMoeda(falta) + '</td>';
+      html += '<td><span class="badge ' + badge + '">' + statusTxt + '</span></td>';
+      html += '<td><button type="button" class="btn btn-secondary btn-sm" id="btn-' + detalheId + '" onclick="toggleDetalhesComissao(' + i + ')">Ver</button></td>';
+      html += '<td><button class="btn btn-secondary btn-sm" onclick="editarComissao(\'' + cm.id + '\')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirComissao(\'' + cm.id + '\')">X</button></td></tr>';
+      html += '<tr id="' + detalheId + '" class="commission-detail-row" style="display:none"><td colspan="12"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;padding:8px 4px;white-space:normal">';
+      html += '<div><b>Unidade:</b> ' + escaparTextoHtml(cm.unidade || '—') + '</div>';
+      html += '<div><b>Vendedor / proprietário:</b> ' + vendedorSeguro + '</div>';
+      html += '<div><b>Forma de pagamento:</b> ' + escaparTextoHtml(cm.formaPagamento || '—') + '</div>';
+      html += '<div><b>Veículo de captação:</b> ' + escaparTextoHtml(cm.veiculoCapitacao || '—') + '</div>';
+      html += '<div><b>Percentual:</b> ' + percentualSeguro + '</div><div><b>Comissão total:</b> ' + comissaoTotalSeguro + '</div>';
+      html += '<div><b>Retenção:</b> ' + escaparTextoHtml(cm.retidoPor || 'Nenhum') + '</div><div><b>Previsão:</b> ' + previsaoSeguro + '</div>';
+      html += '<div style="grid-column:1/-1"><b>Observações:</b> ' + escaparTextoHtml(cm.observacoes || '—') + '</div></div></td></tr>';
     }
 
     $('totalVendasComissao').innerText = formatarMoeda(tVendas);
