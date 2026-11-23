@@ -544,7 +544,9 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   var $ = function(id) { return document.getElementById(id); };
   function formatarMoeda(v) { return 'R$ ' + (v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
-  var WEB_APP_URL = localStorage.getItem('sheets_url') || '';
+  // URL oficial do Apps Script: força a planilha compartilhada atual em todos os navegadores.
+  var WEB_APP_URL = 'https://script.google.com/macros/s/AKfycby9vjHPCmLpFaEksUUMKsGC6uA7whEYaIRBPO2h2ckP-STFB6u-QdH_0uAlXVZZZiiTzQ/exec';
+  try { localStorage.setItem('sheets_url', WEB_APP_URL); } catch (e) {}
 
   function normalizarRegistrosUnicosPorId(registros) {
     var resultado = [], indicePorId = {};
