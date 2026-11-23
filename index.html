@@ -444,7 +444,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
         </div></details>
         <div class="table-container">
           <table>
-            <thead><tr><th>BCI (Formato Original)</th><th>Contrato</th><th>CPF</th><th>Status Imóvel</th><th>Status da Consulta</th><th>Responsabilidade da guia</th></tr></thead>
+            <thead><tr><th>BCI (Formato Original)</th><th>Contrato</th><th>Início do contrato</th><th>CPF</th><th>Status Imóvel</th><th>Status da Consulta</th><th>Referência da guia</th><th>Responsabilidade da guia</th></tr></thead>
             <tbody id="tabelaBcis"></tbody>
           </table>
         </div>
@@ -471,7 +471,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
         </div></details>
         <div class="table-container">
           <table>
-            <thead><tr><th>ID DAMAE</th><th>Contrato</th><th>Status Imóvel</th><th>Status da Consulta</th><th>Responsabilidade da guia</th></tr></thead>
+            <thead><tr><th>ID DAMAE</th><th>Contrato</th><th>Início do contrato</th><th>Status Imóvel</th><th>Status da Consulta</th><th>Referência da guia</th><th>Responsabilidade da guia</th></tr></thead>
             <tbody id="tabelaDamae"></tbody>
           </table>
         </div>
@@ -2459,6 +2459,21 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     if (imovelInlineId !== null) atualizarObrigatoriedadeInlineImovel();
   }
 
+  function formatarDataConsultaGuia(valor) {
+    var iso = normalizarDataImovelParaInput(valor);
+    return iso ? iso.split('-').reverse().join('/') : '—';
+  }
+  function formatarReferenciaConsultaGuia(valor, status) {
+    var refs = Array.isArray(valor) ? valor : String(valor || '').split(/[|;]/);
+    refs = refs.map(function(ref) { return String(ref || '').trim(); }).filter(Boolean);
+    if (refs.length) return refs.join('; ');
+    var textoStatus = String(status || '').replace(/<[^>]*>/g, ' ').toLocaleLowerCase('pt-BR');
+    if (textoStatus.indexOf('em dia') >= 0) return 'Sem guia em aberto';
+    if (textoStatus.indexOf('não consultado') >= 0) return 'Ainda não consultada';
+    if (/(pendente|em aberto|guia vencida|d[eé]bito|inconclusivo)/.test(textoStatus)) return 'Referência não capturada';
+    return '—';
+  }
+
   function classificarResponsavelGuia(item, modulo) {
     var status = String(modulo === 'BCI' ? item.statusBci || '' : item.statusDamae || '').replace(/<[^>]*>/g, ' ').toLocaleLowerCase('pt-BR');
     var referenciasSalvas = modulo === 'BCI' ? item.referenciasBci : item.referenciasDamae;
@@ -2510,7 +2525,9 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       if (statusFiltro === 'emdia' && !textoConsulta.includes('em dia')) continue;
       if (statusFiltro === 'outros' && (textoConsulta.includes('em dia') || /(pendente|aberto|débito|debito|vencido)/.test(textoConsulta))) continue;
       var badge = item.status === 'Alugado' ? 'badge-alugado' : (item.status === 'Rescisão' ? 'badge-rescisao' : 'badge-desocupado');
-      html += '<tr><td><b>' + escaparTextoHtml(item.bci || '') + '</b></td><td>' + escaparTextoHtml(item.contrato || '—') + '</td><td>' + escaparTextoHtml(item.cpfCnpj || '-') + '</td><td><span class="badge ' + badge + '">' + escaparTextoHtml(item.status || '') + '</span></td><td>' + (item.statusBci || 'Em dia') + '</td><td>' + escaparTextoHtml(classificarResponsavelGuia(item, 'BCI')) + '</td></tr>';
+      var dataInicioBci = formatarDataConsultaGuia(item.dataInicioContrato);
+      var referenciaBci = formatarReferenciaConsultaGuia(item.referenciasBci, item.statusBci);
+      html += '<tr><td><b>' + escaparTextoHtml(item.bci || '') + '</b></td><td>' + escaparTextoHtml(item.contrato || '—') + '</td><td>' + escaparTextoHtml(dataInicioBci) + '</td><td>' + escaparTextoHtml(item.cpfCnpj || '-') + '</td><td><span class="badge ' + badge + '">' + escaparTextoHtml(item.status || '') + '</span></td><td>' + (item.statusBci || 'Em dia') + '</td><td>' + escaparTextoHtml(referenciaBci) + '</td><td>' + escaparTextoHtml(classificarResponsavelGuia(item, 'BCI')) + '</td></tr>';
     }
     if ($('tabelaBcis')) $('tabelaBcis').innerHTML = html;
   }
@@ -2532,7 +2549,9 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       if (statusFiltro === 'emdia' && !textoConsulta.includes('em dia')) continue;
       if (statusFiltro === 'outros' && (textoConsulta.includes('em dia') || textoConsulta.includes('em aberto') || textoConsulta.includes('guia vencida'))) continue;
       var badge = item.status === 'Alugado' ? 'badge-alugado' : (item.status === 'Rescisão' ? 'badge-rescisao' : 'badge-desocupado');
-      html += '<tr><td><b>' + escaparTextoHtml(item.damaeId || 'Sem ID') + '</b></td><td>' + escaparTextoHtml(item.contrato || '—') + '</td><td><span class="badge ' + badge + '">' + escaparTextoHtml(item.status || '') + '</span></td><td>' + (item.statusDamae || 'Em dia') + '</td><td>' + escaparTextoHtml(classificarResponsavelGuia(item, 'DAMAE')) + '</td></tr>';
+      var dataInicioDamae = formatarDataConsultaGuia(item.dataInicioContrato);
+      var referenciaDamae = formatarReferenciaConsultaGuia(item.referenciasDamae, item.statusDamae);
+      html += '<tr><td><b>' + escaparTextoHtml(item.damaeId || 'Sem ID') + '</b></td><td>' + escaparTextoHtml(item.contrato || '—') + '</td><td>' + escaparTextoHtml(dataInicioDamae) + '</td><td><span class="badge ' + badge + '">' + escaparTextoHtml(item.status || '') + '</span></td><td>' + (item.statusDamae || 'Em dia') + '</td><td>' + escaparTextoHtml(referenciaDamae) + '</td><td>' + escaparTextoHtml(classificarResponsavelGuia(item, 'DAMAE')) + '</td></tr>';
     }
     if ($('tabelaDamae')) $('tabelaDamae').innerHTML = html;
   }
