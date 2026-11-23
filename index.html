@@ -444,7 +444,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
         </div></details>
         <div class="table-container">
           <table>
-            <thead><tr><th>BCI (Formato Original)</th><th>Contrato</th><th>Início do contrato</th><th>CPF</th><th>Status Imóvel</th><th>Status da Consulta</th><th>Referência da guia</th><th>Responsabilidade da guia</th></tr></thead>
+            <thead><tr><th>BCI (Formato Original)</th><th>Contrato</th><th>Início do contrato</th><th>CPF</th><th>Status Imóvel</th><th>Status da Consulta</th><th>Responsabilidade da guia</th></tr></thead>
             <tbody id="tabelaBcis"></tbody>
           </table>
         </div>
@@ -471,7 +471,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
         </div></details>
         <div class="table-container">
           <table>
-            <thead><tr><th>ID DAMAE</th><th>Contrato</th><th>Início do contrato</th><th>Status Imóvel</th><th>Status da Consulta</th><th>Referência da guia</th><th>Responsabilidade da guia</th></tr></thead>
+            <thead><tr><th>ID DAMAE</th><th>Contrato</th><th>Início do contrato</th><th>Status Imóvel</th><th>Status da Consulta</th><th>Responsabilidade da guia</th></tr></thead>
             <tbody id="tabelaDamae"></tbody>
           </table>
         </div>
@@ -2463,52 +2463,92 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     var iso = normalizarDataImovelParaInput(valor);
     return iso ? iso.split('-').reverse().join('/') : '—';
   }
-  function formatarReferenciaConsultaGuia(valor, status) {
-    var refs = Array.isArray(valor) ? valor : String(valor || '').split(/[|;]/);
-    refs = refs.map(function(ref) { return String(ref || '').trim(); }).filter(Boolean);
-    if (refs.length) return refs.join('; ');
-    var textoStatus = String(status || '').replace(/<[^>]*>/g, ' ').toLocaleLowerCase('pt-BR');
-    if (textoStatus.indexOf('em dia') >= 0) return 'Sem guia em aberto';
-    if (textoStatus.indexOf('não consultado') >= 0) return 'Ainda não consultada';
-    if (/(pendente|em aberto|guia vencida|d[eé]bito|inconclusivo)/.test(textoStatus)) return 'Referência não capturada';
-    return '—';
-  }
-
   function classificarResponsavelGuia(item, modulo) {
-    var status = String(modulo === 'BCI' ? item.statusBci || '' : item.statusDamae || '').replace(/<[^>]*>/g, ' ').toLocaleLowerCase('pt-BR');
+    var status = String(modulo === 'BCI' ? item.statusBci || '' : item.statusDamae || '')
+      .replace(/<[^>]*>/g, ' ').toLocaleLowerCase('pt-BR');
     var referenciasSalvas = modulo === 'BCI' ? item.referenciasBci : item.referenciasDamae;
-    var referencias = Array.isArray(referenciasSalvas) ? referenciasSalvas : String(referenciasSalvas || '').split(/[|;]/).map(function(ref) { return ref.trim(); }).filter(Boolean);
-    if (!referencias.length) {
-      if (status.indexOf('em dia') >= 0) return 'Sem guia em aberto';
-      if (/(pendente|em aberto|guia vencida|d[eé]bito|inconclusivo)/.test(status)) return 'Referência não identificada';
-      return '—';
-    }
-    if (item.status === 'Desocupado') return referencias.map(function(ref) { return 'Proprietário (' + String(ref) + ')'; }).join('; ');
-    var dataInicio = String(item.dataInicioContrato || '').trim();
-    var inicioMatch = dataInicio.match(/^(\d{4})-(\d{2})-(\d{2})/);
-    if (!inicioMatch) {
-      var dataBrasileira = dataInicio.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-      if (dataBrasileira) inicioMatch = [dataInicio, dataBrasileira[3], dataBrasileira[2], dataBrasileira[1]];
-    }
-    if (!inicioMatch) return 'Cadastre a data de início do contrato';
-    var inicioAno = Number(inicioMatch[1]), inicioMes = Number(inicioMatch[2]);
-    return referencias.map(function(ref) {
-      var texto = String(ref || '');
-      var mesAno = texto.match(/\b(0?[1-9]|1[0-2])\s*[\/.-]\s*((?:19|20)\d{2})\b/);
-      if (mesAno) mesAno = [mesAno[0], mesAno[1], mesAno[2]];
-      else {
-        var anoMes = texto.match(/\b((?:19|20)\d{2})\s*[\/.-]\s*(0?[1-9]|1[0-2])\b/);
-        if (anoMes) mesAno = [anoMes[0], anoMes[2], anoMes[1]];
-      }
-      var anoMatch = texto.match(/\b((?:19|20)\d{2})\b/);
-      if (!anoMatch) return 'Referência sem ano (' + texto + ')';
-      var anoRef = Number(anoMatch[1]);
-      var mesRef = mesAno ? Number(mesAno[1]) : null;
-      var ehInquilino = mesRef !== null ? (anoRef * 12 + mesRef >= inicioAno * 12 + inicioMes) : (anoRef >= inicioAno);
-      return (ehInquilino ? 'Inquilino' : 'Proprietário') + ' (' + texto + ')';
-    }).join('; ');
-  }
+    var referencias = Array.isArray(referenciasSalvas)
+      ? referenciasSalvas
+      : String(referenciasSalvas || '').split(/[|;,\n]+/);
+    referencias = referencias.map(function(ref) { return String(ref || '').trim(); }).filter(Boolean);
 
+    var vistas = Object.create(null);
+    var referenciasUnicas = [];
+    referencias.forEach(function(ref) {
+      var chave = ref.toLocaleLowerCase('pt-BR').replace(/\s+/g, ' ').trim();
+      var mesAno = chave.match(/\b(0?[1-9]|1[0-2])\s*[\/.-]\s*((?:19|20)\d{2})\b/);
+      if (mesAno) chave = mesAno[2] + '-' + String(Number(mesAno[1])).padStart(2, '0');
+      else {
+        var anoMes = chave.match(/\b((?:19|20)\d{2})\s*[\/.-]\s*(0?[1-9]|1[0-2])\b/);
+        if (anoMes) chave = anoMes[1] + '-' + String(Number(anoMes[2])).padStart(2, '0');
+        else {
+          var ano = chave.match(/\b((?:19|20)\d{2})\b/);
+          if (ano) chave = ano[1];
+        }
+      }
+      if (!Object.prototype.hasOwnProperty.call(vistas, chave)) {
+        vistas[chave] = true;
+        referenciasUnicas.push(ref);
+      }
+    });
+
+    if (!referenciasUnicas.length) {
+      if (status.indexOf('em dia') >= 0) return 'Inquilino (0), Proprietário (0)';
+      if (/(pendente|em aberto|guia vencida|d[eé]bito|inconclusivo)/.test(status)) return 'Referência não capturada';
+      if (status.indexOf('não consultado') >= 0 || status.indexOf('nao consultado') >= 0) return 'Aguardando consulta';
+      return 'Referência não capturada';
+    }
+
+    var totalInquilino = 0;
+    var totalProprietario = 0;
+    var semClassificacao = 0;
+    if (item.status === 'Desocupado') {
+      totalProprietario = referenciasUnicas.length;
+    } else {
+      var dataInicio = String(item.dataInicioContrato || '').trim();
+      var inicioMatch = dataInicio.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (!inicioMatch) {
+        var dataBrasileira = dataInicio.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+        if (dataBrasileira) inicioMatch = [dataInicio, dataBrasileira[3], dataBrasileira[2], dataBrasileira[1]];
+      }
+      if (!inicioMatch) return 'Cadastre a data de início do contrato';
+
+      var inicioAno = Number(inicioMatch[1]);
+      var inicioMes = Number(inicioMatch[2]);
+      referenciasUnicas.forEach(function(ref) {
+        var texto = String(ref || '');
+        var mesAno = texto.match(/\b(0?[1-9]|1[0-2])\s*[\/.-]\s*((?:19|20)\d{2})\b/);
+        var anoRef = null;
+        var mesRef = null;
+        if (mesAno) {
+          mesRef = Number(mesAno[1]);
+          anoRef = Number(mesAno[2]);
+        } else {
+          var anoMes = texto.match(/\b((?:19|20)\d{2})\s*[\/.-]\s*(0?[1-9]|1[0-2])\b/);
+          if (anoMes) {
+            anoRef = Number(anoMes[1]);
+            mesRef = Number(anoMes[2]);
+          } else {
+            var ano = texto.match(/\b((?:19|20)\d{2})\b/);
+            if (ano) anoRef = Number(ano[1]);
+          }
+        }
+        if (anoRef === null) {
+          semClassificacao++;
+          return;
+        }
+        var ehInquilino = mesRef !== null
+          ? (anoRef * 12 + mesRef >= inicioAno * 12 + inicioMes)
+          : (anoRef >= inicioAno);
+        if (ehInquilino) totalInquilino++;
+        else totalProprietario++;
+      });
+    }
+
+    var resumo = 'Inquilino (' + totalInquilino + '), Proprietário (' + totalProprietario + ')';
+    if (semClassificacao) resumo += ', Referências sem classificação (' + semClassificacao + ')';
+    return resumo;
+  }
   function renderBcis() {
     var html = '';
     var imoveisOrdenados = imoveisDB.slice().sort(function(a, b) {
@@ -2526,8 +2566,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       if (statusFiltro === 'outros' && (textoConsulta.includes('em dia') || /(pendente|aberto|débito|debito|vencido)/.test(textoConsulta))) continue;
       var badge = item.status === 'Alugado' ? 'badge-alugado' : (item.status === 'Rescisão' ? 'badge-rescisao' : 'badge-desocupado');
       var dataInicioBci = formatarDataConsultaGuia(item.dataInicioContrato);
-      var referenciaBci = formatarReferenciaConsultaGuia(item.referenciasBci, item.statusBci);
-      html += '<tr><td><b>' + escaparTextoHtml(item.bci || '') + '</b></td><td>' + escaparTextoHtml(item.contrato || '—') + '</td><td>' + escaparTextoHtml(dataInicioBci) + '</td><td>' + escaparTextoHtml(item.cpfCnpj || '-') + '</td><td><span class="badge ' + badge + '">' + escaparTextoHtml(item.status || '') + '</span></td><td>' + (item.statusBci || 'Em dia') + '</td><td>' + escaparTextoHtml(referenciaBci) + '</td><td>' + escaparTextoHtml(classificarResponsavelGuia(item, 'BCI')) + '</td></tr>';
+      html += '<tr><td><b>' + escaparTextoHtml(item.bci || '') + '</b></td><td>' + escaparTextoHtml(item.contrato || '—') + '</td><td>' + escaparTextoHtml(dataInicioBci) + '</td><td>' + escaparTextoHtml(item.cpfCnpj || '-') + '</td><td><span class="badge ' + badge + '">' + escaparTextoHtml(item.status || '') + '</span></td><td>' + (item.statusBci || 'Em dia') + '</td><td>' + escaparTextoHtml(classificarResponsavelGuia(item, 'BCI')) + '</td></tr>';
     }
     if ($('tabelaBcis')) $('tabelaBcis').innerHTML = html;
   }
@@ -2550,8 +2589,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       if (statusFiltro === 'outros' && (textoConsulta.includes('em dia') || textoConsulta.includes('em aberto') || textoConsulta.includes('guia vencida'))) continue;
       var badge = item.status === 'Alugado' ? 'badge-alugado' : (item.status === 'Rescisão' ? 'badge-rescisao' : 'badge-desocupado');
       var dataInicioDamae = formatarDataConsultaGuia(item.dataInicioContrato);
-      var referenciaDamae = formatarReferenciaConsultaGuia(item.referenciasDamae, item.statusDamae);
-      html += '<tr><td><b>' + escaparTextoHtml(item.damaeId || 'Sem ID') + '</b></td><td>' + escaparTextoHtml(item.contrato || '—') + '</td><td>' + escaparTextoHtml(dataInicioDamae) + '</td><td><span class="badge ' + badge + '">' + escaparTextoHtml(item.status || '') + '</span></td><td>' + (item.statusDamae || 'Em dia') + '</td><td>' + escaparTextoHtml(referenciaDamae) + '</td><td>' + escaparTextoHtml(classificarResponsavelGuia(item, 'DAMAE')) + '</td></tr>';
+      html += '<tr><td><b>' + escaparTextoHtml(item.damaeId || 'Sem ID') + '</b></td><td>' + escaparTextoHtml(item.contrato || '—') + '</td><td>' + escaparTextoHtml(dataInicioDamae) + '</td><td><span class="badge ' + badge + '">' + escaparTextoHtml(item.status || '') + '</span></td><td>' + (item.statusDamae || 'Em dia') + '</td><td>' + escaparTextoHtml(classificarResponsavelGuia(item, 'DAMAE')) + '</td></tr>';
     }
     if ($('tabelaDamae')) $('tabelaDamae').innerHTML = html;
   }
