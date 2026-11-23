@@ -102,7 +102,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       <div class="form-group" style="margin-bottom:20px;"><label>Palavra-passe</label><input type="password" id="loginPass" required placeholder="Sua senha" autocomplete="current-password"></div>
       <button type="submit" class="btn" style="width:100%; justify-content:center;">Entrar no Sistema</button>
     </form>
-    <div class="form-group" style="margin-top:16px; text-align:left;"><label for="inputSheetsLogin">Conectar ao Google Sheets (necessário em cada novo navegador)</label><input type="url" id="inputSheetsLogin" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="url"><button type="button" class="btn btn-secondary" style="width:100%; margin-top:8px; justify-content:center;" onclick="salvarSheetsAntesLogin()">Conectar / atualizar dados da planilha</button><small style="display:block;margin-top:6px;color:var(--text-muted);">Cole a mesma URL do Aplicativo Web terminada em /exec. Ela será salva apenas neste navegador.</small></div>
+    <div class="form-group" style="margin-top:16px; text-align:left;"><label for="inputSheetsLogin">Conectar ao Google Sheets (necessário em cada novo navegador)</label><input type="url" id="inputSheetsLogin" placeholder="https://script.google.com/macros/s/AKfycby9vjHPCmLpFaEksUUMKsGC6uA7whEYaIRBPO2h2ckP-STFB6u-QdH_0uAlXVZZZiiTzQ/exec" autocomplete="url"><button type="button" class="btn btn-secondary" style="width:100%; margin-top:8px; justify-content:center;" onclick="salvarSheetsAntesLogin()">Conectar / atualizar dados da planilha</button><small style="display:block;margin-top:6px;color:var(--text-muted);">Cole a mesma URL do Aplicativo Web terminada em /exec. Ela será salva apenas neste navegador.</small></div>
     <div id="loginError" style="color:var(--danger); font-size:0.8rem; margin-top:12px; font-weight:600;"></div>
     <div class="extension-help">
       <h3>Instalar extensão para consultas oficiais</h3>
@@ -516,7 +516,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     <h3 style="color: var(--primary); margin-bottom: 10px;">🔗 Configurar Google Sheets</h3>
     <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:15px;">Cole a URL do Aplicativo Web do Google Apps Script, terminada em /exec.</p>
     <div class="form-group" style="margin-bottom:15px;">
-      <input type="text" id="inputSheetsUrl" placeholder="https://script.google.com/macros/s/.../exec">
+      <input type="text" id="inputSheetsUrl" placeholder="https://script.google.com/macros/s/AKfycby9vjHPCmLpFaEksUUMKsGC6uA7whEYaIRBPO2h2ckP-STFB6u-QdH_0uAlXVZZZiiTzQ/exec">
     </div>
     <div style="display:flex; gap:10px;">
       <button class="btn" style="flex:1;" onclick="salvarConfigSheets()">Salvar e Sincronizar</button>
