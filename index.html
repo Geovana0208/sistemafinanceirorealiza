@@ -358,8 +358,13 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       <div class="card" style="margin-bottom:14px;">
         <div class="form-group" style="margin-bottom:10px;">
           <label for="rescisaoContratoInput">Código do contrato</label>
-          <input type="text" id="rescisaoContratoInput" list="rescisaoContratosDatalist" placeholder="Digite o código igual ao cadastrado no imóvel" oninput="atualizarComprovanteRescisao(); carregarLancamentosIntegraisRescisao(); carregarPrintsManuaisRescisao(); atualizarAcoesRescisao();" autocomplete="off">
+          <input type="text" id="rescisaoContratoInput" list="rescisaoContratosDatalist" placeholder="Digite o código igual ao cadastrado no imóvel" oninput="carregarIdentificacaoRescisao(); atualizarComprovanteRescisao(); carregarLancamentosIntegraisRescisao(); carregarPrintsManuaisRescisao(); atualizarAcoesRescisao();" autocomplete="off">
           <datalist id="rescisaoContratosDatalist"></datalist>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:10px 0;">
+            <div class="form-group" style="margin:0;"><label for="rescisaoNomeInquilino">Nome do inquilino</label><input type="text" id="rescisaoNomeInquilino" maxlength="160" placeholder="Cole ou digite o nome do inquilino" oninput="salvarIdentificacaoRescisao()"></div>
+            <div class="form-group" style="margin:0;"><label for="rescisaoNomeProprietario">Nome do proprietário</label><input type="text" id="rescisaoNomeProprietario" maxlength="160" placeholder="Cole ou digite o nome do proprietário" oninput="salvarIdentificacaoRescisao()"></div>
+          </div>
+          <small style="color:var(--text-muted);">Os nomes ficam associados ao contrato neste navegador e aparecem no PDF somente quando preenchidos.</small>
           <small style="color:var(--text-muted);">A consulta individual abre os dois portais para este contrato e salva capturas literais; o resumo abaixo permanece identificado como resumo.</small>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:9px;">
             <button type="button" class="btn btn-success" id="btnConsultarRescisaoUnico" onclick="consultarImovelSelecionadoRescisao()">🔎 Buscar IPTU e DAMAE deste imóvel</button>
@@ -1500,6 +1505,27 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   function chaveLancamentosIntegraisRescisao(codigo) {
     return 'rescisao_integral_v1_' + encodeURIComponent(String(codigo || '').trim().toLocaleLowerCase('pt-BR'));
   }
+  function chaveIdentificacaoRescisao(codigo) {
+    return 'rescisao_identificacao_v1_' + encodeURIComponent(String(codigo || '').trim().toLocaleLowerCase('pt-BR'));
+  }
+  function salvarIdentificacaoRescisao() {
+    var codigo = $('rescisaoContratoInput') ? $('rescisaoContratoInput').value.trim() : '';
+    if (!codigo) return false;
+    var dados = {inquilino:$('rescisaoNomeInquilino') ? $('rescisaoNomeInquilino').value.trim() : '', proprietario:$('rescisaoNomeProprietario') ? $('rescisaoNomeProprietario').value.trim() : ''};
+    try { localStorage.setItem(chaveIdentificacaoRescisao(codigo), JSON.stringify(dados)); return true; }
+    catch (e) { console.warn('Não foi possível salvar os nomes neste navegador.', e); return false; }
+  }
+  function carregarIdentificacaoRescisao() {
+    var codigo = $('rescisaoContratoInput') ? $('rescisaoContratoInput').value.trim() : '';
+    var inquilino = $('rescisaoNomeInquilino'), proprietario = $('rescisaoNomeProprietario');
+    if (!inquilino || !proprietario) return;
+    if (!codigo) { inquilino.value = ''; proprietario.value = ''; return; }
+    try {
+      var dados = JSON.parse(localStorage.getItem(chaveIdentificacaoRescisao(codigo)) || '{}');
+      inquilino.value = String(dados.inquilino || '');
+      proprietario.value = String(dados.proprietario || '');
+    } catch (e) { inquilino.value = ''; proprietario.value = ''; }
+  }
   function chavePrintsManuaisRescisao(codigo) {
     return 'rescisao_prints_manuais_v1_' + encodeURIComponent(String(codigo || '').trim().toLocaleLowerCase('pt-BR'));
   }
@@ -1735,12 +1761,13 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     return isFinite(n) ? n : null;
   }
   function formatarDataRescisaoPdf(valor) {
-    if (!valor) return 'Não informada';
+    if (!valor) return '';
     var partes = String(valor).split('-');
     return partes.length === 3 ? partes[2] + '/' + partes[1] + '/' + partes[0] : String(valor);
   }
   function textoSeguroRescisaoPdf(valor) { return escaparTextoHtml(String(valor == null ? '' : valor)); }
   function linhaRescisaoPdf(rotulo, valor, destaque) {
+    if (valor == null || String(valor).trim() === '') return '';
     return '<div class="row' + (destaque ? ' highlight' : '') + '"><span>' + textoSeguroRescisaoPdf(rotulo) + '</span><strong>' + textoSeguroRescisaoPdf(valor) + '</strong></div>';
   }
   function normalizarCodigoContratoRescisao(valor) { return String(valor || '').trim().toLocaleLowerCase('pt-BR').replace(/\s+/g, ''); }
@@ -1759,16 +1786,17 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     return lista.map(function(x) { return String(x || '').trim(); }).filter(Boolean).join(' · ');
   }
   function cardConsultaRescisao(titulo, identificador, status, referencias, responsavel) {
-    var statusLimpo = textoResultadoConsultaRescisao(status) || 'Não consultado';
-    var refLimpa = referenciasConsultaRescisao(referencias) || 'Nenhuma referência salva';
-    var resp = responsavel || 'Não disponível';
+    var blocos = [];
+    if (identificador) blocos.push('<div style="font-size:.78rem;color:#455750;margin-bottom:5px;"><b>Identificador:</b> ' + textoSeguroRescisaoPdf(identificador) + '</div>');
+    var statusLimpo = textoResultadoConsultaRescisao(status);
+    if (statusLimpo) blocos.push('<div style="font-size:.83rem;line-height:1.35;color:#24352f;white-space:normal;overflow-wrap:anywhere;"><b>Resultado salvo:</b> ' + textoSeguroRescisaoPdf(statusLimpo) + '</div>');
+    var refLimpa = referenciasConsultaRescisao(referencias);
+    if (refLimpa) blocos.push('<div style="font-size:.73rem;line-height:1.3;color:#52645d;margin-top:6px;overflow-wrap:anywhere;"><b>Referências:</b> ' + textoSeguroRescisaoPdf(refLimpa) + '</div>');
+    var resp = String(responsavel || '').trim();
+    if (resp && resp !== 'Não disponível') blocos.push('<div style="font-size:.73rem;color:#52645d;margin-top:4px;"><b>Responsabilidade:</b> ' + textoSeguroRescisaoPdf(resp) + '</div>');
+    if (!blocos.length) return '';
     return '<article style="border:1px solid #d2ddd8;border-radius:9px;padding:12px;background:#fff;min-width:0;break-inside:avoid;">' +
-      '<div style="font-size:.72rem;font-weight:700;letter-spacing:.04em;color:#557267;margin-bottom:7px;">' + textoSeguroRescisaoPdf(titulo) + '</div>' +
-      '<div style="font-size:.78rem;color:#455750;margin-bottom:5px;"><b>Identificador:</b> ' + textoSeguroRescisaoPdf(identificador || '—') + '</div>' +
-      '<div style="font-size:.83rem;line-height:1.35;color:#24352f;white-space:normal;overflow-wrap:anywhere;"><b>Resultado salvo:</b> ' + textoSeguroRescisaoPdf(statusLimpo) + '</div>' +
-      '<div style="font-size:.73rem;line-height:1.3;color:#52645d;margin-top:6px;overflow-wrap:anywhere;"><b>Referências:</b> ' + textoSeguroRescisaoPdf(refLimpa) + '</div>' +
-      '<div style="font-size:.73rem;color:#52645d;margin-top:4px;"><b>Responsabilidade:</b> ' + textoSeguroRescisaoPdf(resp) + '</div>' +
-      '</article>';
+      '<div style="font-size:.72rem;font-weight:700;letter-spacing:.04em;color:#557267;margin-bottom:7px;">' + textoSeguroRescisaoPdf(titulo) + '</div>' + blocos.join('') + '</article>';
   }
   var cacheCapturasRescisao = Object.create(null);
   var requisicoesCapturasRescisao = Object.create(null);
@@ -1894,21 +1922,49 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     (dados.agua || []).forEach(function(item) { itens.push({tipo:'Contas de água',competencia:item.competencia,vencimento:item.vencimento,responsavel:item.responsavel,valor:item.valor}); });
     (dados.iptu || []).forEach(function(item) { itens.push({tipo:'IPTU / Prefeitura',competencia:item.competencia,vencimento:item.vencimento,responsavel:item.responsavel,valor:item.valor}); });
     (dados.energia || []).forEach(function(item) { itens.push({tipo:'Contas de energia',competencia:item.competencia,vencimento:item.vencimento,responsavel:item.responsavel,valor:item.valor}); });
-    itens = itens.filter(function(item) { return item.competencia || item.vencimento || item.valor; });
-    var totalAgua = (dados.agua || []).reduce(function(s,v) { return s + (Number(String(v.valor || '').replace(',','.')) || 0); }, 0);
-    var totalIptu = (dados.iptu || []).reduce(function(s,v) { return s + (Number(String(v.valor || '').replace(',','.')) || 0); }, 0);
-    var totalEnergia = (dados.energia || []).reduce(function(s,v) { return s + (Number(String(v.valor || '').replace(',','.')) || 0); }, 0);
+    function preenchido(valor) { return valor != null && String(valor).trim() !== ''; }
+    itens = itens.filter(function(item) { return preenchido(item.competencia) || preenchido(item.vencimento) || preenchido(item.valor); });
+    if (!itens.length) return '';
+    var colunas = [
+      {chave:'tipo',titulo:'Tipo'},
+      {chave:'competencia',titulo:'Competência'},
+      {chave:'vencimento',titulo:'Vencimento'},
+      {chave:'responsavel',titulo:'Responsável'},
+      {chave:'valor',titulo:'Valor integral'}
+    ].filter(function(coluna) { return coluna.chave === 'tipo' || itens.some(function(item) { return preenchido(item[coluna.chave]); }); });
+    var totalAgua = (dados.agua || []).reduce(function(s,v) { return s + (preenchido(v.valor) ? (Number(String(v.valor).replace(',','.')) || 0) : 0); }, 0);
+    var totalIptu = (dados.iptu || []).reduce(function(s,v) { return s + (preenchido(v.valor) ? (Number(String(v.valor).replace(',','.')) || 0) : 0); }, 0);
+    var totalEnergia = (dados.energia || []).reduce(function(s,v) { return s + (preenchido(v.valor) ? (Number(String(v.valor).replace(',','.')) || 0) : 0); }, 0);
+    var temAgua = (dados.agua || []).some(function(v) { return preenchido(v.valor); });
+    var temIptu = (dados.iptu || []).some(function(v) { return preenchido(v.valor); });
+    var temEnergia = (dados.energia || []).some(function(v) { return preenchido(v.valor); });
+    var temTotal = temAgua || temIptu || temEnergia;
     var totalGeral = totalAgua + totalIptu + totalEnergia;
-    if (!itens.length) itens.push({tipo:'—',competencia:'Nenhum lançamento integral registrado',vencimento:'',responsavel:'',valor:''});
     var paginas = [], tamanhoPagina = 6;
     for (var inicio = 0; inicio < itens.length; inicio += tamanhoPagina) {
       var fatia = itens.slice(inicio, inicio + tamanhoPagina);
       var ultima = inicio + tamanhoPagina >= itens.length;
+      var cabecalho = colunas.map(function(c) { return '<th>' + c.titulo + '</th>'; }).join('');
       var linhas = fatia.map(function(item) {
-        return '<tr><td>' + textoSeguroRescisaoPdf(item.tipo || '—') + '</td><td>' + textoSeguroRescisaoPdf(item.competencia || '—') + '</td><td>' + textoSeguroRescisaoPdf(formatarDataRescisaoPdf(item.vencimento) || '—') + '</td><td>' + textoSeguroRescisaoPdf(item.responsavel || '—') + '</td><td style="text-align:right;white-space:nowrap;">' + textoSeguroRescisaoPdf(item.valor ? formatarMoeda(Number(String(item.valor).replace(',','.')) || 0) : '—') + '</td></tr>';
+        var celulas = colunas.map(function(c) {
+          var valor = item[c.chave];
+          if (!preenchido(valor)) return '<td></td>';
+          if (c.chave === 'vencimento') valor = formatarDataRescisaoPdf(valor);
+          if (c.chave === 'valor') valor = formatarMoeda(Number(String(valor).replace(',','.')) || 0);
+          return '<td' + (c.chave === 'valor' ? ' style="text-align:right;white-space:nowrap;"' : '') + '>' + textoSeguroRescisaoPdf(valor) + '</td>';
+        }).join('');
+        return '<tr>' + celulas + '</tr>';
       }).join('');
-      var totais = ultima ? '<div class="integral-totals"><div>Total integral contas de água: <b>' + textoSeguroRescisaoPdf(formatarMoeda(totalAgua)) + '</b></div><div>Total integral IPTU/Prefeitura: <b>' + textoSeguroRescisaoPdf(formatarMoeda(totalIptu)) + '</b></div><div>Total integral contas de energia: <b>' + textoSeguroRescisaoPdf(formatarMoeda(totalEnergia)) + '</b></div><div class="integral-grand">Total integral lançado: ' + textoSeguroRescisaoPdf(formatarMoeda(totalGeral)) + '</div></div>' : '<p class="note">Continua na próxima página.</p>';
-      paginas.push('<div class="page integral-page"><img class="letterhead" src="' + TIMBRADO_RESCISAO_DATA_URI + '" alt="Timbrado Realiza Imóveis"><main class="content integral-content"><h1 class="heading">Débitos integrais de meses/anos</h1><p class="meta">Contrato ' + textoSeguroRescisaoPdf(codigoContrato || 'não informado') + ' · Lançamentos ' + (inicio + 1) + ' a ' + Math.min(inicio + tamanhoPagina, itens.length) + ' de ' + itens.length + '</p><table class="integral-table"><thead><tr><th>Tipo</th><th>Competência</th><th>Vencimento</th><th>Responsável</th><th>Valor integral</th></tr></thead><tbody>' + linhas + '</tbody></table>' + totais + '<p class="note">Valores informados integralmente pelo usuário; estes lançamentos não são rateados por dias.</p></main></div>');
+      var totais = '';
+      if (!ultima) totais = '<p class="note">Continua na próxima página.</p>';
+      else if (temTotal) {
+        totais = '<div class="integral-totals">' +
+          (temAgua ? '<div>Total integral contas de água: <b>' + textoSeguroRescisaoPdf(formatarMoeda(totalAgua)) + '</b></div>' : '') +
+          (temIptu ? '<div>Total integral IPTU/Prefeitura: <b>' + textoSeguroRescisaoPdf(formatarMoeda(totalIptu)) + '</b></div>' : '') +
+          (temEnergia ? '<div>Total integral contas de energia: <b>' + textoSeguroRescisaoPdf(formatarMoeda(totalEnergia)) + '</b></div>' : '') +
+          '<div class="integral-grand">Total integral lançado: ' + textoSeguroRescisaoPdf(formatarMoeda(totalGeral)) + '</div></div>';
+      }
+      paginas.push('<div class="page integral-page"><img class="letterhead" src="' + TIMBRADO_RESCISAO_DATA_URI + '" alt="Timbrado Realiza Imóveis"><main class="content integral-content"><h1 class="heading">Débitos integrais de meses/anos</h1><p class="meta">' + (codigoContrato ? 'Contrato ' + textoSeguroRescisaoPdf(codigoContrato) + ' · ' : '') + 'Lançamentos ' + (inicio + 1) + ' a ' + Math.min(inicio + tamanhoPagina, itens.length) + ' de ' + itens.length + '</p><table class="integral-table"><thead><tr>' + cabecalho + '</tr></thead><tbody>' + linhas + '</tbody></table>' + totais + '<p class="note">Valores informados integralmente pelo usuário; estes lançamentos não são rateados por dias.</p></main></div>');
     }
     return paginas.join('');
   }
@@ -1918,8 +1974,11 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     if (!popup) { alert('Permita pop-ups para este site e tente exportar novamente.'); return; }
     popup.document.open(); popup.document.write('<!doctype html><html lang="pt-BR"><meta charset="utf-8"><title>Preparando memória de rescisão</title><body style="font:16px Arial;padding:30px;color:#244c40">Carregando as capturas oficiais para o PDF...</body></html>'); popup.document.close();
     var codigoContrato = $('rescisaoContratoInput') ? $('rescisaoContratoInput').value.trim() : '';
+    salvarIdentificacaoRescisao();
     salvarLancamentosIntegraisRescisao();
     var lancamentosIntegraisPdf = obterDadosLancamentosIntegraisRescisao();
+    var nomeInquilinoPdf = $('rescisaoNomeInquilino') ? $('rescisaoNomeInquilino').value.trim() : '';
+    var nomeProprietarioPdf = $('rescisaoNomeProprietario') ? $('rescisaoNomeProprietario').value.trim() : '';
     var printsManuaisRescisaoPdf = obterPrintsManuaisRescisao(codigoContrato);
     var imovelConsulta = buscarImovelContratoRescisao(codigoContrato);
     var respostaCapturas = imovelConsulta ? await solicitarCapturasRescisao(codigoContrato, true) : {ok:false,erro:codigoContrato ? 'Contrato não localizado nos imóveis carregados.' : 'Nenhum contrato informado.'};
@@ -1943,40 +2002,47 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       {nome:'Água', valor:valorNumericoRescisaoPdf('rescisaoAguaVal'), dias:valorNumericoRescisaoPdf('rescisaoAguaDias')},
       {nome:'Luz', valor:valorNumericoRescisaoPdf('rescisaoLuzVal'), dias:valorNumericoRescisaoPdf('rescisaoLuzDias')}
     ];
-    var totalMensal = 0;
+    var totalMensal = 0, temCalculoMensal = false;
     var linhasMensais = mensal.map(function(item) {
-      var base = item.valor === null ? 0 : item.valor;
-      var dias = item.dias === null ? 0 : item.dias;
-      var resultado = diasMes > 0 ? (base / diasMes) * dias : 0;
-      totalMensal += resultado;
+      if (item.valor === null && item.dias === null) return '';
+      var resultado = null;
+      if (item.valor !== null && item.dias !== null && diasMes > 0) {
+        resultado = (item.valor / diasMes) * item.dias;
+        totalMensal += resultado;
+        temCalculoMensal = true;
+      }
       return '<div class="subsection"><h3>' + textoSeguroRescisaoPdf(item.nome) + '</h3>' +
-        linhaRescisaoPdf('Valor mensal informado', item.valor === null ? 'Não informado' : formatarMoeda(item.valor), false) +
-        linhaRescisaoPdf('Dias atribuídos ao inquilino', item.dias === null ? 'Não informado' : item.dias + ' dias', false) +
-        linhaRescisaoPdf(item.nome + ' proporcional', formatarMoeda(resultado), true) + '</div>';
+        linhaRescisaoPdf('Valor mensal informado', item.valor === null ? '' : formatarMoeda(item.valor), false) +
+        linhaRescisaoPdf('Dias atribuídos ao inquilino', item.dias === null ? '' : item.dias + ' dias', false) +
+        linhaRescisaoPdf(item.nome + ' proporcional', resultado === null ? '' : formatarMoeda(resultado), true) + '</div>';
     }).join('');
-    var secaoConsultas = '<section class="section snapshot-section"><h2>Registros de consulta vinculados ao contrato</h2>' +
-      linhaRescisaoPdf('Código do contrato informado', codigoContrato || 'Não informado', false) +
-      (imovelConsulta
-        ? '<div class="snapshot-grid">' +
-          cardConsultaRescisao('IPTU / Prefeitura', imovelConsulta.bci, imovelConsulta.statusBci, imovelConsulta.referenciasBci, classificarResponsavelGuia(imovelConsulta, 'BCI')) +
-          cardConsultaRescisao('DAMAE', imovelConsulta.damaeId, imovelConsulta.statusDamae, imovelConsulta.referenciasDamae, classificarResponsavelGuia(imovelConsulta, 'DAMAE')) + '</div>'
-        : '<p class="snapshot-empty">' + (codigoContrato ? 'O contrato informado não foi localizado na lista de imóveis disponível no navegador; não foi possível anexar resultados de consulta.' : 'Nenhum contrato foi informado; não foram anexados resultados de consulta.') + '</p>') +
-      '<p class="snapshot-note">Os cartões são um resumo textual salvo no sistema. As capturas literais dos portais oficiais, quando disponíveis, aparecem nas páginas seguintes; o resumo não é apresentado como print.</p></section>';
+    var cardsConsultaPdf = imovelConsulta ? [
+      cardConsultaRescisao('IPTU / Prefeitura', imovelConsulta.bci, imovelConsulta.statusBci, imovelConsulta.referenciasBci, classificarResponsavelGuia(imovelConsulta, 'BCI')),
+      cardConsultaRescisao('DAMAE', imovelConsulta.damaeId, imovelConsulta.statusDamae, imovelConsulta.referenciasDamae, classificarResponsavelGuia(imovelConsulta, 'DAMAE'))
+    ].filter(Boolean).join('') : '';
+    var conteudoConsultaPdf = linhaRescisaoPdf('Código do contrato informado', codigoContrato, false) +
+      (cardsConsultaPdf ? '<div class="snapshot-grid">' + cardsConsultaPdf + '</div>' : '') +
+      (!imovelConsulta && codigoContrato ? '<p class="snapshot-empty">O contrato informado não foi localizado na lista de imóveis disponível no navegador; não foi possível anexar resultados de consulta.</p>' : '') +
+      (cardsConsultaPdf ? '<p class="snapshot-note">Os cartões são um resumo textual salvo no sistema. As capturas literais dos portais oficiais, quando disponíveis, aparecem nas páginas seguintes; o resumo não é apresentado como print.</p>' : '');
+    var secaoConsultas = (conteudoConsultaPdf.trim() ? '<section class="section snapshot-section"><h2>Registros de consulta vinculados ao contrato</h2>' + conteudoConsultaPdf + '</section>' : '');
     var agora = new Date();
     var dataGeracao = agora.toLocaleDateString('pt-BR') + ' às ' + agora.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
     var nomeArquivo = 'Memoria_Rescisao_' + agora.getFullYear() + '-' + String(agora.getMonth()+1).padStart(2,'0') + '-' + String(agora.getDate()).padStart(2,'0');
-    var secaoIptu = '<section class="section"><h2>IPTU proporcional anual</h2>' +
-      linhaRescisaoPdf('Valor anual informado', valorIptu === null ? 'Não informado' : formatarMoeda(valorIptu), false) +
+    var secaoIptu = (valorIptu !== null || dataInicio || dataFim) ? '<section class="section"><h2>IPTU proporcional anual</h2>' +
+      linhaRescisaoPdf('Valor anual informado', valorIptu === null ? '' : formatarMoeda(valorIptu), false) +
       linhaRescisaoPdf('Data inicial do inquilino', formatarDataRescisaoPdf(dataInicio), false) +
       linhaRescisaoPdf('Data final do inquilino', formatarDataRescisaoPdf(dataFim), false) +
-      linhaRescisaoPdf('Dias de ocupação considerados', diasIptu === null ? 'Não calculado' : diasIptu + ' dias', false) +
-      linhaRescisaoPdf('IPTU proporcional', proporcionalIptu === null ? 'Não calculado — informe valor e datas' : formatarMoeda(proporcionalIptu), true) + '</section>';
-    var secaoMensais = '<section class="section"><h2>Proporcionais mensais</h2>' +
+      linhaRescisaoPdf('Dias de ocupação considerados', diasIptu === null ? '' : diasIptu + ' dias', false) +
+      linhaRescisaoPdf('IPTU proporcional', proporcionalIptu === null ? '' : formatarMoeda(proporcionalIptu), true) + '</section>' : '';
+    var temDadosMensais = mensal.some(function(item) { return item.valor !== null || item.dias !== null; });
+    var secaoMensais = temDadosMensais ? '<section class="section"><h2>Proporcionais mensais</h2>' +
       linhaRescisaoPdf('Dias totais do mês usados no cálculo', diasMes + ' dias', false) + linhasMensais +
-      linhaRescisaoPdf('Total proporcional mensal (aluguel + água + luz)', formatarMoeda(totalMensal), true) + '</section>';
+      (temCalculoMensal ? linhaRescisaoPdf('Total proporcional mensal (aluguel + água + luz)', formatarMoeda(totalMensal), true) : '') + '</section>' : '';
+    var linhasIdentificacao = linhaRescisaoPdf('Inquilino', nomeInquilinoPdf, false) + linhaRescisaoPdf('Proprietário', nomeProprietarioPdf, false);
+    var secaoIdentificacao = linhasIdentificacao ? '<section class="section"><h2>Identificação das partes</h2>' + linhasIdentificacao + '</section>' : '';
     var paginasCapturas = paginasCapturasPDFRescisao(codigoContrato, capturasRescisaoPdf, erroCapturasRescisaoPdf);
     var pagina = '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>' + nomeArquivo + '</title>' +
-      '<style>@page{size:A4 portrait;margin:0}*{box-sizing:border-box}html,body{margin:0;padding:0;width:210mm;height:297mm;font-family:Arial,Helvetica,sans-serif;color:#24352f;-webkit-print-color-adjust:exact;print-color-adjust:exact}.page{position:relative;width:210mm;height:297mm;overflow:hidden;background:#fff}.letterhead{position:absolute;inset:0;width:210mm;height:297mm;object-fit:fill;z-index:0}.content{position:relative;z-index:1;padding:42mm 17mm 31mm 24mm;width:100%;height:100%;overflow:hidden}.heading{margin:0 0 1.5mm;color:#244c40;font-size:17pt;line-height:1.15;letter-spacing:.2pt}.meta{margin:0 0 3mm;color:#65756f;font-size:8pt}.section{border:0.5pt solid #cbd7d2;border-radius:2.5mm;padding:3mm 4mm;margin:0 0 2.5mm;background:rgba(255,255,255,.90);break-inside:avoid}.section h2{margin:0 0 1.5mm;color:#2a5045;font-size:10pt}.row{display:flex;justify-content:space-between;gap:6mm;padding:1mm 0;border-bottom:.3pt solid #e3e9e6;font-size:8pt;line-height:1.2}.row:last-child{border-bottom:0}.row strong{text-align:right;font-weight:600}.row.highlight{color:#21483c;font-size:8.3pt}.subsection{margin-top:1.5mm;padding-top:1.5mm;border-top:.5pt solid #d7e1dd}.subsection h3{margin:0 0 1mm;color:#3d6256;font-size:8.5pt}.snapshot-grid{display:grid;grid-template-columns:1fr 1fr;gap:2.5mm;margin-top:2mm}.snapshot-grid article{padding:2.5mm!important;font-size:7.6pt!important}.snapshot-grid article div{font-size:7.4pt!important}.snapshot-empty{font-size:8pt;color:#65756f;margin:2mm 0 0}.snapshot-note{margin:2mm 0 0;color:#65756f;font-size:6.7pt;line-height:1.25}.note{margin-top:2mm;color:#65756f;font-size:7pt;line-height:1.3}.integral-page,.capture-page{page-break-before:always;break-before:page}.integral-content{padding-top:42mm!important}.integral-table{width:100%;border-collapse:collapse;margin-top:5mm;font-size:8pt;background:rgba(255,255,255,.94)}.integral-table th,.integral-table td{border:.5pt solid #cbd7d2;padding:2.2mm 1.8mm;text-align:left;vertical-align:top;overflow-wrap:anywhere}.integral-table th{background:#edf3f0;color:#244c40;font-weight:700}.integral-totals{margin-top:7mm;padding:4mm;border:1px solid #cbd7d2;background:rgba(255,255,255,.94);font-size:9pt;line-height:1.8}.integral-grand{margin-top:2mm;padding-top:2mm;border-top:1px solid #cbd7d2;font-size:11pt;font-weight:800;color:#21483c}.capture-content{padding-top:42mm!important}.capture-image{display:block;max-width:100%;max-height:185mm;width:auto;height:auto;object-fit:contain;object-position:top left;margin:3mm auto 0;border:.5pt solid #cbd7d2;background:#fff}.capture-page .snapshot-empty{font-size:9pt;line-height:1.4}@media print{.page{break-after:avoid;box-shadow:none}.integral-page,.capture-page{page-break-before:always;break-before:page}}</style></head><body><div class="page"><img class="letterhead" src="' + TIMBRADO_RESCISAO_DATA_URI + '" alt="Timbrado Realiza Imóveis"><main class="content"><h1 class="heading">Memória de Cálculo — Rescisão de Locação</h1><p class="meta">Emitido em ' + dataGeracao + '</p>' + secaoConsultas + secaoIptu + secaoMensais + '<p class="note">Documento gerado a partir dos valores simulados no sistema. Confira os dados e os critérios aplicáveis ao contrato antes de utilizar os valores.</p></main></div>' + paginasLancamentosIntegraisPDFRescisao(codigoContrato, lancamentosIntegraisPdf) + paginasCapturas + paginasPrintsManuaisPDFRescisao(codigoContrato, printsManuaisRescisaoPdf) + '</body></html>';
+      '<style>@page{size:A4 portrait;margin:0}*{box-sizing:border-box}html,body{margin:0;padding:0;width:210mm;height:297mm;font-family:Arial,Helvetica,sans-serif;color:#24352f;-webkit-print-color-adjust:exact;print-color-adjust:exact}.page{position:relative;width:210mm;height:297mm;overflow:hidden;background:#fff}.letterhead{position:absolute;inset:0;width:210mm;height:297mm;object-fit:fill;z-index:0}.content{position:relative;z-index:1;padding:42mm 17mm 31mm 24mm;width:100%;height:100%;overflow:hidden}.heading{margin:0 0 1.5mm;color:#244c40;font-size:17pt;line-height:1.15;letter-spacing:.2pt}.meta{margin:0 0 3mm;color:#65756f;font-size:8pt}.section{border:0.5pt solid #cbd7d2;border-radius:2.5mm;padding:3mm 4mm;margin:0 0 2.5mm;background:rgba(255,255,255,.90);break-inside:avoid}.section h2{margin:0 0 1.5mm;color:#2a5045;font-size:10pt}.row{display:flex;justify-content:space-between;gap:6mm;padding:1mm 0;border-bottom:.3pt solid #e3e9e6;font-size:8pt;line-height:1.2}.row:last-child{border-bottom:0}.row strong{text-align:right;font-weight:600}.row.highlight{color:#21483c;font-size:8.3pt}.subsection{margin-top:1.5mm;padding-top:1.5mm;border-top:.5pt solid #d7e1dd}.subsection h3{margin:0 0 1mm;color:#3d6256;font-size:8.5pt}.snapshot-grid{display:grid;grid-template-columns:1fr 1fr;gap:2.5mm;margin-top:2mm}.snapshot-grid article{padding:2.5mm!important;font-size:7.6pt!important}.snapshot-grid article div{font-size:7.4pt!important}.snapshot-empty{font-size:8pt;color:#65756f;margin:2mm 0 0}.snapshot-note{margin:2mm 0 0;color:#65756f;font-size:6.7pt;line-height:1.25}.note{margin-top:2mm;color:#65756f;font-size:7pt;line-height:1.3}.integral-page,.capture-page{page-break-before:always;break-before:page}.integral-content{padding-top:42mm!important}.integral-table{width:100%;border-collapse:collapse;margin-top:5mm;font-size:8pt;background:rgba(255,255,255,.94)}.integral-table th,.integral-table td{border:.5pt solid #cbd7d2;padding:2.2mm 1.8mm;text-align:left;vertical-align:top;overflow-wrap:anywhere}.integral-table th{background:#edf3f0;color:#244c40;font-weight:700}.integral-totals{margin-top:7mm;padding:4mm;border:1px solid #cbd7d2;background:rgba(255,255,255,.94);font-size:9pt;line-height:1.8}.integral-grand{margin-top:2mm;padding-top:2mm;border-top:1px solid #cbd7d2;font-size:11pt;font-weight:800;color:#21483c}.capture-content{padding-top:42mm!important}.capture-image{display:block;max-width:100%;max-height:185mm;width:auto;height:auto;object-fit:contain;object-position:top left;margin:3mm auto 0;border:.5pt solid #cbd7d2;background:#fff}.capture-page .snapshot-empty{font-size:9pt;line-height:1.4}@media print{.page{break-after:avoid;box-shadow:none}.integral-page,.capture-page{page-break-before:always;break-before:page}}</style></head><body><div class="page"><img class="letterhead" src="' + TIMBRADO_RESCISAO_DATA_URI + '" alt="Timbrado Realiza Imóveis"><main class="content"><h1 class="heading">Memória de Cálculo — Rescisão de Locação</h1><p class="meta">Emitido em ' + dataGeracao + '</p>' + secaoIdentificacao + secaoConsultas + secaoIptu + secaoMensais + '<p class="note">Documento gerado a partir dos valores simulados no sistema. Confira os dados e os critérios aplicáveis ao contrato antes de utilizar os valores.</p></main></div>' + paginasLancamentosIntegraisPDFRescisao(codigoContrato, lancamentosIntegraisPdf) + paginasCapturas + paginasPrintsManuaisPDFRescisao(codigoContrato, printsManuaisRescisaoPdf) + '</body></html>';
     popup.document.open(); popup.document.write(pagina);
     popup.onafterprint = function() { popup.close(); };
     popup.document.close();
