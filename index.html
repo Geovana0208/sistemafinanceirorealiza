@@ -143,6 +143,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
         <button class="nav-btn" data-modulo="buscas" data-icon="🔍" title="Consultas IPTU" onclick="mudarAba('buscas')">🔍 Consultas IPTU</button>
         <button class="nav-btn" data-modulo="damae" data-icon="💧" title="Consultas DAMAE" onclick="mudarAba('damae')">💧 Consultas DAMAE</button>
         <button class="nav-btn" data-modulo="usuarios" data-admin-only="true" data-icon="👤" title="Gerir Utilizadores" onclick="mudarAba('usuarios')">👤 Gerir Utilizadores</button>
+        <button class="nav-btn" data-modulo="condominios" data-icon="🏘️" title="Condomínios" onclick="mudarAba('condominios')">🏘️ Condomínios</button>
       </nav>
     </div>
     <div style="display:flex; flex-direction:column; gap:8px;">
@@ -517,9 +518,38 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
         </div>
       </div>
     </div>
+    <!-- CONDOMÍNIOS -->
+    <div id="tab-condominios" class="tab-content">
+      <div class="card" style="margin-bottom:20px;">
+        <h3 style="color:var(--primary);margin-bottom:12px;">Cadastrar administradora de condomínio</h3>
+        <form id="formAdministradoraCondominio" onsubmit="salvarAdministradoraCondominio(event)">
+          <input type="hidden" id="administradoraCondominioId">
+          <div class="form-group"><label for="administradoraCondominioNome">Nome da administradora</label><input type="text" id="administradoraCondominioNome" required maxlength="120" placeholder="Nome da administradora"></div>
+          <div class="form-group"><label for="administradoraCondominioTelefone">Telefone</label><input type="tel" id="administradoraCondominioTelefone" required maxlength="40" placeholder="(00) 00000-0000"></div>
+          <div style="display:flex;align-items:flex-end;gap:8px;"><button type="submit" class="btn" id="btnSalvarAdministradora">Cadastrar administradora</button><button type="button" class="btn btn-secondary" id="btnCancelarAdministradora" onclick="limparFormAdministradoraCondominio()" style="display:none;">Cancelar</button></div>
+        </form>
+      </div>
+      <div class="card" style="margin-bottom:20px;">
+        <h3 style="color:var(--primary);margin-bottom:12px;">Administradoras cadastradas</h3>
+        <div class="table-container"><table><thead><tr><th>Administradora</th><th>Telefone</th><th>Ações</th></tr></thead><tbody id="tabelaAdministradorasCondominio"></tbody></table></div>
+      </div>
+      <div class="card" style="margin-bottom:20px;">
+        <h3 style="color:var(--primary);margin-bottom:12px;">Cadastrar condomínio</h3>
+        <form id="formCondominio" onsubmit="salvarCondominio(event)">
+          <input type="hidden" id="condominioId">
+          <div class="form-group"><label for="condominioNome">Nome do condomínio</label><input type="text" id="condominioNome" required maxlength="160" placeholder="Nome do condomínio"></div>
+          <div class="form-group"><label for="condominioEndereco">Endereço</label><input type="text" id="condominioEndereco" required maxlength="240" placeholder="Rua, número, bairro, cidade"></div>
+          <div class="form-group"><label for="condominioAdministradora">Administradora correspondente</label><select id="condominioAdministradora" required><option value="">Cadastre uma administradora primeiro</option></select></div>
+          <div style="display:flex;align-items:flex-end;gap:8px;"><button type="submit" class="btn" id="btnSalvarCondominio">Cadastrar condomínio</button><button type="button" class="btn btn-secondary" id="btnCancelarCondominio" onclick="limparFormCondominio()" style="display:none;">Cancelar</button></div>
+        </form>
+      </div>
+      <div class="card">
+        <h3 style="color:var(--primary);margin-bottom:12px;">Condomínios cadastrados</h3>
+        <div class="table-container"><table><thead><tr><th>Condomínio</th><th>Endereço</th><th>Administradora</th><th>Telefone</th><th>Ações</th></tr></thead><tbody id="tabelaCondominios"></tbody></table></div>
+      </div>
+    </div>
   </main>
 </div>
-
 <!-- Modais -->
 <div class="modal-bg" id="modalOrigens"><div class="modal-content"><h3 style="color: var(--primary); margin-bottom: 10px;">Gerenciar Contas de Saída</h3><div style="display:flex; gap:8px; margin-bottom:15px;"><input type="text" id="novaOrigemNome" placeholder="Nova Conta" style="flex:1;"><button class="btn btn-sm" onclick="adicionarOrigem()">Add</button></div><div id="listaOrigens" style="max-height:200px; overflow-y:auto; margin-bottom:15px;"></div><button class="btn btn-secondary" style="width:100%;" onclick="$('modalOrigens').style.display='none';renderContas()">Fechar</button></div></div>
 <div class="modal-bg" id="modalCategorias"><div class="modal-content"><h3 style="color: var(--primary); margin-bottom: 10px;">Gerenciar Categorias</h3><div style="display:flex; gap:8px; margin-bottom:15px;"><input type="text" id="novaCategoriaNome" placeholder="Nova Categoria" style="flex:1;"><button class="btn btn-sm" onclick="adicionarCategoria()">Add</button></div><div id="listaCategorias" style="max-height:200px; overflow-y:auto; margin-bottom:15px;"></div><button class="btn btn-secondary" style="width:100%;" onclick="$('modalCategorias').style.display='none';renderContas()">Fechar</button></div></div>
@@ -591,7 +621,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 
   function sincronizarComSheets(aba, dadosArray) {
     if (!WEB_APP_URL) return Promise.resolve(false);
-    var chavesPorAba = {Contas:'contas_db',Comissoes:'comissoes_db',Alugueis:'alugueis_db',Imoveis:'imoveis_db'};
+    var chavesPorAba = {Contas:'contas_db',Comissoes:'comissoes_db',Alugueis:'alugueis_db',Imoveis:'imoveis_db',Condominios:'condominios_db'};
     if (chavesPorAba[aba]) {
       dadosArray = normalizarRegistrosUnicosPorId(dadosArray);
       if (aba === 'Contas') dadosArray.forEach(function(item) {
@@ -610,6 +640,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       if (aba === 'Comissoes') comissoes = dadosArray;
       if (aba === 'Alugueis') alugueis = dadosArray;
       if (aba === 'Imoveis') imoveisDB = dadosArray;
+      if (aba === 'Condominios') condominiosDB = dadosArray;
       try { localStorage.setItem(chavesPorAba[aba], JSON.stringify(dadosArray)); } catch (e) { console.warn('Não foi possível atualizar o cache local de ' + aba + '.', e); }
     }
     if ($('statusSyncText')) $('statusSyncText').innerText = 'Sincronizando com Sheets...';
@@ -785,7 +816,8 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       buscarAbaSheets('Corretores'),
       buscarAbaSheets('Veiculos'),
       buscarAbaSheets('EmpreendimentosComissao'),
-      buscarAbaSheets('FormasPagamentoComissao')
+      buscarAbaSheets('FormasPagamentoComissao'),
+      buscarAbaSheets('Condominios')
     ]).then(function(resultados) {
       var quantidadeContasLidas = resultados[0].length;
       var quantidadeComissoesLidas = resultados[1].length;
@@ -839,6 +871,11 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       if (resultados[6].length > 0) {
         corretores=normalizarCorretoresSheets(resultados[6]);
         localStorage.setItem('corretores_objs_db', JSON.stringify(corretores));
+      }
+      resultados[10] = normalizarRegistrosUnicosPorId(resultados[10]);
+      if (resultados[10].length > 0) {
+        condominiosDB = resultados[10];
+        localStorage.setItem('condominios_db', JSON.stringify(condominiosDB));
       }
       importarContasImagemNov2026();
       if ($('loginError')) $('loginError').innerText = '';
@@ -945,6 +982,8 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   try { var s_al = JSON.parse(localStorage.getItem('alugueis_db')); if (Array.isArray(s_al)) alugueis = s_al; } catch(e) {}
   var imoveisDB = [];
   try { var s_im = JSON.parse(localStorage.getItem('imoveis_db')); if (Array.isArray(s_im)) imoveisDB = s_im; } catch(e) {}
+  var condominiosDB = [];
+  try { var s_cd = JSON.parse(localStorage.getItem('condominios_db')); if (Array.isArray(s_cd)) condominiosDB = s_cd; } catch(e) {}
 
   document.addEventListener('DOMContentLoaded', function() {
     if ($('inputSheetsLogin') && WEB_APP_URL) $('inputSheetsLogin').value = WEB_APP_URL;
@@ -1018,6 +1057,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     renderBcis();
     renderDamae();
     renderUsuarios();
+    renderCondominios();
     if (!usuarioPodeAcessar('contas')) {
       var primeiraAbaPermitida = MODULOS_ACESSO.find(function(modulo) { return usuarioPodeAcessar(modulo.id); });
       if (primeiraAbaPermitida) mudarAba(primeiraAbaPermitida.id);
@@ -1062,6 +1102,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     else if (aba === 'buscas') { btns[6].classList.add('active'); $('tab-buscas').classList.add('active'); renderBcis(); }
     else if (aba === 'damae') { btns[7].classList.add('active'); $('tab-damae').classList.add('active'); renderDamae(); }
     else if (aba === 'usuarios') { btns[8].classList.add('active'); $('tab-usuarios').classList.add('active'); renderUsuarios(); }
+    else if (aba === 'condominios') { btns[9].classList.add('active'); $('tab-condominios').classList.add('active'); $('tituloAbaAtual').innerText = 'Condomínios'; renderCondominios(); }
   }
 
   function initAnoSelectors() {
@@ -1212,7 +1253,8 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     {id:'contas',label:'Contas a Pagar'}, {id:'dashboard',label:'Dashboard'},
     {id:'comissoes',label:'Comissões a Receber'}, {id:'aluguel',label:'Aluguel Fechado'},
     {id:'rescisao',label:'Rescisão'}, {id:'imoveis',label:'Imóveis'},
-    {id:'buscas',label:'Consultas IPTU'}, {id:'damae',label:'Consultas DAMAE'}
+    {id:'buscas',label:'Consultas IPTU'}, {id:'damae',label:'Consultas DAMAE'},
+    {id:'condominios',label:'Condomínios'}
   ];
   var usuarioPermissoesEmEdicao = '';
 
@@ -1295,6 +1337,101 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     alert('Utilizador cadastrado com sucesso!');
   }
 
+  function salvarBaseCondominios() {
+    condominiosDB = normalizarRegistrosUnicosPorId(condominiosDB);
+    localStorage.setItem('condominios_db', JSON.stringify(condominiosDB));
+    sincronizarComSheets('Condominios', condominiosDB);
+  }
+  function limparFormAdministradoraCondominio() {
+    if ($('formAdministradoraCondominio')) $('formAdministradoraCondominio').reset();
+    if ($('administradoraCondominioId')) $('administradoraCondominioId').value = '';
+    if ($('btnSalvarAdministradora')) $('btnSalvarAdministradora').textContent = 'Cadastrar administradora';
+    if ($('btnCancelarAdministradora')) $('btnCancelarAdministradora').style.display = 'none';
+  }
+  function salvarAdministradoraCondominio(event) {
+    if (event) event.preventDefault();
+    var id = $('administradoraCondominioId').value;
+    var nome = $('administradoraCondominioNome').value.trim();
+    var telefone = $('administradoraCondominioTelefone').value.trim();
+    if (!nome || !telefone) { alert('Informe o nome e o telefone da administradora.'); return; }
+    var duplicada = condominiosDB.some(function(x) { return x.tipo === 'administradora' && String(x.id) !== String(id) && String(x.nome || '').trim().toLocaleLowerCase('pt-BR') === nome.toLocaleLowerCase('pt-BR'); });
+    if (duplicada) { alert('Já existe uma administradora cadastrada com esse nome.'); return; }
+    var registro = condominiosDB.find(function(x) { return x.tipo === 'administradora' && String(x.id) === String(id); });
+    if (!registro) { registro = {id:'adm_' + Date.now() + '_' + Math.random().toString(36).slice(2,8), tipo:'administradora'}; condominiosDB.push(registro); }
+    registro.nome = nome; registro.telefone = telefone;
+    salvarBaseCondominios(); limparFormAdministradoraCondominio(); renderCondominios();
+  }
+  function editarAdministradoraCondominio(id) {
+    var registro = condominiosDB.find(function(x) { return x.tipo === 'administradora' && String(x.id) === String(id); });
+    if (!registro) return;
+    $('administradoraCondominioId').value = registro.id;
+    $('administradoraCondominioNome').value = registro.nome || '';
+    $('administradoraCondominioTelefone').value = registro.telefone || '';
+    $('btnSalvarAdministradora').textContent = 'Salvar alterações'; $('btnCancelarAdministradora').style.display = '';
+    $('administradoraCondominioNome').focus();
+  }
+  function excluirAdministradoraCondominio(id) {
+    var vinculada = condominiosDB.some(function(x) { return x.tipo === 'condominio' && String(x.administradoraId) === String(id); });
+    if (vinculada) { alert('Esta administradora está vinculada a um ou mais condomínios. Altere primeiro a administradora desses condomínios.'); return; }
+    if (!confirm('Deseja excluir esta administradora?')) return;
+    condominiosDB = condominiosDB.filter(function(x) { return !(x.tipo === 'administradora' && String(x.id) === String(id)); });
+    salvarBaseCondominios(); renderCondominios();
+  }
+  function limparFormCondominio() {
+    if ($('formCondominio')) $('formCondominio').reset();
+    if ($('condominioId')) $('condominioId').value = '';
+    if ($('btnSalvarCondominio')) $('btnSalvarCondominio').textContent = 'Cadastrar condomínio';
+    if ($('btnCancelarCondominio')) $('btnCancelarCondominio').style.display = 'none';
+  }
+  function salvarCondominio(event) {
+    if (event) event.preventDefault();
+    var id = $('condominioId').value;
+    var nome = $('condominioNome').value.trim();
+    var endereco = $('condominioEndereco').value.trim();
+    var administradoraId = $('condominioAdministradora').value;
+    var administradora = condominiosDB.find(function(x) { return x.tipo === 'administradora' && String(x.id) === String(administradoraId); });
+    if (!nome || !endereco || !administradora) { alert('Informe o nome, o endereço e selecione uma administradora cadastrada.'); return; }
+    var registro = condominiosDB.find(function(x) { return x.tipo === 'condominio' && String(x.id) === String(id); });
+    if (!registro) { registro = {id:'cond_' + Date.now() + '_' + Math.random().toString(36).slice(2,8), tipo:'condominio'}; condominiosDB.push(registro); }
+    registro.nome = nome; registro.endereco = endereco; registro.administradoraId = administradora.id;
+    salvarBaseCondominios(); limparFormCondominio(); renderCondominios();
+  }
+  function editarCondominio(id) {
+    var registro = condominiosDB.find(function(x) { return x.tipo === 'condominio' && String(x.id) === String(id); });
+    if (!registro) return;
+    $('condominioId').value = registro.id; $('condominioNome').value = registro.nome || '';
+    $('condominioEndereco').value = registro.endereco || ''; $('condominioAdministradora').value = registro.administradoraId || '';
+    $('btnSalvarCondominio').textContent = 'Salvar alterações'; $('btnCancelarCondominio').style.display = '';
+    $('condominioNome').focus();
+  }
+  function excluirCondominio(id) {
+    if (!confirm('Deseja excluir este condomínio?')) return;
+    condominiosDB = condominiosDB.filter(function(x) { return !(x.tipo === 'condominio' && String(x.id) === String(id)); });
+    salvarBaseCondominios(); renderCondominios();
+  }
+  function renderCondominios() {
+    var administradoras = condominiosDB.filter(function(x) { return x && x.tipo === 'administradora'; }).slice().sort(function(a,b) { return String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR', {sensitivity:'base'}); });
+    var listaCondominios = condominiosDB.filter(function(x) { return x && x.tipo === 'condominio'; }).slice().sort(function(a,b) { return String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR', {sensitivity:'base'}); });
+    var tbodyAdmins = $('tabelaAdministradorasCondominio');
+    if (tbodyAdmins) tbodyAdmins.innerHTML = administradoras.map(function(x) {
+      var acao = escaparTextoHtml(JSON.stringify(String(x.id)));
+      return '<tr><td>' + escaparTextoHtml(x.nome || '') + '</td><td>' + escaparTextoHtml(x.telefone || '') + '</td><td><button type="button" class="btn btn-secondary btn-sm" onclick="editarAdministradoraCondominio(' + acao + ')">Editar</button> <button type="button" class="btn btn-danger btn-sm" onclick="excluirAdministradoraCondominio(' + acao + ')">Excluir</button></td></tr>';
+    }).join('') || '<tr><td colspan="3" style="text-align:center;color:var(--text-muted);">Nenhuma administradora cadastrada.</td></tr>';
+    var select = $('condominioAdministradora');
+    if (select) {
+      var selecionada = select.value;
+      select.innerHTML = '<option value="">Selecione a administradora</option>' + administradoras.map(function(x) { return '<option value="' + escaparTextoHtml(x.id) + '">' + escaparTextoHtml(x.nome || '') + '</option>'; }).join('');
+      if (administradoras.some(function(x) { return String(x.id) === String(selecionada); })) select.value = selecionada;
+      select.disabled = administradoras.length === 0;
+      if ($('btnSalvarCondominio')) $('btnSalvarCondominio').disabled = administradoras.length === 0;
+    }
+    var tbodyCondominios = $('tabelaCondominios');
+    if (tbodyCondominios) tbodyCondominios.innerHTML = listaCondominios.map(function(x) {
+      var adm = administradoras.find(function(a) { return String(a.id) === String(x.administradoraId); });
+      var acao = escaparTextoHtml(JSON.stringify(String(x.id)));
+      return '<tr><td>' + escaparTextoHtml(x.nome || '') + '</td><td>' + escaparTextoHtml(x.endereco || '') + '</td><td>' + escaparTextoHtml(adm ? adm.nome : 'Administradora não encontrada') + '</td><td>' + escaparTextoHtml(adm ? adm.telefone : '') + '</td><td><button type="button" class="btn btn-secondary btn-sm" onclick="editarCondominio(' + acao + ')">Editar</button> <button type="button" class="btn btn-danger btn-sm" onclick="excluirCondominio(' + acao + ')">Excluir</button></td></tr>';
+    }).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);">Nenhum condomínio cadastrado.</td></tr>';
+  }
   function renderUsuarios() {
     if (usuarioLogadoAtual !== 'admin') return;
     var html = '';
@@ -2744,7 +2881,8 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     var nomesAbas = {
       contas: 'Contas a Pagar', dashboard: 'Dashboard', comissoes: 'Comissões',
       aluguel: 'Aluguel Fechado', rescisao: 'Rescisão', imoveis: 'Imóveis',
-      buscas: 'Consultas IPTU', damae: 'Consultas DAMAE', usuarios: 'Utilizadores'
+      buscas: 'Consultas IPTU', damae: 'Consultas DAMAE', usuarios: 'Utilizadores',
+      condominios: 'Condomínios'
     };
     var chaveAba = abaAtiva.id.replace(/^tab-/, '');
     var nomeAba = nomesAbas[chaveAba] || $('tituloAbaAtual').innerText || 'Dados';
