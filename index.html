@@ -1501,6 +1501,73 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       '<div style="font-size:.73rem;color:#52645d;margin-top:4px;"><b>Responsabilidade:</b> ' + textoSeguroRescisaoPdf(resp) + '</div>' +
       '</article>';
   }
+  var cacheCapturasRescisao = Object.create(null);
+  var requisicoesCapturasRescisao = Object.create(null);
+  var contadorCapturasRescisao = 0;
+  function solicitarCapturasRescisao(codigoContrato, forcar) {
+    var codigo = String(codigoContrato || '').trim();
+    if (!codigo) return Promise.resolve({ok:true,capturas:{}});
+    if (!forcar && cacheCapturasRescisao[codigo]) return Promise.resolve(cacheCapturasRescisao[codigo]);
+    if (!forcar && requisicoesCapturasRescisao[codigo]) return requisicoesCapturasRescisao[codigo];
+    var promessa = new Promise(function(resolve) {
+      var requestId = 'rescisao-captura-' + Date.now() + '-' + (++contadorCapturasRescisao);
+      var finalizado = false;
+      var timer = setTimeout(function() {
+        concluir({ok:false,erro:'A extensão não respondeu. Confira se está instalada e ativa neste navegador.'});
+      }, 7000);
+      function concluir(resposta) {
+        if (finalizado) return;
+        finalizado = true;
+        clearTimeout(timer);
+        window.removeEventListener('message', receber);
+        resolve(resposta || {ok:false,erro:'Resposta vazia da extensão.'});
+      }
+      function receber(event) {
+        if (event.source !== window || event.origin !== location.origin) return;
+        var msg = event.data;
+        if (!msg || msg.source !== 'realiza-extensao' || msg.action !== 'capturasRescisao' || msg.requestId !== requestId) return;
+        concluir(msg.response);
+      }
+      window.addEventListener('message', receber);
+      window.postMessage({source:'realiza-rescisao',action:'buscarCapturas',requestId:requestId,contrato:codigo}, location.origin);
+    });
+    if (!forcar) requisicoesCapturasRescisao[codigo] = promessa;
+    return promessa.then(function(resposta) {
+      if (requisicoesCapturasRescisao[codigo] === promessa) delete requisicoesCapturasRescisao[codigo];
+      if (resposta && resposta.ok) cacheCapturasRescisao[codigo] = resposta;
+      return resposta;
+    });
+  }
+  function dataUriCapturaValidaRescisao(captura) {
+    return !!(captura && typeof captura.dataUrl === 'string' && /^data:image\/(?:jpeg|png);base64,[A-Za-z0-9+/=]+$/.test(captura.dataUrl));
+  }
+  function blocoCapturasRescisao(capturas, erro) {
+    var modulos = [{id:'BCI',nome:'IPTU / Prefeitura'},{id:'DAMAE',nome:'DAMAE'}];
+    var imagens = [], ausentes = [];
+    modulos.forEach(function(modulo) {
+      var item = capturas && capturas[modulo.id];
+      if (!dataUriCapturaValidaRescisao(item)) { ausentes.push(modulo.nome); return; }
+      var dataCaptura = item.capturadoEm ? new Date(item.capturadoEm) : null;
+      var horario = dataCaptura && !isNaN(dataCaptura.getTime()) ? dataCaptura.toLocaleString('pt-BR') : 'Horário não informado';
+      imagens.push('<figure style="margin:0;border:1px solid #d2ddd8;border-radius:9px;padding:10px;background:#fff;min-width:0;break-inside:avoid;">' +
+        '<figcaption style="font-size:.78rem;font-weight:700;color:#244c40;margin-bottom:6px;">Captura literal — ' + textoSeguroRescisaoPdf(modulo.nome) + ' · ' + textoSeguroRescisaoPdf(horario) + '</figcaption>' +
+        '<img alt="Captura literal da tela do portal ' + textoSeguroRescisaoPdf(modulo.nome) + '" src="' + item.dataUrl + '" style="display:block;width:100%;max-height:420px;object-fit:contain;object-position:top center;background:#f7f9f8;border:1px solid #e3e9e6;border-radius:5px;">' +
+        '</figure>');
+    });
+    var aviso = erro ? '<div style="padding:10px;border:1px solid #ead8b2;border-radius:8px;background:#fffaf0;color:#715b2e;font-size:.8rem;">Capturas indisponíveis: ' + textoSeguroRescisaoPdf(erro) + '</div>' : '';
+    if (ausentes.length) aviso += '<div style="padding:9px;color:#65756f;font-size:.78rem;">Sem captura literal sincronizada para: ' + textoSeguroRescisaoPdf(ausentes.join(' e ')) + '. O resumo acima não substitui uma imagem do portal.</div>';
+    return '<div class="rescisao-capturas" style="margin-top:10px;"><div style="font-size:.8rem;font-weight:700;color:#244c40;margin-bottom:7px;">Capturas reais dos portais oficiais</div>' +
+      (imagens.length ? '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:9px;">' + imagens.join('') + '</div>' : '') + aviso + '</div>';
+  }
+  window.addEventListener('message', function(event) {
+    if (event.source !== window || event.origin !== location.origin) return;
+    var msg = event.data;
+    if (!msg || msg.source !== 'realiza-extensao' || msg.action !== 'capturasAtualizadas') return;
+    var campo = $('rescisaoContratoInput');
+    var codigo = campo ? campo.value.trim() : '';
+    if (codigo) delete cacheCapturasRescisao[codigo];
+    atualizarComprovanteRescisao();
+  });
   function atualizarComprovanteRescisao() {
     var campo = $('rescisaoContratoInput'), destino = $('rescisaoConsultaResumo');
     if (!destino) return;
@@ -1509,7 +1576,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     if (datalist) datalist.innerHTML = Array.from(new Set(contratos)).map(function(c) { return '<option value="' + textoSeguroRescisaoPdf(c) + '"></option>'; }).join('');
     var codigo = campo ? campo.value.trim() : '';
     if (!codigo) {
-      destino.innerHTML = '<div style="border:1px dashed #cbd7d2;border-radius:8px;padding:12px;color:#65756f;font-size:.85rem;">Digite um código de contrato para visualizar os dados de consulta salvos.</div>';
+      destino.innerHTML = '<div style="border:1px dashed #cbd7d2;border-radius:8px;padding:12px;color:#65756f;font-size:.85rem;">Digite um código de contrato para visualizar os resultados salvos e as capturas literais dos portais.</div>';
       return;
     }
     var imovel = buscarImovelContratoRescisao(codigo);
@@ -1520,11 +1587,42 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     destino.innerHTML = '<div style="font-size:.82rem;font-weight:700;color:#244c40;margin:2px 0 8px;">' + textoSeguroRescisaoPdf(imovel.contrato || codigo) + ' · ' + textoSeguroRescisaoPdf(imovel.status || 'Situação não informada') + '</div>' +
       '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:9px;">' +
       cardConsultaRescisao('IPTU / Prefeitura', imovel.bci, imovel.statusBci, imovel.referenciasBci, classificarResponsavelGuia(imovel, 'BCI')) +
-      cardConsultaRescisao('DAMAE', imovel.damaeId, imovel.statusDamae, imovel.referenciasDamae, classificarResponsavelGuia(imovel, 'DAMAE')) + '</div>';
+      cardConsultaRescisao('DAMAE', imovel.damaeId, imovel.statusDamae, imovel.referenciasDamae, classificarResponsavelGuia(imovel, 'DAMAE')) + '</div>' +
+      '<div class="rescisao-capturas" style="margin-top:10px;border:1px dashed #cbd7d2;border-radius:8px;padding:10px;color:#65756f;font-size:.82rem;">Carregando capturas dos portais oficiais...</div>';
+    solicitarCapturasRescisao(codigo, false).then(function(resposta) {
+      if (!campo || campo.value.trim() !== codigo) return;
+      var area = destino.querySelector('.rescisao-capturas');
+      if (area) area.outerHTML = blocoCapturasRescisao(resposta && resposta.capturas, resposta && !resposta.ok ? resposta.erro : '');
+    });
   }
-  function exportarPDFRescisao() {
+  function htmlPaginaCapturaRescisao(nomeModulo, codigoContrato, captura) {
+    if (!dataUriCapturaValidaRescisao(captura)) return '';
+    var dataCaptura = captura.capturadoEm ? new Date(captura.capturadoEm) : null;
+    var horario = dataCaptura && !isNaN(dataCaptura.getTime()) ? dataCaptura.toLocaleString('pt-BR') : 'Horário não informado';
+    return '<div class="page capture-page"><img class="letterhead" src="' + TIMBRADO_RESCISAO_DATA_URI + '" alt="Timbrado Realiza Imóveis"><main class="content capture-content">' +
+      '<h1 class="heading">Captura literal do portal oficial</h1><p class="meta">' + textoSeguroRescisaoPdf(nomeModulo) + ' · Contrato ' + textoSeguroRescisaoPdf(codigoContrato || 'não informado') + ' · Capturada em ' + textoSeguroRescisaoPdf(horario) + '</p>' +
+      '<img class="capture-image" alt="Captura literal do resultado no portal ' + textoSeguroRescisaoPdf(nomeModulo) + '" src="' + captura.dataUrl + '">' +
+      '<p class="note">Imagem capturada da área visível do portal oficial após a consulta; conteúdo fora da área exibida/rolada pode não aparecer.</p></main></div>';
+  }
+  function paginasCapturasPDFRescisao(codigoContrato, capturas, erro) {
+    var paginas = [];
+    var paginaBci = capturas && capturas.BCI ? htmlPaginaCapturaRescisao('IPTU / Prefeitura', codigoContrato, capturas.BCI) : '';
+    var paginaDamae = capturas && capturas.DAMAE ? htmlPaginaCapturaRescisao('DAMAE', codigoContrato, capturas.DAMAE) : '';
+    if (paginaBci) paginas.push(paginaBci);
+    if (paginaDamae) paginas.push(paginaDamae);
+    if (paginas.length) return paginas.join('');
+    var mensagem = erro ? 'Capturas não disponíveis: ' + textoSeguroRescisaoPdf(erro) : 'Não há captura literal sincronizada para este contrato. Nenhum resumo foi apresentado como se fosse imagem do portal.';
+    return '<div class="page capture-page"><img class="letterhead" src="' + TIMBRADO_RESCISAO_DATA_URI + '" alt="Timbrado Realiza Imóveis"><main class="content capture-content"><h1 class="heading">Capturas literais dos portais oficiais</h1><p class="meta">Contrato ' + textoSeguroRescisaoPdf(codigoContrato || 'não informado') + '</p><p class="snapshot-empty">' + mensagem + '</p></main></div>';
+  }
+  async function exportarPDFRescisao() {
     var popup = window.open('', '_blank');
     if (!popup) { alert('Permita pop-ups para este site e tente exportar novamente.'); return; }
+    popup.document.open(); popup.document.write('<!doctype html><html lang="pt-BR"><meta charset="utf-8"><title>Preparando memória de rescisão</title><body style="font:16px Arial;padding:30px;color:#244c40">Carregando as capturas oficiais para o PDF...</body></html>'); popup.document.close();
+    var codigoContrato = $('rescisaoContratoInput') ? $('rescisaoContratoInput').value.trim() : '';
+    var imovelConsulta = buscarImovelContratoRescisao(codigoContrato);
+    var respostaCapturas = imovelConsulta ? await solicitarCapturasRescisao(codigoContrato, true) : {ok:false,erro:codigoContrato ? 'Contrato não localizado nos imóveis carregados.' : 'Nenhum contrato informado.'};
+    var capturasRescisaoPdf = respostaCapturas && respostaCapturas.ok ? (respostaCapturas.capturas || {}) : {};
+    var erroCapturasRescisaoPdf = respostaCapturas && !respostaCapturas.ok ? respostaCapturas.erro : '';
     var valorIptu = valorNumericoRescisaoPdf('rescisaoIptuValor');
     var dataInicio = $('rescisaoIptuInicio') ? $('rescisaoIptuInicio').value : '';
     var dataFim = $('rescisaoIptuFim') ? $('rescisaoIptuFim').value : '';
@@ -1554,8 +1652,6 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
         linhaRescisaoPdf('Dias atribuídos ao inquilino', item.dias === null ? 'Não informado' : item.dias + ' dias', false) +
         linhaRescisaoPdf(item.nome + ' proporcional', formatarMoeda(resultado), true) + '</div>';
     }).join('');
-    var codigoContrato = $('rescisaoContratoInput') ? $('rescisaoContratoInput').value.trim() : '';
-    var imovelConsulta = buscarImovelContratoRescisao(codigoContrato);
     var secaoConsultas = '<section class="section snapshot-section"><h2>Registros de consulta vinculados ao contrato</h2>' +
       linhaRescisaoPdf('Código do contrato informado', codigoContrato || 'Não informado', false) +
       (imovelConsulta
@@ -1563,7 +1659,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
           cardConsultaRescisao('IPTU / Prefeitura', imovelConsulta.bci, imovelConsulta.statusBci, imovelConsulta.referenciasBci, classificarResponsavelGuia(imovelConsulta, 'BCI')) +
           cardConsultaRescisao('DAMAE', imovelConsulta.damaeId, imovelConsulta.statusDamae, imovelConsulta.referenciasDamae, classificarResponsavelGuia(imovelConsulta, 'DAMAE')) + '</div>'
         : '<p class="snapshot-empty">' + (codigoContrato ? 'O contrato informado não foi localizado na lista de imóveis disponível no navegador; não foi possível anexar resultados de consulta.' : 'Nenhum contrato foi informado; não foram anexados resultados de consulta.') + '</p>') +
-      '<p class="snapshot-note">Resumo visual dos resultados e referências salvos no sistema; não corresponde a uma captura literal do portal oficial.</p></section>';
+      '<p class="snapshot-note">Os cartões são um resumo textual salvo no sistema. As capturas literais dos portais oficiais, quando disponíveis, aparecem nas páginas seguintes; o resumo não é apresentado como print.</p></section>';
     var agora = new Date();
     var dataGeracao = agora.toLocaleDateString('pt-BR') + ' às ' + agora.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
     var nomeArquivo = 'Memoria_Rescisao_' + agora.getFullYear() + '-' + String(agora.getMonth()+1).padStart(2,'0') + '-' + String(agora.getDate()).padStart(2,'0');
@@ -1576,8 +1672,9 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     var secaoMensais = '<section class="section"><h2>Proporcionais mensais</h2>' +
       linhaRescisaoPdf('Dias totais do mês usados no cálculo', diasMes + ' dias', false) + linhasMensais +
       linhaRescisaoPdf('Total proporcional mensal (aluguel + água + luz)', formatarMoeda(totalMensal), true) + '</section>';
+    var paginasCapturas = paginasCapturasPDFRescisao(codigoContrato, capturasRescisaoPdf, erroCapturasRescisaoPdf);
     var pagina = '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>' + nomeArquivo + '</title>' +
-      '<style>@page{size:A4 portrait;margin:0}*{box-sizing:border-box}html,body{margin:0;padding:0;width:210mm;height:297mm;font-family:Arial,Helvetica,sans-serif;color:#24352f;-webkit-print-color-adjust:exact;print-color-adjust:exact}.page{position:relative;width:210mm;height:297mm;overflow:hidden;background:#fff}.letterhead{position:absolute;inset:0;width:210mm;height:297mm;object-fit:fill;z-index:0}.content{position:relative;z-index:1;padding:42mm 17mm 31mm 24mm;width:100%;height:100%;overflow:hidden}.heading{margin:0 0 1.5mm;color:#244c40;font-size:17pt;line-height:1.15;letter-spacing:.2pt}.meta{margin:0 0 3mm;color:#65756f;font-size:8pt}.section{border:0.5pt solid #cbd7d2;border-radius:2.5mm;padding:3mm 4mm;margin:0 0 2.5mm;background:rgba(255,255,255,.90);break-inside:avoid}.section h2{margin:0 0 1.5mm;color:#2a5045;font-size:10pt}.row{display:flex;justify-content:space-between;gap:6mm;padding:1mm 0;border-bottom:.3pt solid #e3e9e6;font-size:8pt;line-height:1.2}.row:last-child{border-bottom:0}.row strong{text-align:right;font-weight:600}.row.highlight{color:#21483c;font-size:8.3pt}.subsection{margin-top:1.5mm;padding-top:1.5mm;border-top:.5pt solid #d7e1dd}.subsection h3{margin:0 0 1mm;color:#3d6256;font-size:8.5pt}.snapshot-grid{display:grid;grid-template-columns:1fr 1fr;gap:2.5mm;margin-top:2mm}.snapshot-grid article{padding:2.5mm!important;font-size:7.6pt!important}.snapshot-grid article div{font-size:7.4pt!important}.snapshot-empty{font-size:8pt;color:#65756f;margin:2mm 0 0}.snapshot-note{margin:2mm 0 0;color:#65756f;font-size:6.7pt;line-height:1.25}.note{margin-top:2mm;color:#65756f;font-size:7pt;line-height:1.3}@media print{.page{break-after:avoid;box-shadow:none}}</style></head><body><div class="page"><img class="letterhead" src="' + TIMBRADO_RESCISAO_DATA_URI + '" alt="Timbrado Realiza Imóveis"><main class="content"><h1 class="heading">Memória de Cálculo — Rescisão de Locação</h1><p class="meta">Emitido em ' + dataGeracao + '</p>' + secaoConsultas + secaoIptu + secaoMensais + '<p class="note">Documento gerado a partir dos valores simulados no sistema. Confira os dados e os critérios aplicáveis ao contrato antes de utilizar os valores.</p></main></div></body></html>';
+      '<style>@page{size:A4 portrait;margin:0}*{box-sizing:border-box}html,body{margin:0;padding:0;width:210mm;height:297mm;font-family:Arial,Helvetica,sans-serif;color:#24352f;-webkit-print-color-adjust:exact;print-color-adjust:exact}.page{position:relative;width:210mm;height:297mm;overflow:hidden;background:#fff}.letterhead{position:absolute;inset:0;width:210mm;height:297mm;object-fit:fill;z-index:0}.content{position:relative;z-index:1;padding:42mm 17mm 31mm 24mm;width:100%;height:100%;overflow:hidden}.heading{margin:0 0 1.5mm;color:#244c40;font-size:17pt;line-height:1.15;letter-spacing:.2pt}.meta{margin:0 0 3mm;color:#65756f;font-size:8pt}.section{border:0.5pt solid #cbd7d2;border-radius:2.5mm;padding:3mm 4mm;margin:0 0 2.5mm;background:rgba(255,255,255,.90);break-inside:avoid}.section h2{margin:0 0 1.5mm;color:#2a5045;font-size:10pt}.row{display:flex;justify-content:space-between;gap:6mm;padding:1mm 0;border-bottom:.3pt solid #e3e9e6;font-size:8pt;line-height:1.2}.row:last-child{border-bottom:0}.row strong{text-align:right;font-weight:600}.row.highlight{color:#21483c;font-size:8.3pt}.subsection{margin-top:1.5mm;padding-top:1.5mm;border-top:.5pt solid #d7e1dd}.subsection h3{margin:0 0 1mm;color:#3d6256;font-size:8.5pt}.snapshot-grid{display:grid;grid-template-columns:1fr 1fr;gap:2.5mm;margin-top:2mm}.snapshot-grid article{padding:2.5mm!important;font-size:7.6pt!important}.snapshot-grid article div{font-size:7.4pt!important}.snapshot-empty{font-size:8pt;color:#65756f;margin:2mm 0 0}.snapshot-note{margin:2mm 0 0;color:#65756f;font-size:6.7pt;line-height:1.25}.note{margin-top:2mm;color:#65756f;font-size:7pt;line-height:1.3}.capture-page{page-break-before:always;break-before:page}.capture-content{padding-top:42mm!important}.capture-image{display:block;max-width:100%;max-height:185mm;width:auto;height:auto;object-fit:contain;object-position:top left;margin:3mm auto 0;border:.5pt solid #cbd7d2;background:#fff}.capture-page .snapshot-empty{font-size:9pt;line-height:1.4}@media print{.page{break-after:avoid;box-shadow:none}.capture-page{page-break-before:always;break-before:page}}</style></head><body><div class="page"><img class="letterhead" src="' + TIMBRADO_RESCISAO_DATA_URI + '" alt="Timbrado Realiza Imóveis"><main class="content"><h1 class="heading">Memória de Cálculo — Rescisão de Locação</h1><p class="meta">Emitido em ' + dataGeracao + '</p>' + secaoConsultas + secaoIptu + secaoMensais + '<p class="note">Documento gerado a partir dos valores simulados no sistema. Confira os dados e os critérios aplicáveis ao contrato antes de utilizar os valores.</p></main></div>' + paginasCapturas + '</body></html>';
     popup.document.open(); popup.document.write(pagina);
     popup.onafterprint = function() { popup.close(); };
     popup.document.close();
