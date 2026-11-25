@@ -408,6 +408,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
         <div class="card"><div class="card-title">IPTU pendente / vencido</div><div class="card-val" id="qtdImoveisIptuPendente" style="color:var(--danger);">0</div></div>
         <div class="card"><div class="card-title">DAMAE vencido</div><div class="card-val" id="qtdImoveisDamaeVencido" style="color:var(--danger);">0</div></div>
         <div class="card"><div class="card-title">Imóveis com contas em dia</div><div class="card-val" id="qtdImoveisContasEmDia" style="color:var(--success);">0</div></div>
+        <div class="card"><div class="card-title">Imóveis com consultas a verificar</div><div class="card-val" id="qtdImoveisVerificar" style="color:var(--warning);">0</div></div>
       </div>
       <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px; flex-wrap:wrap; gap:10px;">
@@ -447,6 +448,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
         <div class="grid-cards" style="margin:14px 0;">
           <div class="card"><div class="card-title">IPTU pendente / vencido</div><div class="card-val" id="qtdIptuVencido" style="color:var(--danger);">0</div></div>
           <div class="card"><div class="card-title">IPTU em dia</div><div class="card-val" id="qtdIptuEmDia" style="color:var(--success);">0</div></div>
+          <div class="card"><div class="card-title">Consultas a verificar</div><div class="card-val" id="qtdIptuVerificar" style="color:var(--warning);">0</div></div>
         </div>
         <details class="filter-panel filter-inline"><summary>Filtros</summary><div class="filter-bar" style="margin-bottom: 15px;">
           <label>Pesquisar Contrato:</label><input type="text" id="filtroBuscaContratoIptu" placeholder="Nº Contrato..." style="max-width:160px;"><label>Consulta:</label><select id="filtroStatusIptu"><option value="todos">Todos</option><option value="aberto">Em aberto</option><option value="emdia">Em dia</option><option value="outros">Não consultado / verificar</option></select><button class="btn btn-success btn-sm" type="button" onclick="renderBcis()">🔎 Pesquisar</button>
@@ -480,6 +482,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
           <div class="card"><div class="card-title">Imóveis com DAMAE vencido</div><div class="card-val" id="qtdDamaeVencido" style="color:var(--danger);">0</div></div>
           <div class="card"><div class="card-title">DAMAE em dia</div><div class="card-val" id="qtdDamaeEmDia" style="color:var(--success);">0</div></div>
           <div class="card"><div class="card-title">Sem ID DAMAE cadastrado</div><div class="card-val" id="qtdDamaeSemId" style="color:var(--warning);">0</div></div>
+          <div class="card"><div class="card-title">Consultas a verificar</div><div class="card-val" id="qtdDamaeVerificar" style="color:var(--warning);">0</div></div>
         </div>
         <details class="filter-panel filter-inline"><summary>Filtros</summary><div class="filter-bar" style="margin-bottom: 15px;">
           <label>Pesquisar Contrato:</label><input type="text" id="filtroBuscaContratoDamae" placeholder="Nº Contrato..." style="max-width:160px;"><label>Consulta:</label><select id="filtroStatusDamae"><option value="todos">Todos</option><option value="aberto">Em aberto</option><option value="vencida">Guia vencida</option><option value="emdia">Em dia</option><option value="outros">Não consultado / verificar</option><option value="sem_id">Sem ID DAMAE</option></select><button class="btn btn-success btn-sm" type="button" onclick="renderDamae()">🔎 Pesquisar</button>
@@ -2462,21 +2465,31 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   function semIdDamae(item) {
     return !String(item && item.damaeId || '').trim();
   }
+  function consultaPrecisaVerificar(item, campoStatus) {
+    var status = textoStatusConsultaLimpo(item && item[campoStatus]);
+    return !status || /(nao consultado|não consultado|tempo esgotado|inconclusiv|verificar|falha de execucao|falha de execução|erro na consulta)/.test(status);
+  }
   function atualizarCardsResumoConsultas() {
     var totalIptuPendente = imoveisDB.filter(consultaBciPendente).length;
     var totalIptuEmDia = imoveisDB.filter(consultaBciEmDia).length;
     var totalDamaeVencida = imoveisDB.filter(consultaDamaeVencida).length;
     var totalDamaeEmDia = imoveisDB.filter(consultaDamaeEmDia).length;
     var totalSemId = imoveisDB.filter(semIdDamae).length;
+    var totalIptuVerificar = imoveisDB.filter(function(item) { return consultaPrecisaVerificar(item, 'statusBci'); }).length;
+    var totalDamaeVerificar = imoveisDB.filter(function(item) { return !semIdDamae(item) && consultaPrecisaVerificar(item, 'statusDamae'); }).length;
+    var totalImoveisVerificar = imoveisDB.filter(function(item) { return consultaPrecisaVerificar(item, 'statusBci') || (!semIdDamae(item) && consultaPrecisaVerificar(item, 'statusDamae')); }).length;
     var totalContasEmDia = imoveisDB.filter(function(item) { return consultaBciEmDia(item) && consultaDamaeEmDia(item); }).length;
     var valores = {
       qtdImoveisIptuPendente: totalIptuPendente,
       qtdImoveisDamaeVencido: totalDamaeVencida,
       qtdImoveisContasEmDia: totalContasEmDia,
+      qtdImoveisVerificar: totalImoveisVerificar,
       qtdIptuVencido: totalIptuPendente,
       qtdIptuEmDia: totalIptuEmDia,
+      qtdIptuVerificar: totalIptuVerificar,
       qtdDamaeVencido: totalDamaeVencida,
       qtdDamaeEmDia: totalDamaeEmDia,
+      qtdDamaeVerificar: totalDamaeVerificar,
       qtdDamaeSemId: totalSemId
     };
     Object.keys(valores).forEach(function(id) {
