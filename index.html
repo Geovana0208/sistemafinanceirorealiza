@@ -358,7 +358,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       <div class="card" style="margin-bottom:14px;">
         <div class="form-group" style="margin-bottom:10px;">
           <label for="rescisaoContratoInput">Código do contrato</label>
-          <input type="text" id="rescisaoContratoInput" list="rescisaoContratosDatalist" placeholder="Digite o código igual ao cadastrado no imóvel" oninput="atualizarComprovanteRescisao(); carregarLancamentosIntegraisRescisao(); atualizarAcoesRescisao();" autocomplete="off">
+          <input type="text" id="rescisaoContratoInput" list="rescisaoContratosDatalist" placeholder="Digite o código igual ao cadastrado no imóvel" oninput="atualizarComprovanteRescisao(); carregarLancamentosIntegraisRescisao(); carregarPrintsManuaisRescisao(); atualizarAcoesRescisao();" autocomplete="off">
           <datalist id="rescisaoContratosDatalist"></datalist>
           <small style="color:var(--text-muted);">A consulta individual abre os dois portais para este contrato e salva capturas literais; o resumo abaixo permanece identificado como resumo.</small>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:9px;">
@@ -411,18 +411,30 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
         <p style="font-size:.82rem;color:var(--text-muted);margin:0 0 12px;">Informe o valor integral de cada conta ou guia em aberto. O sistema soma os lançamentos sem aplicar rateio proporcional por dias. Os dados ficam associados ao código do contrato neste navegador e serão incluídos em páginas próprias do PDF.</p>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;">
           <section style="border:1px solid var(--border);border-radius:9px;padding:12px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;"><h4 style="margin:0;color:var(--primary);">Contas de água / DAMAE</h4><button type="button" class="btn btn-sm" onclick="adicionarLancamentoIntegralRescisao('agua')">+ Adicionar conta de água</button></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;"><h4 style="margin:0;color:var(--primary);">Contas de água</h4><button type="button" class="btn btn-sm" onclick="adicionarLancamentoIntegralRescisao('agua')">+ Adicionar conta de água</button></div>
             <div id="rescisaoLancamentosAgua" style="margin-top:10px;"></div>
-            <div style="text-align:right;margin-top:8px;font-weight:700;">Total água: <span id="rescisaoTotalIntegralAgua">R$ 0,00</span></div>
+            <div style="text-align:right;margin-top:8px;font-weight:700;">Total de contas de água: <span id="rescisaoTotalIntegralAgua">R$ 0,00</span></div>
           </section>
           <section style="border:1px solid var(--border);border-radius:9px;padding:12px;">
             <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;"><h4 style="margin:0;color:var(--primary);">Guias de IPTU / Prefeitura</h4><button type="button" class="btn btn-sm" onclick="adicionarLancamentoIntegralRescisao('iptu')">+ Adicionar guia de IPTU</button></div>
             <div id="rescisaoLancamentosIptu" style="margin-top:10px;"></div>
             <div style="text-align:right;margin-top:8px;font-weight:700;">Total IPTU: <span id="rescisaoTotalIntegralIptu">R$ 0,00</span></div>
           </section>
+          <section style="border:1px solid var(--border);border-radius:9px;padding:12px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;"><h4 style="margin:0;color:var(--primary);">Contas de energia</h4><button type="button" class="btn btn-sm" onclick="adicionarLancamentoIntegralRescisao('energia')">+ Adicionar conta de energia</button></div>
+            <div id="rescisaoLancamentosEnergia" style="margin-top:10px;"></div>
+            <div style="text-align:right;margin-top:8px;font-weight:700;">Total de energia: <span id="rescisaoTotalIntegralEnergia">R$ 0,00</span></div>
+          </section>
         </div>
         <div style="text-align:right;border-top:1px solid var(--border);margin-top:12px;padding-top:10px;font-size:1rem;font-weight:800;color:var(--primary);">Total integral lançado: <span id="rescisaoTotalIntegralGeral">R$ 0,00</span></div>
         <small style="display:block;margin-top:7px;color:var(--text-muted);">Cada linha aceita referência/competência, vencimento, responsável e valor. Use “Adicionar” quantas vezes forem necessárias.</small>
+        <section style="border:1px solid var(--border);border-radius:9px;padding:12px;margin-top:14px;">
+          <h4 style="margin:0 0 6px;color:var(--primary);">Print adicional para o PDF (opcional)</h4>
+          <p style="font-size:.82rem;color:var(--text-muted);margin:0 0 10px;">Anexe imagens que queira guardar no PDF, associadas ao contrato selecionado. Cada print será colocado em uma página própria, no mesmo tamanho das capturas dos portais.</p>
+          <label class="btn btn-sm" for="rescisaoPrintManualInput">+ Adicionar print</label>
+          <input id="rescisaoPrintManualInput" type="file" accept="image/jpeg,image/png,image/webp" multiple onchange="adicionarPrintsManuaisRescisao(this.files); this.value='';" style="display:none;">
+          <div id="rescisaoPrintsManuaisLista" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:10px;"></div>
+        </section>
       </div>
     </div>
 
@@ -1488,13 +1500,90 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   function chaveLancamentosIntegraisRescisao(codigo) {
     return 'rescisao_integral_v1_' + encodeURIComponent(String(codigo || '').trim().toLocaleLowerCase('pt-BR'));
   }
+  function chavePrintsManuaisRescisao(codigo) {
+    return 'rescisao_prints_manuais_v1_' + encodeURIComponent(String(codigo || '').trim().toLocaleLowerCase('pt-BR'));
+  }
+  function obterPrintsManuaisRescisao(codigo) {
+    if (!codigo) return [];
+    try {
+      var lista = JSON.parse(localStorage.getItem(chavePrintsManuaisRescisao(codigo)) || '[]');
+      return Array.isArray(lista) ? lista.filter(function(item) { return item && typeof item.dataUrl === 'string' && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(item.dataUrl); }) : [];
+    } catch (e) { return []; }
+  }
+  function salvarPrintsManuaisRescisao(codigo, lista) {
+    try {
+      localStorage.setItem(chavePrintsManuaisRescisao(codigo), JSON.stringify(lista));
+      return true;
+    } catch (e) {
+      alert('Não foi possível guardar o print neste navegador. Remova algum anexo ou use uma imagem menor.');
+      return false;
+    }
+  }
+  function carregarPrintsManuaisRescisao() {
+    var area = $('rescisaoPrintsManuaisLista');
+    var codigo = $('rescisaoContratoInput') ? $('rescisaoContratoInput').value.trim() : '';
+    if (!area) return;
+    if (!codigo) { area.innerHTML = '<div style="font-size:.8rem;color:var(--text-muted);">Informe o contrato para anexar ou visualizar prints.</div>'; return; }
+    var lista = obterPrintsManuaisRescisao(codigo);
+    if (!lista.length) { area.innerHTML = '<div style="font-size:.8rem;color:var(--text-muted);">Nenhum print adicional anexado.</div>'; return; }
+    area.innerHTML = lista.map(function(item, indice) {
+      return '<article style="border:1px solid var(--border);border-radius:7px;padding:7px;min-width:0;"><img alt="Prévia do print anexado" src="' + item.dataUrl + '" style="width:100%;height:100px;object-fit:contain;background:#f7f9f8;border-radius:4px;"><div title="' + textoSeguroRescisaoPdf(item.nome || 'Print adicional') + '" style="font-size:.72rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:5px 0;">' + textoSeguroRescisaoPdf(item.nome || 'Print adicional') + '</div><button type="button" class="btn btn-danger btn-sm" onclick="removerPrintManualRescisao(' + indice + ')">Remover</button></article>';
+    }).join('');
+  }
+  function lerImagemComoJpegRescisao(arquivo) {
+    return new Promise(function(resolve, reject) {
+      var leitor = new FileReader();
+      leitor.onerror = function() { reject(new Error('Falha ao ler o arquivo.')); };
+      leitor.onload = function() {
+        var imagem = new Image();
+        imagem.onerror = function() { reject(new Error('O arquivo não é uma imagem válida.')); };
+        imagem.onload = function() {
+          var escala = Math.min(1, 2000 / Math.max(imagem.naturalWidth, imagem.naturalHeight));
+          var canvas = document.createElement('canvas');
+          canvas.width = Math.max(1, Math.round(imagem.naturalWidth * escala));
+          canvas.height = Math.max(1, Math.round(imagem.naturalHeight * escala));
+          var contexto = canvas.getContext('2d');
+          contexto.fillStyle = '#ffffff'; contexto.fillRect(0, 0, canvas.width, canvas.height);
+          contexto.drawImage(imagem, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL('image/jpeg', 0.82));
+        };
+        imagem.src = leitor.result;
+      };
+      leitor.readAsDataURL(arquivo);
+    });
+  }
+  async function adicionarPrintsManuaisRescisao(arquivos) {
+    var codigo = $('rescisaoContratoInput') ? $('rescisaoContratoInput').value.trim() : '';
+    if (!codigo) { alert('Informe primeiro o código do contrato para associar o print.'); return; }
+    var selecionados = Array.from(arquivos || []);
+    if (!selecionados.length) return;
+    var lista = obterPrintsManuaisRescisao(codigo);
+    for (var i = 0; i < selecionados.length; i++) {
+      var arquivo = selecionados[i];
+      if (!/^image\/(jpeg|png|webp)$/i.test(arquivo.type)) { alert('Use imagens JPG, PNG ou WEBP.'); continue; }
+      if (arquivo.size > 20 * 1024 * 1024) { alert('O arquivo “' + arquivo.name + '” excede o limite de 20 MB.'); continue; }
+      if (lista.length >= 8) { alert('É possível anexar até 8 prints por contrato.'); break; }
+      try {
+        lista.push({nome:arquivo.name, dataUrl:await lerImagemComoJpegRescisao(arquivo), anexadoEm:new Date().toISOString()});
+        if (!salvarPrintsManuaisRescisao(codigo, lista)) { lista.pop(); break; }
+      } catch (e) { alert('Não foi possível processar “' + arquivo.name + '”: ' + e.message); }
+    }
+    carregarPrintsManuaisRescisao();
+  }
+  function removerPrintManualRescisao(indice) {
+    var codigo = $('rescisaoContratoInput') ? $('rescisaoContratoInput').value.trim() : '';
+    if (!codigo) return;
+    var lista = obterPrintsManuaisRescisao(codigo);
+    if (indice >= 0 && indice < lista.length) lista.splice(indice, 1);
+    if (salvarPrintsManuaisRescisao(codigo, lista)) carregarPrintsManuaisRescisao();
+  }
   function obterDadosLancamentosIntegraisRescisao() {
     var codigo = $('rescisaoContratoInput') ? $('rescisaoContratoInput').value.trim() : '';
-    if (!codigo) return {agua:[], iptu:[]};
+    if (!codigo) return {agua:[], iptu:[], energia:[]};
     try {
       var dados = JSON.parse(localStorage.getItem(chaveLancamentosIntegraisRescisao(codigo)) || '{}');
-      return {agua:Array.isArray(dados.agua) ? dados.agua : [], iptu:Array.isArray(dados.iptu) ? dados.iptu : []};
-    } catch (e) { return {agua:[], iptu:[]}; }
+      return {agua:Array.isArray(dados.agua) ? dados.agua : [], iptu:Array.isArray(dados.iptu) ? dados.iptu : [], energia:Array.isArray(dados.energia) ? dados.energia : []};
+    } catch (e) { return {agua:[], iptu:[], energia:[]}; }
   }
   function lerLinhasLancamentosIntegraisRescisao(id) {
     var area = $(id);
@@ -1507,7 +1596,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   function salvarLancamentosIntegraisRescisao() {
     var codigo = $('rescisaoContratoInput') ? $('rescisaoContratoInput').value.trim() : '';
     if (!codigo) return false;
-    var dados = {agua:lerLinhasLancamentosIntegraisRescisao('rescisaoLancamentosAgua'), iptu:lerLinhasLancamentosIntegraisRescisao('rescisaoLancamentosIptu')};
+    var dados = {agua:lerLinhasLancamentosIntegraisRescisao('rescisaoLancamentosAgua'), iptu:lerLinhasLancamentosIntegraisRescisao('rescisaoLancamentosIptu'), energia:lerLinhasLancamentosIntegraisRescisao('rescisaoLancamentosEnergia')};
     try { localStorage.setItem(chaveLancamentosIntegraisRescisao(codigo), JSON.stringify(dados)); } catch (e) { console.warn('Não foi possível salvar os lançamentos integrais neste navegador.', e); }
     contratoLancamentosIntegralAtual = chaveLancamentosIntegraisRescisao(codigo);
     atualizarTotaisLancamentosIntegraisRescisao(dados);
@@ -1532,36 +1621,39 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     }
     render(dados.agua, 'agua', 'rescisaoLancamentosAgua');
     render(dados.iptu, 'iptu', 'rescisaoLancamentosIptu');
+    render(dados.energia || [], 'energia', 'rescisaoLancamentosEnergia');
     atualizarTotaisLancamentosIntegraisRescisao(dados);
   }
   function atualizarTotaisLancamentosIntegraisRescisao(dados) {
-    dados = dados || {agua:lerLinhasLancamentosIntegraisRescisao('rescisaoLancamentosAgua'),iptu:lerLinhasLancamentosIntegraisRescisao('rescisaoLancamentosIptu')};
+    dados = dados || {agua:lerLinhasLancamentosIntegraisRescisao('rescisaoLancamentosAgua'),iptu:lerLinhasLancamentosIntegraisRescisao('rescisaoLancamentosIptu'),energia:lerLinhasLancamentosIntegraisRescisao('rescisaoLancamentosEnergia')};
     function total(lista) { return lista.reduce(function(soma,item) { var n = Number(String(item.valor || '').replace(',', '.')); return soma + (isFinite(n) && n > 0 ? n : 0); }, 0); }
-    var agua = total(dados.agua || []), iptu = total(dados.iptu || []);
+    var agua = total(dados.agua || []), iptu = total(dados.iptu || []), energia = total(dados.energia || []);
     if ($('rescisaoTotalIntegralAgua')) $('rescisaoTotalIntegralAgua').textContent = formatarMoeda(agua);
     if ($('rescisaoTotalIntegralIptu')) $('rescisaoTotalIntegralIptu').textContent = formatarMoeda(iptu);
-    if ($('rescisaoTotalIntegralGeral')) $('rescisaoTotalIntegralGeral').textContent = formatarMoeda(agua + iptu);
+    if ($('rescisaoTotalIntegralEnergia')) $('rescisaoTotalIntegralEnergia').textContent = formatarMoeda(energia);
+    if ($('rescisaoTotalIntegralGeral')) $('rescisaoTotalIntegralGeral').textContent = formatarMoeda(agua + iptu + energia);
   }
   function carregarLancamentosIntegraisRescisao(forcar) {
     var codigo = $('rescisaoContratoInput') ? $('rescisaoContratoInput').value.trim() : '';
     var chave = codigo ? chaveLancamentosIntegraisRescisao(codigo) : '';
     if (!forcar && chave === contratoLancamentosIntegralAtual) return;
     contratoLancamentosIntegralAtual = chave;
-    renderizarLancamentosIntegraisRescisao(codigo ? obterDadosLancamentosIntegraisRescisao() : {agua:[],iptu:[]});
+    renderizarLancamentosIntegraisRescisao(codigo ? obterDadosLancamentosIntegraisRescisao() : {agua:[],iptu:[],energia:[]});
   }
   function adicionarLancamentoIntegralRescisao(tipo) {
     var codigo = $('rescisaoContratoInput') ? $('rescisaoContratoInput').value.trim() : '';
     if (!codigo) { alert('Informe primeiro o código do contrato para associar os lançamentos.'); return; }
     if (contratoLancamentosIntegralAtual !== chaveLancamentosIntegraisRescisao(codigo)) carregarLancamentosIntegraisRescisao(true);
-    var dados = {agua:lerLinhasLancamentosIntegraisRescisao('rescisaoLancamentosAgua'),iptu:lerLinhasLancamentosIntegraisRescisao('rescisaoLancamentosIptu')};
+    var dados = {agua:lerLinhasLancamentosIntegraisRescisao('rescisaoLancamentosAgua'),iptu:lerLinhasLancamentosIntegraisRescisao('rescisaoLancamentosIptu'),energia:lerLinhasLancamentosIntegraisRescisao('rescisaoLancamentosEnergia')};
     if (tipo === 'agua') dados.agua.push({competencia:'',vencimento:'',responsavel:'Inquilino',valor:''});
     else if (tipo === 'iptu') dados.iptu.push({competencia:'',vencimento:'',responsavel:'Inquilino',valor:''});
+    else if (tipo === 'energia') dados.energia.push({competencia:'',vencimento:'',responsavel:'Inquilino',valor:''});
     renderizarLancamentosIntegraisRescisao(dados);
     salvarLancamentosIntegraisRescisao();
   }
   function removerLancamentoIntegralRescisao(tipo, indice) {
-    var dados = {agua:lerLinhasLancamentosIntegraisRescisao('rescisaoLancamentosAgua'),iptu:lerLinhasLancamentosIntegraisRescisao('rescisaoLancamentosIptu')};
-    var lista = tipo === 'agua' ? dados.agua : dados.iptu;
+    var dados = {agua:lerLinhasLancamentosIntegraisRescisao('rescisaoLancamentosAgua'),iptu:lerLinhasLancamentosIntegraisRescisao('rescisaoLancamentosIptu'),energia:lerLinhasLancamentosIntegraisRescisao('rescisaoLancamentosEnergia')};
+    var lista = tipo === 'agua' ? dados.agua : (tipo === 'energia' ? dados.energia : dados.iptu);
     if (indice >= 0 && indice < lista.length) lista.splice(indice,1);
     renderizarLancamentosIntegraisRescisao(dados);
     salvarLancamentosIntegraisRescisao();
@@ -1791,14 +1883,22 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     var mensagem = erro ? 'Capturas não disponíveis: ' + textoSeguroRescisaoPdf(erro) : 'Não há captura literal sincronizada para este contrato. Nenhum resumo foi apresentado como se fosse imagem do portal.';
     return '<div class="page capture-page"><img class="letterhead" src="' + TIMBRADO_RESCISAO_DATA_URI + '" alt="Timbrado Realiza Imóveis"><main class="content capture-content"><h1 class="heading">Capturas literais dos portais oficiais</h1><p class="meta">Contrato ' + textoSeguroRescisaoPdf(codigoContrato || 'não informado') + '</p><p class="snapshot-empty">' + mensagem + '</p></main></div>';
   }
+  function paginasPrintsManuaisPDFRescisao(codigoContrato, prints) {
+    return (prints || []).map(function(print, indice) {
+      if (!print || !/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(print.dataUrl || '')) return '';
+      return '<div class="page capture-page"><img class="letterhead" src="' + TIMBRADO_RESCISAO_DATA_URI + '" alt="Timbrado Realiza Imóveis"><main class="content capture-content"><h1 class="heading">Print adicional</h1><p class="meta">Contrato ' + textoSeguroRescisaoPdf(codigoContrato || 'não informado') + ' · Anexo ' + (indice + 1) + (print.nome ? ' · ' + textoSeguroRescisaoPdf(print.nome) : '') + '</p><img class="capture-image" alt="Print adicional anexado pelo usuário" src="' + print.dataUrl + '"><p class="note">Imagem anexada manualmente para registro no documento de rescisão.</p></main></div>';
+    }).join('');
+  }
   function paginasLancamentosIntegraisPDFRescisao(codigoContrato, dados) {
     var itens = [];
-    (dados.agua || []).forEach(function(item) { itens.push({tipo:'Água / DAMAE',competencia:item.competencia,vencimento:item.vencimento,responsavel:item.responsavel,valor:item.valor}); });
+    (dados.agua || []).forEach(function(item) { itens.push({tipo:'Contas de água',competencia:item.competencia,vencimento:item.vencimento,responsavel:item.responsavel,valor:item.valor}); });
     (dados.iptu || []).forEach(function(item) { itens.push({tipo:'IPTU / Prefeitura',competencia:item.competencia,vencimento:item.vencimento,responsavel:item.responsavel,valor:item.valor}); });
+    (dados.energia || []).forEach(function(item) { itens.push({tipo:'Contas de energia',competencia:item.competencia,vencimento:item.vencimento,responsavel:item.responsavel,valor:item.valor}); });
     itens = itens.filter(function(item) { return item.competencia || item.vencimento || item.valor; });
     var totalAgua = (dados.agua || []).reduce(function(s,v) { return s + (Number(String(v.valor || '').replace(',','.')) || 0); }, 0);
     var totalIptu = (dados.iptu || []).reduce(function(s,v) { return s + (Number(String(v.valor || '').replace(',','.')) || 0); }, 0);
-    var totalGeral = totalAgua + totalIptu;
+    var totalEnergia = (dados.energia || []).reduce(function(s,v) { return s + (Number(String(v.valor || '').replace(',','.')) || 0); }, 0);
+    var totalGeral = totalAgua + totalIptu + totalEnergia;
     if (!itens.length) itens.push({tipo:'—',competencia:'Nenhum lançamento integral registrado',vencimento:'',responsavel:'',valor:''});
     var paginas = [], tamanhoPagina = 6;
     for (var inicio = 0; inicio < itens.length; inicio += tamanhoPagina) {
@@ -1807,7 +1907,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       var linhas = fatia.map(function(item) {
         return '<tr><td>' + textoSeguroRescisaoPdf(item.tipo || '—') + '</td><td>' + textoSeguroRescisaoPdf(item.competencia || '—') + '</td><td>' + textoSeguroRescisaoPdf(formatarDataRescisaoPdf(item.vencimento) || '—') + '</td><td>' + textoSeguroRescisaoPdf(item.responsavel || '—') + '</td><td style="text-align:right;white-space:nowrap;">' + textoSeguroRescisaoPdf(item.valor ? formatarMoeda(Number(String(item.valor).replace(',','.')) || 0) : '—') + '</td></tr>';
       }).join('');
-      var totais = ultima ? '<div class="integral-totals"><div>Total integral Água/DAMAE: <b>' + textoSeguroRescisaoPdf(formatarMoeda(totalAgua)) + '</b></div><div>Total integral IPTU/Prefeitura: <b>' + textoSeguroRescisaoPdf(formatarMoeda(totalIptu)) + '</b></div><div class="integral-grand">Total integral lançado: ' + textoSeguroRescisaoPdf(formatarMoeda(totalGeral)) + '</div></div>' : '<p class="note">Continua na próxima página.</p>';
+      var totais = ultima ? '<div class="integral-totals"><div>Total integral contas de água: <b>' + textoSeguroRescisaoPdf(formatarMoeda(totalAgua)) + '</b></div><div>Total integral IPTU/Prefeitura: <b>' + textoSeguroRescisaoPdf(formatarMoeda(totalIptu)) + '</b></div><div>Total integral contas de energia: <b>' + textoSeguroRescisaoPdf(formatarMoeda(totalEnergia)) + '</b></div><div class="integral-grand">Total integral lançado: ' + textoSeguroRescisaoPdf(formatarMoeda(totalGeral)) + '</div></div>' : '<p class="note">Continua na próxima página.</p>';
       paginas.push('<div class="page integral-page"><img class="letterhead" src="' + TIMBRADO_RESCISAO_DATA_URI + '" alt="Timbrado Realiza Imóveis"><main class="content integral-content"><h1 class="heading">Débitos integrais de meses/anos</h1><p class="meta">Contrato ' + textoSeguroRescisaoPdf(codigoContrato || 'não informado') + ' · Lançamentos ' + (inicio + 1) + ' a ' + Math.min(inicio + tamanhoPagina, itens.length) + ' de ' + itens.length + '</p><table class="integral-table"><thead><tr><th>Tipo</th><th>Competência</th><th>Vencimento</th><th>Responsável</th><th>Valor integral</th></tr></thead><tbody>' + linhas + '</tbody></table>' + totais + '<p class="note">Valores informados integralmente pelo usuário; estes lançamentos não são rateados por dias.</p></main></div>');
     }
     return paginas.join('');
@@ -1820,6 +1920,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     var codigoContrato = $('rescisaoContratoInput') ? $('rescisaoContratoInput').value.trim() : '';
     salvarLancamentosIntegraisRescisao();
     var lancamentosIntegraisPdf = obterDadosLancamentosIntegraisRescisao();
+    var printsManuaisRescisaoPdf = obterPrintsManuaisRescisao(codigoContrato);
     var imovelConsulta = buscarImovelContratoRescisao(codigoContrato);
     var respostaCapturas = imovelConsulta ? await solicitarCapturasRescisao(codigoContrato, true) : {ok:false,erro:codigoContrato ? 'Contrato não localizado nos imóveis carregados.' : 'Nenhum contrato informado.'};
     var capturasRescisaoPdf = respostaCapturas && respostaCapturas.ok ? (respostaCapturas.capturas || {}) : {};
@@ -1875,7 +1976,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       linhaRescisaoPdf('Total proporcional mensal (aluguel + água + luz)', formatarMoeda(totalMensal), true) + '</section>';
     var paginasCapturas = paginasCapturasPDFRescisao(codigoContrato, capturasRescisaoPdf, erroCapturasRescisaoPdf);
     var pagina = '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>' + nomeArquivo + '</title>' +
-      '<style>@page{size:A4 portrait;margin:0}*{box-sizing:border-box}html,body{margin:0;padding:0;width:210mm;height:297mm;font-family:Arial,Helvetica,sans-serif;color:#24352f;-webkit-print-color-adjust:exact;print-color-adjust:exact}.page{position:relative;width:210mm;height:297mm;overflow:hidden;background:#fff}.letterhead{position:absolute;inset:0;width:210mm;height:297mm;object-fit:fill;z-index:0}.content{position:relative;z-index:1;padding:42mm 17mm 31mm 24mm;width:100%;height:100%;overflow:hidden}.heading{margin:0 0 1.5mm;color:#244c40;font-size:17pt;line-height:1.15;letter-spacing:.2pt}.meta{margin:0 0 3mm;color:#65756f;font-size:8pt}.section{border:0.5pt solid #cbd7d2;border-radius:2.5mm;padding:3mm 4mm;margin:0 0 2.5mm;background:rgba(255,255,255,.90);break-inside:avoid}.section h2{margin:0 0 1.5mm;color:#2a5045;font-size:10pt}.row{display:flex;justify-content:space-between;gap:6mm;padding:1mm 0;border-bottom:.3pt solid #e3e9e6;font-size:8pt;line-height:1.2}.row:last-child{border-bottom:0}.row strong{text-align:right;font-weight:600}.row.highlight{color:#21483c;font-size:8.3pt}.subsection{margin-top:1.5mm;padding-top:1.5mm;border-top:.5pt solid #d7e1dd}.subsection h3{margin:0 0 1mm;color:#3d6256;font-size:8.5pt}.snapshot-grid{display:grid;grid-template-columns:1fr 1fr;gap:2.5mm;margin-top:2mm}.snapshot-grid article{padding:2.5mm!important;font-size:7.6pt!important}.snapshot-grid article div{font-size:7.4pt!important}.snapshot-empty{font-size:8pt;color:#65756f;margin:2mm 0 0}.snapshot-note{margin:2mm 0 0;color:#65756f;font-size:6.7pt;line-height:1.25}.note{margin-top:2mm;color:#65756f;font-size:7pt;line-height:1.3}.integral-page,.capture-page{page-break-before:always;break-before:page}.integral-content{padding-top:42mm!important}.integral-table{width:100%;border-collapse:collapse;margin-top:5mm;font-size:8pt;background:rgba(255,255,255,.94)}.integral-table th,.integral-table td{border:.5pt solid #cbd7d2;padding:2.2mm 1.8mm;text-align:left;vertical-align:top;overflow-wrap:anywhere}.integral-table th{background:#edf3f0;color:#244c40;font-weight:700}.integral-totals{margin-top:7mm;padding:4mm;border:1px solid #cbd7d2;background:rgba(255,255,255,.94);font-size:9pt;line-height:1.8}.integral-grand{margin-top:2mm;padding-top:2mm;border-top:1px solid #cbd7d2;font-size:11pt;font-weight:800;color:#21483c}.capture-content{padding-top:42mm!important}.capture-image{display:block;max-width:100%;max-height:185mm;width:auto;height:auto;object-fit:contain;object-position:top left;margin:3mm auto 0;border:.5pt solid #cbd7d2;background:#fff}.capture-page .snapshot-empty{font-size:9pt;line-height:1.4}@media print{.page{break-after:avoid;box-shadow:none}.integral-page,.capture-page{page-break-before:always;break-before:page}}</style></head><body><div class="page"><img class="letterhead" src="' + TIMBRADO_RESCISAO_DATA_URI + '" alt="Timbrado Realiza Imóveis"><main class="content"><h1 class="heading">Memória de Cálculo — Rescisão de Locação</h1><p class="meta">Emitido em ' + dataGeracao + '</p>' + secaoConsultas + secaoIptu + secaoMensais + '<p class="note">Documento gerado a partir dos valores simulados no sistema. Confira os dados e os critérios aplicáveis ao contrato antes de utilizar os valores.</p></main></div>' + paginasLancamentosIntegraisPDFRescisao(codigoContrato, lancamentosIntegraisPdf) + paginasCapturas + '</body></html>';
+      '<style>@page{size:A4 portrait;margin:0}*{box-sizing:border-box}html,body{margin:0;padding:0;width:210mm;height:297mm;font-family:Arial,Helvetica,sans-serif;color:#24352f;-webkit-print-color-adjust:exact;print-color-adjust:exact}.page{position:relative;width:210mm;height:297mm;overflow:hidden;background:#fff}.letterhead{position:absolute;inset:0;width:210mm;height:297mm;object-fit:fill;z-index:0}.content{position:relative;z-index:1;padding:42mm 17mm 31mm 24mm;width:100%;height:100%;overflow:hidden}.heading{margin:0 0 1.5mm;color:#244c40;font-size:17pt;line-height:1.15;letter-spacing:.2pt}.meta{margin:0 0 3mm;color:#65756f;font-size:8pt}.section{border:0.5pt solid #cbd7d2;border-radius:2.5mm;padding:3mm 4mm;margin:0 0 2.5mm;background:rgba(255,255,255,.90);break-inside:avoid}.section h2{margin:0 0 1.5mm;color:#2a5045;font-size:10pt}.row{display:flex;justify-content:space-between;gap:6mm;padding:1mm 0;border-bottom:.3pt solid #e3e9e6;font-size:8pt;line-height:1.2}.row:last-child{border-bottom:0}.row strong{text-align:right;font-weight:600}.row.highlight{color:#21483c;font-size:8.3pt}.subsection{margin-top:1.5mm;padding-top:1.5mm;border-top:.5pt solid #d7e1dd}.subsection h3{margin:0 0 1mm;color:#3d6256;font-size:8.5pt}.snapshot-grid{display:grid;grid-template-columns:1fr 1fr;gap:2.5mm;margin-top:2mm}.snapshot-grid article{padding:2.5mm!important;font-size:7.6pt!important}.snapshot-grid article div{font-size:7.4pt!important}.snapshot-empty{font-size:8pt;color:#65756f;margin:2mm 0 0}.snapshot-note{margin:2mm 0 0;color:#65756f;font-size:6.7pt;line-height:1.25}.note{margin-top:2mm;color:#65756f;font-size:7pt;line-height:1.3}.integral-page,.capture-page{page-break-before:always;break-before:page}.integral-content{padding-top:42mm!important}.integral-table{width:100%;border-collapse:collapse;margin-top:5mm;font-size:8pt;background:rgba(255,255,255,.94)}.integral-table th,.integral-table td{border:.5pt solid #cbd7d2;padding:2.2mm 1.8mm;text-align:left;vertical-align:top;overflow-wrap:anywhere}.integral-table th{background:#edf3f0;color:#244c40;font-weight:700}.integral-totals{margin-top:7mm;padding:4mm;border:1px solid #cbd7d2;background:rgba(255,255,255,.94);font-size:9pt;line-height:1.8}.integral-grand{margin-top:2mm;padding-top:2mm;border-top:1px solid #cbd7d2;font-size:11pt;font-weight:800;color:#21483c}.capture-content{padding-top:42mm!important}.capture-image{display:block;max-width:100%;max-height:185mm;width:auto;height:auto;object-fit:contain;object-position:top left;margin:3mm auto 0;border:.5pt solid #cbd7d2;background:#fff}.capture-page .snapshot-empty{font-size:9pt;line-height:1.4}@media print{.page{break-after:avoid;box-shadow:none}.integral-page,.capture-page{page-break-before:always;break-before:page}}</style></head><body><div class="page"><img class="letterhead" src="' + TIMBRADO_RESCISAO_DATA_URI + '" alt="Timbrado Realiza Imóveis"><main class="content"><h1 class="heading">Memória de Cálculo — Rescisão de Locação</h1><p class="meta">Emitido em ' + dataGeracao + '</p>' + secaoConsultas + secaoIptu + secaoMensais + '<p class="note">Documento gerado a partir dos valores simulados no sistema. Confira os dados e os critérios aplicáveis ao contrato antes de utilizar os valores.</p></main></div>' + paginasLancamentosIntegraisPDFRescisao(codigoContrato, lancamentosIntegraisPdf) + paginasCapturas + paginasPrintsManuaisPDFRescisao(codigoContrato, printsManuaisRescisaoPdf) + '</body></html>';
     popup.document.open(); popup.document.write(pagina);
     popup.onafterprint = function() { popup.close(); };
     popup.document.close();
