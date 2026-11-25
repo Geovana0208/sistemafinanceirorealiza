@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sistema de Gestão Financeira - Realiza Imóveis</title>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
@@ -75,6 +76,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--primary);background:#
 .query-progress-track{width:100%;height:12px;background:#d4e0dc;border-radius:99px;overflow:hidden}
 .query-progress-fill{width:0;height:100%;background:var(--primary);border-radius:99px;transition:width .25s ease,background-color .25s ease}
 table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden}
+.result-count{margin:0 0 10px;color:var(--text-muted);font-size:.88rem;font-weight:700}.cobranca-check{width:18px;height:18px;accent-color:var(--primary);cursor:pointer;vertical-align:middle}.cobranca-cell{white-space:nowrap}.cobranca-cell small{display:block;color:var(--text-muted);font-size:.72rem;margin-top:3px}
 th,td{padding:12px 14px;text-align:left;border-bottom:1px solid var(--border);font-size:.88rem;vertical-align:middle}
 th{background:var(--primary-light);color:var(--primary);font-weight:700}
 .conta-a-vencer td{background:#fff7cc}
@@ -100,7 +102,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     <form id="formLogin">
       <div class="form-group" style="margin-bottom:12px;"><label>Utilizador</label><input type="text" id="loginUser" required placeholder="Seu usuário" autocomplete="username"></div>
       <div class="form-group" style="margin-bottom:20px;"><label>Palavra-passe</label><input type="password" id="loginPass" required placeholder="Sua senha" autocomplete="current-password"></div>
-      <button type="submit" class="btn" style="width:100%; justify-content:center;">Entrar no Sistema</button>
+      <button type="submit" class="btn" style="width:100%;justify-content:center;">Entrar no Sistema</button>
     </form>
     <div class="form-group" style="margin-top:16px; text-align:left;"><label for="inputSheetsLogin">Conectar ao Google Sheets (necessário em cada novo navegador)</label><input type="url" id="inputSheetsLogin" placeholder="https://script.google.com/macros/s/AKfycby9vjHPCmLpFaEksUUMKsGC6uA7whEYaIRBPO2h2ckP-STFB6u-QdH_0uAlXVZZZiiTzQ/exec" autocomplete="url"><button type="button" class="btn btn-secondary" style="width:100%; margin-top:8px; justify-content:center;" onclick="salvarSheetsAntesLogin()">Conectar / atualizar dados da planilha</button><small style="display:block;margin-top:6px;color:var(--text-muted);">Cole a mesma URL do Aplicativo Web terminada em /exec. Ela será salva apenas neste navegador.</small></div>
     <div id="loginError" style="color:var(--danger); font-size:0.8rem; margin-top:12px; font-weight:600;"></div>
@@ -142,6 +144,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
         <button class="nav-btn" data-modulo="buscas" data-icon="🔍" title="Consultas IPTU" onclick="mudarAba('buscas')">🔍 Consultas IPTU</button>
         <button class="nav-btn" data-modulo="damae" data-icon="💧" title="Consultas DAMAE" onclick="mudarAba('damae')">💧 Consultas DAMAE</button>
         <button class="nav-btn" data-modulo="usuarios" data-admin-only="true" data-icon="👤" title="Gerir Utilizadores" onclick="mudarAba('usuarios')">👤 Gerir Utilizadores</button>
+        <button class="nav-btn" data-modulo="condominios" data-icon="🏘️" title="Condomínios" onclick="mudarAba('condominios')">🏘️ Condomínios</button>
       </nav>
     </div>
     <div style="display:flex; flex-direction:column; gap:8px;">
@@ -404,6 +407,10 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       </div>
       <div class="grid-cards" style="margin-bottom:15px;">
         <div class="card"><div class="card-title">Imóveis cadastrados</div><div class="card-val" id="qtdImoveisCadastrados" style="color:var(--primary);">0</div></div>
+        <div class="card"><div class="card-title">IPTU pendente / vencido</div><div class="card-val" id="qtdImoveisIptuPendente" style="color:var(--danger);">0</div></div>
+        <div class="card"><div class="card-title">DAMAE vencido</div><div class="card-val" id="qtdImoveisDamaeVencido" style="color:var(--danger);">0</div></div>
+        <div class="card"><div class="card-title">Imóveis com contas em dia</div><div class="card-val" id="qtdImoveisContasEmDia" style="color:var(--success);">0</div></div>
+        <div class="card"><div class="card-title">Imóveis com consultas a verificar</div><div class="card-val" id="qtdImoveisVerificar" style="color:var(--warning);">0</div></div>
       </div>
       <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px; flex-wrap:wrap; gap:10px;">
@@ -415,6 +422,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
           </div></details>
           <button class="btn btn-danger btn-sm" onclick="limparDuplicadosManual()">🧹 Limpar Imóveis Duplicados</button>
         </div>
+        <div class="result-count" id="resultadoImoveisCount" aria-live="polite">Exibindo 0 resultados.</div>
         <div class="table-container">
           <table>
             <thead><tr><th>Contrato</th><th>Início do contrato</th><th>BCI</th><th>DAMAE</th><th>CPF</th><th>Status</th><th>Contas</th><th>Ações</th></tr></thead>
@@ -439,12 +447,18 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
           <div class="query-progress-label" id="progressBciLabel">Nenhuma consulta iniciada.</div>
           <div class="query-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="query-progress-fill" id="progressBciBar"></div></div>
         </div>
+        <div class="grid-cards" style="margin:14px 0;">
+          <div class="card"><div class="card-title">IPTU pendente / vencido</div><div class="card-val" id="qtdIptuVencido" style="color:var(--danger);">0</div></div>
+          <div class="card"><div class="card-title">IPTU em dia</div><div class="card-val" id="qtdIptuEmDia" style="color:var(--success);">0</div></div>
+          <div class="card"><div class="card-title">Consultas a verificar</div><div class="card-val" id="qtdIptuVerificar" style="color:var(--warning);">0</div></div>
+        </div>
         <details class="filter-panel filter-inline"><summary>Filtros</summary><div class="filter-bar" style="margin-bottom: 15px;">
           <label>Pesquisar Contrato:</label><input type="text" id="filtroBuscaContratoIptu" placeholder="Nº Contrato..." style="max-width:160px;"><label>Consulta:</label><select id="filtroStatusIptu"><option value="todos">Todos</option><option value="aberto">Em aberto</option><option value="emdia">Em dia</option><option value="outros">Não consultado / verificar</option></select><button class="btn btn-success btn-sm" type="button" onclick="renderBcis()">🔎 Pesquisar</button>
         </div></details>
+        <div class="result-count" id="resultadoIptuCount" aria-live="polite">Exibindo 0 resultados.</div>
         <div class="table-container">
           <table>
-            <thead><tr><th>BCI (Formato Original)</th><th>Contrato</th><th>Início do contrato</th><th>CPF</th><th>Status Imóvel</th><th>Status da Consulta</th><th>Responsabilidade da guia</th></tr></thead>
+            <thead><tr><th>BCI (Formato Original)</th><th>Contrato</th><th>Início do contrato</th><th>CPF</th><th>Status Imóvel</th><th>Status da Consulta</th><th>Responsabilidade da guia</th><th>Cobrança realizada</th></tr></thead>
             <tbody id="tabelaBcis"></tbody>
           </table>
         </div>
@@ -466,12 +480,19 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
           <div class="query-progress-label" id="progressDamaeLabel">Nenhuma consulta iniciada.</div>
           <div class="query-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="query-progress-fill" id="progressDamaeBar"></div></div>
         </div>
+        <div class="grid-cards" style="margin:14px 0;">
+          <div class="card"><div class="card-title">Imóveis com DAMAE vencido</div><div class="card-val" id="qtdDamaeVencido" style="color:var(--danger);">0</div></div>
+          <div class="card"><div class="card-title">DAMAE em dia</div><div class="card-val" id="qtdDamaeEmDia" style="color:var(--success);">0</div></div>
+          <div class="card"><div class="card-title">Sem ID DAMAE cadastrado</div><div class="card-val" id="qtdDamaeSemId" style="color:var(--warning);">0</div></div>
+          <div class="card"><div class="card-title">Consultas a verificar</div><div class="card-val" id="qtdDamaeVerificar" style="color:var(--warning);">0</div></div>
+        </div>
         <details class="filter-panel filter-inline"><summary>Filtros</summary><div class="filter-bar" style="margin-bottom: 15px;">
-          <label>Pesquisar Contrato:</label><input type="text" id="filtroBuscaContratoDamae" placeholder="Nº Contrato..." style="max-width:160px;"><label>Consulta:</label><select id="filtroStatusDamae"><option value="todos">Todos</option><option value="aberto">Em aberto</option><option value="vencida">Guia vencida</option><option value="emdia">Em dia</option><option value="outros">Não consultado / verificar</option></select><button class="btn btn-success btn-sm" type="button" onclick="renderDamae()">🔎 Pesquisar</button>
+          <label>Pesquisar Contrato:</label><input type="text" id="filtroBuscaContratoDamae" placeholder="Nº Contrato..." style="max-width:160px;"><label>Consulta:</label><select id="filtroStatusDamae"><option value="todos">Todos</option><option value="aberto">Em aberto</option><option value="vencida">Guia vencida</option><option value="emdia">Em dia</option><option value="outros">Não consultado / verificar</option><option value="sem_id">Sem ID DAMAE</option></select><button class="btn btn-success btn-sm" type="button" onclick="renderDamae()">🔎 Pesquisar</button>
         </div></details>
+        <div class="result-count" id="resultadoDamaeCount" aria-live="polite">Exibindo 0 resultados.</div>
         <div class="table-container">
           <table>
-            <thead><tr><th>ID DAMAE</th><th>Contrato</th><th>Início do contrato</th><th>Status Imóvel</th><th>Status da Consulta</th><th>Responsabilidade da guia</th></tr></thead>
+            <thead><tr><th>ID DAMAE</th><th>Contrato</th><th>Início do contrato</th><th>Status Imóvel</th><th>Status da Consulta</th><th>Responsabilidade da guia</th><th>Cobrança realizada</th></tr></thead>
             <tbody id="tabelaDamae"></tbody>
           </table>
         </div>
@@ -480,27 +501,49 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 
     <!-- UTILIZADORES -->
     <div id="tab-usuarios" class="tab-content">
-      <div class="card" style="margin-bottom: 20px;">
-        <h3 style="color: var(--primary); margin-bottom: 12px;">Cadastrar Novo Utilizador</h3>
-        <form id="formNovoUser" onsubmit="event.preventDefault(); adicionarUsuario();" style="grid-template-columns: 1fr 1fr auto;">
+      <div class="card" style="margin-bottom:20px;">
+        <h3 style="color:var(--primary);margin-bottom:12px;">Cadastrar Novo Utilizador</h3>
+        <form id="formNovoUser" onsubmit="event.preventDefault(); adicionarUsuario();" style="grid-template-columns:1fr 1fr auto;">
           <div class="form-group"><label>Utilizador</label><input type="text" id="novoUserNome" required autocomplete="username"></div>
           <div class="form-group"><label>Palavra-passe</label><input type="password" id="novoUserPass" required autocomplete="new-password"></div>
-          <div style="display:flex; align-items:flex-end;"><button type="submit" class="btn">Cadastrar</button></div>
+          <div style="display:flex;align-items:flex-end;"><button type="submit" class="btn">Cadastrar</button></div>
           <div style="grid-column:1/-1;text-align:left;"><label>Acesso às abas do sistema (marque as permitidas)</label><div id="novoUserPermissoes" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:6px;margin-top:8px;"></div></div>
         </form>
       </div>
+      <div class="card"><div class="table-container"><table><thead><tr><th>Utilizador</th><th>Palavra-passe</th><th>Acessos</th><th>Ações</th></tr></thead><tbody id="tabelaUsuarios"></tbody></table></div></div>
+    </div>
+    <!-- CONDOMÍNIOS -->
+    <div id="tab-condominios" class="tab-content">
+      <div class="card" style="margin-bottom:20px;">
+        <h3 style="color:var(--primary);margin-bottom:12px;">Cadastrar administradora de condomínio</h3>
+        <form id="formAdministradoraCondominio" onsubmit="salvarAdministradoraCondominio(event)">
+          <input type="hidden" id="administradoraCondominioId">
+          <div class="form-group"><label for="administradoraCondominioNome">Nome da administradora</label><input type="text" id="administradoraCondominioNome" required maxlength="120" placeholder="Nome da administradora"></div>
+          <div class="form-group"><label for="administradoraCondominioTelefone">Telefone</label><input type="tel" id="administradoraCondominioTelefone" required maxlength="40" placeholder="(00) 00000-0000"></div>
+          <div style="display:flex;align-items:flex-end;gap:8px;"><button type="submit" class="btn" id="btnSalvarAdministradora">Cadastrar administradora</button><button type="button" class="btn btn-secondary" id="btnCancelarAdministradora" onclick="limparFormAdministradoraCondominio()" style="display:none;">Cancelar</button></div>
+        </form>
+      </div>
+      <div class="card" style="margin-bottom:20px;">
+        <h3 style="color:var(--primary);margin-bottom:12px;">Administradoras cadastradas</h3>
+        <div class="table-container"><table><thead><tr><th>Administradora</th><th>Telefone</th><th>Ações</th></tr></thead><tbody id="tabelaAdministradorasCondominio"></tbody></table></div>
+      </div>
+      <div class="card" style="margin-bottom:20px;">
+        <h3 style="color:var(--primary);margin-bottom:12px;">Cadastrar condomínio</h3>
+        <form id="formCondominio" onsubmit="salvarCondominio(event)">
+          <input type="hidden" id="condominioId">
+          <div class="form-group"><label for="condominioNome">Nome do condomínio</label><input type="text" id="condominioNome" required maxlength="160" placeholder="Nome do condomínio"></div>
+          <div class="form-group"><label for="condominioEndereco">Endereço</label><input type="text" id="condominioEndereco" required maxlength="240" placeholder="Rua, número, bairro, cidade"></div>
+          <div class="form-group"><label for="condominioAdministradora">Administradora correspondente</label><select id="condominioAdministradora" required><option value="">Cadastre uma administradora primeiro</option></select></div>
+          <div style="display:flex;align-items:flex-end;gap:8px;"><button type="submit" class="btn" id="btnSalvarCondominio">Cadastrar condomínio</button><button type="button" class="btn btn-secondary" id="btnCancelarCondominio" onclick="limparFormCondominio()" style="display:none;">Cancelar</button></div>
+        </form>
+      </div>
       <div class="card">
-        <div class="table-container">
-          <table>
-            <thead><tr><th>Utilizador</th><th>Palavra-passe</th><th>Acessos</th><th>Ações</th></tr></thead>
-            <tbody id="tabelaUsuarios"></tbody>
-          </table>
-        </div>
+        <h3 style="color:var(--primary);margin-bottom:12px;">Condomínios cadastrados</h3>
+        <div class="table-container"><table><thead><tr><th>Condomínio</th><th>Endereço</th><th>Administradora</th><th>Telefone</th><th>Ações</th></tr></thead><tbody id="tabelaCondominios"></tbody></table></div>
       </div>
     </div>
   </main>
 </div>
-
 <!-- Modais -->
 <div class="modal-bg" id="modalOrigens"><div class="modal-content"><h3 style="color: var(--primary); margin-bottom: 10px;">Gerenciar Contas de Saída</h3><div style="display:flex; gap:8px; margin-bottom:15px;"><input type="text" id="novaOrigemNome" placeholder="Nova Conta" style="flex:1;"><button class="btn btn-sm" onclick="adicionarOrigem()">Add</button></div><div id="listaOrigens" style="max-height:200px; overflow-y:auto; margin-bottom:15px;"></div><button class="btn btn-secondary" style="width:100%;" onclick="$('modalOrigens').style.display='none';renderContas()">Fechar</button></div></div>
 <div class="modal-bg" id="modalCategorias"><div class="modal-content"><h3 style="color: var(--primary); margin-bottom: 10px;">Gerenciar Categorias</h3><div style="display:flex; gap:8px; margin-bottom:15px;"><input type="text" id="novaCategoriaNome" placeholder="Nova Categoria" style="flex:1;"><button class="btn btn-sm" onclick="adicionarCategoria()">Add</button></div><div id="listaCategorias" style="max-height:200px; overflow-y:auto; margin-bottom:15px;"></div><button class="btn btn-secondary" style="width:100%;" onclick="$('modalCategorias').style.display='none';renderContas()">Fechar</button></div></div>
@@ -572,7 +615,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 
   function sincronizarComSheets(aba, dadosArray) {
     if (!WEB_APP_URL) return Promise.resolve(false);
-    var chavesPorAba = {Contas:'contas_db',Comissoes:'comissoes_db',Alugueis:'alugueis_db',Imoveis:'imoveis_db'};
+    var chavesPorAba = {Contas:'contas_db',Comissoes:'comissoes_db',Alugueis:'alugueis_db',Imoveis:'imoveis_db',Condominios:'condominios_db'};
     if (chavesPorAba[aba]) {
       dadosArray = normalizarRegistrosUnicosPorId(dadosArray);
       if (aba === 'Contas') dadosArray.forEach(function(item) {
@@ -584,11 +627,14 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
         if (!Object.prototype.hasOwnProperty.call(item, 'dataInicioContrato')) item.dataInicioContrato = '';
         if (!Object.prototype.hasOwnProperty.call(item, 'referenciasBci')) item.referenciasBci = '';
         if (!Object.prototype.hasOwnProperty.call(item, 'referenciasDamae')) item.referenciasDamae = '';
+        if (!Object.prototype.hasOwnProperty.call(item, 'cobrancaBciMarcadaEm')) item.cobrancaBciMarcadaEm = '';
+        if (!Object.prototype.hasOwnProperty.call(item, 'cobrancaDamaeMarcadaEm')) item.cobrancaDamaeMarcadaEm = '';
       });
       if (aba === 'Contas') contas = dadosArray;
       if (aba === 'Comissoes') comissoes = dadosArray;
       if (aba === 'Alugueis') alugueis = dadosArray;
       if (aba === 'Imoveis') imoveisDB = dadosArray;
+      if (aba === 'Condominios') condominiosDB = dadosArray;
       try { localStorage.setItem(chavesPorAba[aba], JSON.stringify(dadosArray)); } catch (e) { console.warn('Não foi possível atualizar o cache local de ' + aba + '.', e); }
     }
     if ($('statusSyncText')) $('statusSyncText').innerText = 'Sincronizando com Sheets...';
@@ -740,7 +786,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     else alert('Os lançamentos da imagem já estão cadastrados; nenhum registro foi duplicado.');
   }
   function buscarAbaSheets(nomeAba) {
-    var url = WEB_APP_URL + (WEB_APP_URL.indexOf('?') >= 0 ? '&' : '?') + 'aba=' + encodeURIComponent(nomeAba);
+    var url = WEB_APP_URL + (WEB_APP_URL.indexOf('?') >= 0 ? '&' : '?') + 'aba=' + encodeURIComponent(nomeAba) + '&t=' + Date.now();
     return fetch(url, { method: 'GET', cache: 'no-store' }).then(function(resp) {
       if (!resp.ok) throw new Error('Falha HTTP ' + resp.status + ' ao ler ' + nomeAba);
       return resp.json();
@@ -764,7 +810,8 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       buscarAbaSheets('Corretores'),
       buscarAbaSheets('Veiculos'),
       buscarAbaSheets('EmpreendimentosComissao'),
-      buscarAbaSheets('FormasPagamentoComissao')
+      buscarAbaSheets('FormasPagamentoComissao'),
+      buscarAbaSheets('Condominios')
     ]).then(function(resultados) {
       var quantidadeContasLidas = resultados[0].length;
       var quantidadeComissoesLidas = resultados[1].length;
@@ -797,6 +844,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       comissoes = resultados[1].length ? resultados[1] : comissoes;
       alugueis = resultados[2].length ? resultados[2] : alugueis;
       imoveisDB = resultados[3].length ? resultados[3] : imoveisDB;
+      limparCobrancasExpiradas();
       if (precisaLimparContasSheets) sincronizarComSheets('Contas', contas);
       if (precisaLimparComissoesSheets) sincronizarComSheets('Comissoes', comissoes);
 
@@ -817,6 +865,11 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       if (resultados[6].length > 0) {
         corretores=normalizarCorretoresSheets(resultados[6]);
         localStorage.setItem('corretores_objs_db', JSON.stringify(corretores));
+      }
+      resultados[10] = normalizarRegistrosUnicosPorId(resultados[10]);
+      if (resultados[10].length > 0) {
+        condominiosDB = resultados[10];
+        localStorage.setItem('condominios_db', JSON.stringify(condominiosDB));
       }
       importarContasImagemNov2026();
       if ($('loginError')) $('loginError').innerText = '';
@@ -909,7 +962,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   var veiculosCapitacao = ['Marketing', 'Instagram', 'Tráfego Pago', 'Indicação', 'Placa do Imóvel', 'WhatsApp'];
   try { var sv = JSON.parse(localStorage.getItem('veiculos_db')); if (Array.isArray(sv) && sv.length) veiculosCapitacao = sv; } catch(e) {}
   var usuariosDB = [{ usuario: 'admin', senha: 'oficialgeovana' }];
-  try { var su = JSON.parse(localStorage.getItem('usuarios_db')); if (Array.isArray(su) && su.length) usuariosDB = su; } catch(e) {}
+  try { var usuariosLocais = JSON.parse(localStorage.getItem('usuarios_db')); if (Array.isArray(usuariosLocais) && usuariosLocais.length) usuariosDB = usuariosLocais; } catch(e) {}
   var adminLocal = usuariosDB.find(function(x) { return (x.usuario || x.u) === 'admin'; });
   if (adminLocal) { adminLocal.senha = 'oficialgeovana'; adminLocal.p = 'oficialgeovana'; }
   else usuariosDB.unshift({ usuario: 'admin', senha: 'oficialgeovana' });
@@ -926,60 +979,37 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   try { var s_al = JSON.parse(localStorage.getItem('alugueis_db')); if (Array.isArray(s_al)) alugueis = s_al; } catch(e) {}
   var imoveisDB = [];
   try { var s_im = JSON.parse(localStorage.getItem('imoveis_db')); if (Array.isArray(s_im)) imoveisDB = s_im; } catch(e) {}
+  var condominiosDB = [];
+  try { var s_cd = JSON.parse(localStorage.getItem('condominios_db')); if (Array.isArray(s_cd)) condominiosDB = s_cd; } catch(e) {}
 
   document.addEventListener('DOMContentLoaded', function() {
     if ($('inputSheetsLogin') && WEB_APP_URL) $('inputSheetsLogin').value = WEB_APP_URL;
     atualizarObrigatoriedadeImovel();
     renderCheckboxesAcesso('novoUserPermissoes', MODULOS_ACESSO.map(function(m) { return m.id; }), 'novoAcesso');
     var formLogin = $('formLogin');
-    if (formLogin) {
-      formLogin.addEventListener('submit', function(e) {
-        e.preventDefault();
-        var u = $('loginUser').value.trim();
-        var p = $('loginPass').value.trim();
-        $('loginError').innerText = 'Carregando dados compartilhados do Google Sheets...';
-        carregarDadosCompartilhadosSheets().then(function() {
-        if (u === 'admin' && p === 'oficialgeovana') {
-          localStorage.setItem('sessao_ativa', u);
-          entrarSistema(u);
-          return;
-        }
-
-        var valido = false;
-        for (var i = 0; i < usuariosDB.length; i++) {
-          var usrObj = usuariosDB[i];
-          var nomeU = usrObj.usuario || usrObj.u;
-          var passU = usrObj.senha || usrObj.p;
-          if (nomeU === u && passU === p) {
-            valido = true;
-            break;
-          }
-        }
-
+    if (formLogin) formLogin.addEventListener('submit', function(e) {
+      e.preventDefault();
+      var u = $('loginUser').value.trim();
+      var p = $('loginPass').value.trim();
+      $('loginError').innerText = 'Carregando dados compartilhados do Google Sheets...';
+      carregarDadosCompartilhadosSheets().then(function() {
+        var valido = (u === 'admin' && p === 'oficialgeovana') || usuariosDB.some(function(usuario) {
+          return (usuario.usuario || usuario.u) === u && (usuario.senha || usuario.p) === p;
+        });
         if (valido) {
           localStorage.setItem('sessao_ativa', u);
           entrarSistema(u);
-        } else {
-          $('loginError').innerText = 'Utilizador ou palavra-passe incorretos!';
-        }
-        }).catch(function(err) {
-          $('loginError').innerText = 'Não foi possível carregar os dados do Google Sheets. Verifique a URL e a publicação do Apps Script e tente novamente.';
-          console.error('Falha ao carregar dados compartilhados:', err);
-        });
+        } else $('loginError').innerText = 'Utilizador ou palavra-passe incorretos!';
+      }).catch(function(err) {
+        $('loginError').innerText = 'Não foi possível carregar os dados do Google Sheets. Verifique a URL e a publicação do Apps Script e tente novamente.';
+        console.error('Falha ao carregar dados compartilhados:', err);
       });
-    }
-
-    try {
-      var sessao = localStorage.getItem('sessao_ativa');
-      if (sessao) {
-        carregarDadosCompartilhadosSheets().then(function() { entrarSistema(sessao); }).catch(function(err) {
-          $('loginError').innerText = 'Não foi possível abrir o sistema: falha ao carregar os dados do Google Sheets. Atualize a página para tentar novamente.';
-          console.error('Falha ao carregar dados compartilhados:', err);
-        });
-      }
-    } catch(err) {}
-
-    // Os cliques de automação são encaminhados pelo content script da extensão.
+    });
+    var sessao = localStorage.getItem('sessao_ativa');
+    if (sessao) carregarDadosCompartilhadosSheets().then(function() { entrarSistema(sessao); }).catch(function(err) {
+      console.warn('Não foi possível restaurar a sessão local.', err);
+    });
+    // Os cliques de automação continuam encaminhados pelo content script da extensão.
   });
 
   function entrarSistema(user) {
@@ -999,6 +1029,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     renderBcis();
     renderDamae();
     renderUsuarios();
+    renderCondominios();
     if (!usuarioPodeAcessar('contas')) {
       var primeiraAbaPermitida = MODULOS_ACESSO.find(function(modulo) { return usuarioPodeAcessar(modulo.id); });
       if (primeiraAbaPermitida) mudarAba(primeiraAbaPermitida.id);
@@ -1021,10 +1052,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     localStorage.setItem('menu_lateral_recolhido', String(recolhido));
   }
 
-  function sairSistema() { 
-    localStorage.removeItem('sessao_ativa'); 
-    location.reload(); 
-  }
+  function sairSistema() { localStorage.removeItem('sessao_ativa'); usuarioLogadoAtual = ''; location.reload(); }
 
   function mudarAba(aba) {
     if (!usuarioPodeAcessar(aba)) { alert('Este utilizador não tem acesso a essa aba.'); return; }
@@ -1043,6 +1071,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     else if (aba === 'buscas') { btns[6].classList.add('active'); $('tab-buscas').classList.add('active'); renderBcis(); }
     else if (aba === 'damae') { btns[7].classList.add('active'); $('tab-damae').classList.add('active'); renderDamae(); }
     else if (aba === 'usuarios') { btns[8].classList.add('active'); $('tab-usuarios').classList.add('active'); renderUsuarios(); }
+    else if (aba === 'condominios') { btns[9].classList.add('active'); $('tab-condominios').classList.add('active'); $('tituloAbaAtual').innerText = 'Condomínios'; renderCondominios(); }
   }
 
   function initAnoSelectors() {
@@ -1193,10 +1222,10 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     {id:'contas',label:'Contas a Pagar'}, {id:'dashboard',label:'Dashboard'},
     {id:'comissoes',label:'Comissões a Receber'}, {id:'aluguel',label:'Aluguel Fechado'},
     {id:'rescisao',label:'Rescisão'}, {id:'imoveis',label:'Imóveis'},
-    {id:'buscas',label:'Consultas IPTU'}, {id:'damae',label:'Consultas DAMAE'}
+    {id:'buscas',label:'Consultas IPTU'}, {id:'damae',label:'Consultas DAMAE'},
+    {id:'condominios',label:'Condomínios'}
   ];
   var usuarioPermissoesEmEdicao = '';
-
   function permissoesEfetivasUsuario(nome) {
     var todas = MODULOS_ACESSO.map(function(m) { return m.id; });
     if (nome === 'admin') return todas;
@@ -1204,37 +1233,30 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     if (!usuario || !Array.isArray(usuario.permissoes)) return todas;
     return usuario.permissoes.filter(function(id) { return todas.indexOf(id) !== -1; });
   }
-
   function usuarioPodeAcessar(modulo) {
     var nome = usuarioLogadoAtual || localStorage.getItem('sessao_ativa') || '';
     if (modulo === 'usuarios') return nome === 'admin';
     return permissoesEfetivasUsuario(nome).indexOf(modulo) !== -1;
   }
-
   function aplicarAcessosUsuario(nome) {
-    var botoes = document.querySelectorAll('.nav-btn[data-modulo]');
-    botoes.forEach(function(botao) {
+    document.querySelectorAll('.nav-btn[data-modulo]').forEach(function(botao) {
       var adminOnly = botao.getAttribute('data-admin-only') === 'true';
       botao.style.display = adminOnly ? (nome === 'admin' ? '' : 'none') : (permissoesEfetivasUsuario(nome).indexOf(botao.getAttribute('data-modulo')) >= 0 ? '' : 'none');
     });
     document.querySelectorAll('[data-admin-only="true"]:not(.nav-btn)').forEach(function(el) { el.style.display = nome === 'admin' ? '' : 'none'; });
   }
-
   function renderCheckboxesAcesso(containerId, selecionados, prefixo) {
-    var container = $(containerId);
-    if (!container) return;
+    var container = $(containerId); if (!container) return;
     var escolhidos = Array.isArray(selecionados) ? selecionados : MODULOS_ACESSO.map(function(m) { return m.id; });
     container.innerHTML = MODULOS_ACESSO.map(function(modulo) {
       var id = prefixo + '_' + modulo.id;
       return '<label for="' + id + '" style="display:flex;align-items:center;gap:7px;padding:7px;border:1px solid var(--border);border-radius:7px;font-size:.82rem;cursor:pointer;"><input id="' + id + '" type="checkbox" value="' + modulo.id + '"' + (escolhidos.indexOf(modulo.id) >= 0 ? ' checked' : '') + ' style="width:auto;">' + modulo.label + '</label>';
     }).join('');
   }
-
   function lerCheckboxesAcesso(containerId) {
     var container = $(containerId);
     return container ? Array.from(container.querySelectorAll('input[type="checkbox"]:checked')).map(function(input) { return input.value; }) : [];
   }
-
   function abrirPermissoesUsuario(nome) {
     if (usuarioLogadoAtual !== 'admin') { alert('Somente o admin pode alterar acessos.'); return; }
     var usuario = usuariosDB.find(function(x) { return (x.usuario || x.u) === nome; });
@@ -1244,7 +1266,6 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     renderCheckboxesAcesso('edicaoPermissoesUsuario', permissoesEfetivasUsuario(nome), 'editaAcesso');
     $('modalPermissoesUsuario').style.display = 'flex';
   }
-
   function salvarPermissoesUsuario() {
     if (usuarioLogadoAtual !== 'admin') return;
     var permitidas = lerCheckboxesAcesso('edicaoPermissoesUsuario');
@@ -1253,61 +1274,140 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     if (!usuario) return;
     usuario.permissoes = permitidas;
     localStorage.setItem('usuarios_db', JSON.stringify(usuariosDB));
-    $('modalPermissoesUsuario').style.display = 'none';
-    usuarioPermissoesEmEdicao = '';
-    renderUsuarios();
+    $('modalPermissoesUsuario').style.display = 'none'; usuarioPermissoesEmEdicao = ''; renderUsuarios();
   }
-
   function adicionarUsuario() {
     if (usuarioLogadoAtual !== 'admin') { alert('Somente o admin pode cadastrar utilizadores.'); return; }
-    var u = $('novoUserNome').value.trim();
-    var p = $('novoUserPass').value.trim();
+    var u = $('novoUserNome').value.trim(), p = $('novoUserPass').value.trim();
     if (!u || !p) return;
     if (u === 'admin') { alert('O utilizador admin é protegido.'); return; }
     if (usuariosDB.some(function(x) { return (x.usuario || x.u) === u; })) { alert('Esse utilizador já existe.'); return; }
     var permissoes = lerCheckboxesAcesso('novoUserPermissoes');
     if (!permissoes.length) { alert('Marque pelo menos uma aba para este utilizador.'); return; }
-    usuariosDB.push({ usuario: u, senha: p, permissoes: permissoes });
+    usuariosDB.push({usuario:u,senha:p,permissoes:permissoes});
     localStorage.setItem('usuarios_db', JSON.stringify(usuariosDB));
-    $('novoUserNome').value = '';
-    $('novoUserPass').value = '';
+    $('novoUserNome').value = ''; $('novoUserPass').value = '';
     renderCheckboxesAcesso('novoUserPermissoes', MODULOS_ACESSO.map(function(m) { return m.id; }), 'novoAcesso');
-    renderUsuarios();
-    alert('Utilizador cadastrado com sucesso!');
+    renderUsuarios(); alert('Utilizador cadastrado com sucesso!');
   }
-
   function renderUsuarios() {
     if (usuarioLogadoAtual !== 'admin') return;
     var html = '';
-    for (var i = 0; i < usuariosDB.length; i++) {
-      var usr = usuariosDB[i];
-      var nomeU = usr.usuario || usr.u;
-      var passU = usr.senha || usr.p;
-      var acessos = permissoesEfetivasUsuario(nomeU);
-      var nomeParaAcao = escaparTextoHtml(JSON.stringify(String(nomeU)));
-      var resumoAcessos = acessos.length === MODULOS_ACESSO.length ? 'Todas as abas' : MODULOS_ACESSO.filter(function(m) { return acessos.indexOf(m.id) >= 0; }).map(function(m) { return m.label; }).join(', ') || 'Nenhuma';
-      html += '<tr><td><b>' + escaparTextoHtml(nomeU) + '</b></td><td>' + escaparTextoHtml(passU) + '</td><td>' + escaparTextoHtml(resumoAcessos) + '</td>';
-      html += '<td>';
-      if (nomeU !== 'admin') {
-        html += '<button class="btn btn-secondary btn-sm" onclick="abrirPermissoesUsuario(' + nomeParaAcao + ')">Acessos</button> ';
-        html += '<button class="btn btn-danger btn-sm" onclick="removerUsuario(' + nomeParaAcao + ')">X</button>';
-      } else {
-        html += '<small style="color:var(--text-muted)">Protegido</small>';
-      }
+    usuariosDB.forEach(function(usr) {
+      var nome = usr.usuario || usr.u, senha = usr.senha || usr.p;
+      var acessos = permissoesEfetivasUsuario(nome);
+      var resumo = acessos.length === MODULOS_ACESSO.length ? 'Todas as abas' : MODULOS_ACESSO.filter(function(m) { return acessos.indexOf(m.id) >= 0; }).map(function(m) { return m.label; }).join(', ') || 'Nenhuma';
+      var arg = escaparTextoHtml(JSON.stringify(String(nome)));
+      html += '<tr><td><b>' + escaparTextoHtml(nome) + '</b></td><td>' + escaparTextoHtml(senha) + '</td><td>' + escaparTextoHtml(resumo) + '</td><td>';
+      if (nome !== 'admin') html += '<button class="btn btn-secondary btn-sm" onclick="abrirPermissoesUsuario(' + arg + ')">Acessos</button> <button class="btn btn-danger btn-sm" onclick="removerUsuario(' + arg + ')">X</button>';
+      else html += '<small style="color:var(--text-muted)">Protegido</small>';
       html += '</td></tr>';
-    }
+    });
     if ($('tabelaUsuarios')) $('tabelaUsuarios').innerHTML = html;
   }
-
   function removerUsuario(nome) {
     if (usuarioLogadoAtual !== 'admin') return;
     if (confirm('Deseja excluir o utilizador ' + nome + '?')) {
-      usuariosDB = usuariosDB.filter(x => (x.usuario || x.u) !== nome);
-      localStorage.setItem('usuarios_db', JSON.stringify(usuariosDB));
-      renderUsuarios();
+      usuariosDB = usuariosDB.filter(function(x) { return (x.usuario || x.u) !== nome; });
+      localStorage.setItem('usuarios_db', JSON.stringify(usuariosDB)); renderUsuarios();
     }
   }
 
+  function salvarBaseCondominios() {
+    condominiosDB = normalizarRegistrosUnicosPorId(condominiosDB);
+    localStorage.setItem('condominios_db', JSON.stringify(condominiosDB));
+    sincronizarComSheets('Condominios', condominiosDB);
+  }
+  function limparFormAdministradoraCondominio() {
+    if ($('formAdministradoraCondominio')) $('formAdministradoraCondominio').reset();
+    if ($('administradoraCondominioId')) $('administradoraCondominioId').value = '';
+    if ($('btnSalvarAdministradora')) $('btnSalvarAdministradora').textContent = 'Cadastrar administradora';
+    if ($('btnCancelarAdministradora')) $('btnCancelarAdministradora').style.display = 'none';
+  }
+  function salvarAdministradoraCondominio(event) {
+    if (event) event.preventDefault();
+    var id = $('administradoraCondominioId').value;
+    var nome = $('administradoraCondominioNome').value.trim();
+    var telefone = $('administradoraCondominioTelefone').value.trim();
+    if (!nome || !telefone) { alert('Informe o nome e o telefone da administradora.'); return; }
+    var duplicada = condominiosDB.some(function(x) { return x.tipo === 'administradora' && String(x.id) !== String(id) && String(x.nome || '').trim().toLocaleLowerCase('pt-BR') === nome.toLocaleLowerCase('pt-BR'); });
+    if (duplicada) { alert('Já existe uma administradora cadastrada com esse nome.'); return; }
+    var registro = condominiosDB.find(function(x) { return x.tipo === 'administradora' && String(x.id) === String(id); });
+    if (!registro) { registro = {id:'adm_' + Date.now() + '_' + Math.random().toString(36).slice(2,8), tipo:'administradora'}; condominiosDB.push(registro); }
+    registro.nome = nome; registro.telefone = telefone;
+    salvarBaseCondominios(); limparFormAdministradoraCondominio(); renderCondominios();
+  }
+  function editarAdministradoraCondominio(id) {
+    var registro = condominiosDB.find(function(x) { return x.tipo === 'administradora' && String(x.id) === String(id); });
+    if (!registro) return;
+    $('administradoraCondominioId').value = registro.id;
+    $('administradoraCondominioNome').value = registro.nome || '';
+    $('administradoraCondominioTelefone').value = registro.telefone || '';
+    $('btnSalvarAdministradora').textContent = 'Salvar alterações'; $('btnCancelarAdministradora').style.display = '';
+    $('administradoraCondominioNome').focus();
+  }
+  function excluirAdministradoraCondominio(id) {
+    var vinculada = condominiosDB.some(function(x) { return x.tipo === 'condominio' && String(x.administradoraId) === String(id); });
+    if (vinculada) { alert('Esta administradora está vinculada a um ou mais condomínios. Altere primeiro a administradora desses condomínios.'); return; }
+    if (!confirm('Deseja excluir esta administradora?')) return;
+    condominiosDB = condominiosDB.filter(function(x) { return !(x.tipo === 'administradora' && String(x.id) === String(id)); });
+    salvarBaseCondominios(); renderCondominios();
+  }
+  function limparFormCondominio() {
+    if ($('formCondominio')) $('formCondominio').reset();
+    if ($('condominioId')) $('condominioId').value = '';
+    if ($('btnSalvarCondominio')) $('btnSalvarCondominio').textContent = 'Cadastrar condomínio';
+    if ($('btnCancelarCondominio')) $('btnCancelarCondominio').style.display = 'none';
+  }
+  function salvarCondominio(event) {
+    if (event) event.preventDefault();
+    var id = $('condominioId').value;
+    var nome = $('condominioNome').value.trim();
+    var endereco = $('condominioEndereco').value.trim();
+    var administradoraId = $('condominioAdministradora').value;
+    var administradora = condominiosDB.find(function(x) { return x.tipo === 'administradora' && String(x.id) === String(administradoraId); });
+    if (!nome || !endereco || !administradora) { alert('Informe o nome, o endereço e selecione uma administradora cadastrada.'); return; }
+    var registro = condominiosDB.find(function(x) { return x.tipo === 'condominio' && String(x.id) === String(id); });
+    if (!registro) { registro = {id:'cond_' + Date.now() + '_' + Math.random().toString(36).slice(2,8), tipo:'condominio'}; condominiosDB.push(registro); }
+    registro.nome = nome; registro.endereco = endereco; registro.administradoraId = administradora.id;
+    salvarBaseCondominios(); limparFormCondominio(); renderCondominios();
+  }
+  function editarCondominio(id) {
+    var registro = condominiosDB.find(function(x) { return x.tipo === 'condominio' && String(x.id) === String(id); });
+    if (!registro) return;
+    $('condominioId').value = registro.id; $('condominioNome').value = registro.nome || '';
+    $('condominioEndereco').value = registro.endereco || ''; $('condominioAdministradora').value = registro.administradoraId || '';
+    $('btnSalvarCondominio').textContent = 'Salvar alterações'; $('btnCancelarCondominio').style.display = '';
+    $('condominioNome').focus();
+  }
+  function excluirCondominio(id) {
+    if (!confirm('Deseja excluir este condomínio?')) return;
+    condominiosDB = condominiosDB.filter(function(x) { return !(x.tipo === 'condominio' && String(x.id) === String(id)); });
+    salvarBaseCondominios(); renderCondominios();
+  }
+  function renderCondominios() {
+    var administradoras = condominiosDB.filter(function(x) { return x && x.tipo === 'administradora'; }).slice().sort(function(a,b) { return String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR', {sensitivity:'base'}); });
+    var listaCondominios = condominiosDB.filter(function(x) { return x && x.tipo === 'condominio'; }).slice().sort(function(a,b) { return String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR', {sensitivity:'base'}); });
+    var tbodyAdmins = $('tabelaAdministradorasCondominio');
+    if (tbodyAdmins) tbodyAdmins.innerHTML = administradoras.map(function(x) {
+      var acao = escaparTextoHtml(JSON.stringify(String(x.id)));
+      return '<tr><td>' + escaparTextoHtml(x.nome || '') + '</td><td>' + escaparTextoHtml(x.telefone || '') + '</td><td><button type="button" class="btn btn-secondary btn-sm" onclick="editarAdministradoraCondominio(' + acao + ')">Editar</button> <button type="button" class="btn btn-danger btn-sm" onclick="excluirAdministradoraCondominio(' + acao + ')">Excluir</button></td></tr>';
+    }).join('') || '<tr><td colspan="3" style="text-align:center;color:var(--text-muted);">Nenhuma administradora cadastrada.</td></tr>';
+    var select = $('condominioAdministradora');
+    if (select) {
+      var selecionada = select.value;
+      select.innerHTML = '<option value="">Selecione a administradora</option>' + administradoras.map(function(x) { return '<option value="' + escaparTextoHtml(x.id) + '">' + escaparTextoHtml(x.nome || '') + '</option>'; }).join('');
+      if (administradoras.some(function(x) { return String(x.id) === String(selecionada); })) select.value = selecionada;
+      select.disabled = administradoras.length === 0;
+      if ($('btnSalvarCondominio')) $('btnSalvarCondominio').disabled = administradoras.length === 0;
+    }
+    var tbodyCondominios = $('tabelaCondominios');
+    if (tbodyCondominios) tbodyCondominios.innerHTML = listaCondominios.map(function(x) {
+      var adm = administradoras.find(function(a) { return String(a.id) === String(x.administradoraId); });
+      var acao = escaparTextoHtml(JSON.stringify(String(x.id)));
+      return '<tr><td>' + escaparTextoHtml(x.nome || '') + '</td><td>' + escaparTextoHtml(x.endereco || '') + '</td><td>' + escaparTextoHtml(adm ? adm.nome : 'Administradora não encontrada') + '</td><td>' + escaparTextoHtml(adm ? adm.telefone : '') + '</td><td><button type="button" class="btn btn-secondary btn-sm" onclick="editarCondominio(' + acao + ')">Editar</button> <button type="button" class="btn btn-danger btn-sm" onclick="excluirCondominio(' + acao + ')">Excluir</button></td></tr>';
+    }).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);">Nenhum condomínio cadastrado.</td></tr>';
+  }
   // CÁLCULOS DA ABA RESCISÃO
   function calcularIPTURescisao() {
     var valorAnual = Number($('rescisaoIptuValor').value) || 0;
@@ -2428,16 +2528,116 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     return br ? br[3] + '-' + br[2] + '-' + br[1] : '';
   }
 
+  function textoStatusConsultaLimpo(valor) {
+    return String(valor || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().toLocaleLowerCase('pt-BR');
+  }
+  function consultaBciPendente(item) {
+    return /(pendente|d[eé]bito|guia vencida|vencid[oa])/.test(textoStatusConsultaLimpo(item && item.statusBci));
+  }
+  function consultaBciEmDia(item) {
+    return textoStatusConsultaLimpo(item && item.statusBci).indexOf('em dia') >= 0;
+  }
+  function consultaDamaeVencida(item) {
+    return /(guia vencida|vencid[oa])/.test(textoStatusConsultaLimpo(item && item.statusDamae));
+  }
+  function consultaDamaeEmDia(item) {
+    return textoStatusConsultaLimpo(item && item.statusDamae).indexOf('em dia') >= 0;
+  }
+  function semIdDamae(item) {
+    return !String(item && item.damaeId || '').trim();
+  }
+  function consultaPrecisaVerificar(item, campoStatus) {
+    var status = textoStatusConsultaLimpo(item && item[campoStatus]);
+    return !status || /(nao consultado|não consultado|tempo esgotado|inconclusiv|verificar|falha de execucao|falha de execução|erro na consulta)/.test(status);
+  }
+  function atualizarCardsResumoConsultas() {
+    var totalIptuPendente = imoveisDB.filter(consultaBciPendente).length;
+    var totalIptuEmDia = imoveisDB.filter(consultaBciEmDia).length;
+    var totalDamaeVencida = imoveisDB.filter(consultaDamaeVencida).length;
+    var totalDamaeEmDia = imoveisDB.filter(consultaDamaeEmDia).length;
+    var totalSemId = imoveisDB.filter(semIdDamae).length;
+    var totalIptuVerificar = imoveisDB.filter(function(item) { return consultaPrecisaVerificar(item, 'statusBci'); }).length;
+    var totalDamaeVerificar = imoveisDB.filter(function(item) { return !semIdDamae(item) && consultaPrecisaVerificar(item, 'statusDamae'); }).length;
+    var totalImoveisVerificar = imoveisDB.filter(function(item) { return consultaPrecisaVerificar(item, 'statusBci') || (!semIdDamae(item) && consultaPrecisaVerificar(item, 'statusDamae')); }).length;
+    var totalContasEmDia = imoveisDB.filter(function(item) { return consultaBciEmDia(item) && consultaDamaeEmDia(item); }).length;
+    var valores = {
+      qtdImoveisIptuPendente: totalIptuPendente,
+      qtdImoveisDamaeVencido: totalDamaeVencida,
+      qtdImoveisContasEmDia: totalContasEmDia,
+      qtdImoveisVerificar: totalImoveisVerificar,
+      qtdIptuVencido: totalIptuPendente,
+      qtdIptuEmDia: totalIptuEmDia,
+      qtdIptuVerificar: totalIptuVerificar,
+      qtdDamaeVencido: totalDamaeVencida,
+      qtdDamaeEmDia: totalDamaeEmDia,
+      qtdDamaeVerificar: totalDamaeVerificar,
+      qtdDamaeSemId: totalSemId
+    };
+    Object.keys(valores).forEach(function(id) {
+      var el=$(id); if (el) el.textContent=Number(valores[id]).toLocaleString('pt-BR');
+    });
+  }
+  function dataCobrancaExpirada(valor, agora) {
+    var momento=Date.parse(String(valor || ''));
+    return !isFinite(momento) || agora-momento >= 7*24*60*60*1000;
+  }
+  function limparCobrancasExpiradas() {
+    var agora=Date.now(), alterou=false;
+    imoveisDB.forEach(function(item) {
+      if (!item) return;
+      if (item.cobrancaBciMarcadaEm && (!consultaBciPendente(item) || dataCobrancaExpirada(item.cobrancaBciMarcadaEm,agora))) { item.cobrancaBciMarcadaEm=''; alterou=true; }
+      if (item.cobrancaDamaeMarcadaEm && (semIdDamae(item) || !consultaDamaeVencida(item) || dataCobrancaExpirada(item.cobrancaDamaeMarcadaEm,agora))) { item.cobrancaDamaeMarcadaEm=''; alterou=true; }
+    });
+    if (alterou) {
+      try { localStorage.setItem('imoveis_db',JSON.stringify(imoveisDB)); } catch(e) { console.warn('Não foi possível salvar a limpeza local das cobranças.',e); }
+      sincronizarComSheets('Imoveis',imoveisDB);
+    }
+    return alterou;
+  }
+  function marcarCobrancaConsulta(modulo, id, marcado) {
+    var item=imoveisDB.find(function(x){return x && String(x.id)===String(id);});
+    if (!item) return;
+    var campo=modulo==='BCI' ? 'cobrancaBciMarcadaEm' : (modulo==='DAMAE' ? 'cobrancaDamaeMarcadaEm' : '');
+    if (!campo) return;
+    item[campo]=marcado ? new Date().toISOString() : '';
+    try { localStorage.setItem('imoveis_db',JSON.stringify(imoveisDB)); } catch(e) { console.warn('Não foi possível salvar a marcação local de cobrança.',e); }
+    sincronizarComSheets('Imoveis',imoveisDB);
+    if (modulo==='BCI') renderBcis(); else renderDamae();
+  }
+  function checkboxCobrancaConsulta(item, modulo) {
+    var contaAtrasada=modulo==='BCI' ? consultaBciPendente(item) : (modulo==='DAMAE' && !semIdDamae(item) && consultaDamaeVencida(item));
+    if (!contaAtrasada) return '<td class="cobranca-cell">—</td>';
+    var campo=modulo==='BCI' ? 'cobrancaBciMarcadaEm' : 'cobrancaDamaeMarcadaEm';
+    var data=String(item[campo] || '');
+    var marcada=!!data && !dataCobrancaExpirada(data,Date.now());
+    var dataExibida=marcada ? formatarDataConsultaGuia(data) : '';
+    return '<td class="cobranca-cell"><label><input class="cobranca-check" type="checkbox" aria-label="Cobrança realizada" data-modulo="'+modulo+'" data-id="'+escaparTextoHtml(item.id)+'"'+(marcada?' checked':'')+'></label>'+(marcada?'<small>Marcada em '+escaparTextoHtml(dataExibida)+'</small>':'')+'</td>';
+  }
+  function vincularCheckboxesCobranca() {
+    [['tabelaBcis','BCI'],['tabelaDamae','DAMAE']].forEach(function(par) {
+      var tbody=$(par[0]);
+      if (!tbody || tbody.getAttribute('data-cobranca-listener')==='1') return;
+      tbody.setAttribute('data-cobranca-listener','1');
+      tbody.addEventListener('change',function(event) {
+        var el=event.target;
+        if (!el || !el.classList || !el.classList.contains('cobranca-check')) return;
+        marcarCobrancaConsulta(par[1],el.getAttribute('data-id'),el.checked);
+      });
+    });
+  }
+
   function renderImoveis() {
     var html = '';
     var totalImoveisCadastrados = imoveisDB.filter(function(item) { return !!item; }).length;
     if ($('qtdImoveisCadastrados')) $('qtdImoveisCadastrados').innerText = totalImoveisCadastrados.toLocaleString('pt-BR');
+    atualizarCardsResumoConsultas();
     var imoveisOrdenados = imoveisDB.slice().sort(function(a, b) {
       return String(a.contrato || '').localeCompare(String(b.contrato || ''), 'pt-BR', { numeric: true, sensitivity: 'base' });
     });
     var contratoFiltro = (($('filtroBuscaContratoImoveis') || {}).value || '').trim().toLowerCase();
     var contasFiltro = (($('filtroStatusImoveis') || {}).value || 'todos');
     var imovelFiltro = (($('filtroImovelStatus') || {}).value || 'todos');
+    var quantidadeResultadosImoveis = 0;
     for (var i = 0; i < imoveisOrdenados.length; i++) {
       var item = imoveisOrdenados[i];
       if (!item) continue;
@@ -2448,6 +2648,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       var tudoEmDia = statusContas.includes('em dia') && !temPendente;
       if (contasFiltro === 'pendente' && !temPendente) continue;
       if (contasFiltro === 'em_dia' && !tudoEmDia) continue;
+      quantidadeResultadosImoveis++;
       var badge = item.status === 'Alugado' ? 'badge-alugado' : (item.status === 'Rescisão' ? 'badge-rescisao' : 'badge-desocupado');
       if (imovelInlineId === String(item.id)) {
         html += '<tr class="inline-edit-row"><td>' + campoInline('ieImovelContrato','Código do Contrato',item.contrato || '') + '</td><td>' + campoInline('ieImovelInicioContrato','Início do contrato',normalizarDataImovelParaInput(item.dataInicioContrato), 'date') + '</td><td>' + campoInline('ieImovelBci','Número do BCI',item.bci || '') + '</td><td>' + campoInline('ieImovelDamae','ID Eletrônico DAMAE (opcional)',item.damaeId || '') + '</td><td>' + campoInline('ieImovelCpf','CPF / CNPJ Proprietário',item.cpfCnpj || '') + '</td><td>' + selectInline('ieImovelStatus','Status do Imóvel',item.status || 'Alugado',['Alugado','Desocupado','Rescisão'],'atualizarObrigatoriedadeInlineImovel()') + '</td><td><small>IPTU: ' + (item.statusBci || 'Em dia') + '<br>DAMAE: ' + (item.statusDamae || 'Em dia') + '</small></td><td><button class="btn btn-success btn-sm" onclick="salvarEdicaoInlineImovel(\'' + escaparTextoHtml(item.id) + '\')">Salvar</button> <button class="btn btn-secondary btn-sm" onclick="cancelarEdicaoInline(\'imovel\')">Cancelar</button></td></tr>';
@@ -2459,6 +2660,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       html += '<td><button class="btn btn-secondary btn-sm" onclick="editarImovel(\'' + escaparTextoHtml(item.id) + '\')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirImovel(\'' + escaparTextoHtml(item.id) + '\')">X</button></td></tr>';
     }
     if ($('tabelaImoveisResumo')) $('tabelaImoveisResumo').innerHTML = html;
+    if ($('resultadoImoveisCount')) $('resultadoImoveisCount').textContent = 'Exibindo ' + quantidadeResultadosImoveis.toLocaleString('pt-BR') + ' de ' + totalImoveisCadastrados.toLocaleString('pt-BR') + ' imóveis.';
     if (imovelInlineId !== null) atualizarObrigatoriedadeInlineImovel();
   }
 
@@ -2553,12 +2755,15 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     return resumo;
   }
   function renderBcis() {
+    limparCobrancasExpiradas();
+    atualizarCardsResumoConsultas();
     var html = '';
     var imoveisOrdenados = imoveisDB.slice().sort(function(a, b) {
       return String(a.contrato || '').localeCompare(String(b.contrato || ''), 'pt-BR', { numeric: true, sensitivity: 'base' });
     });
     var contratoFiltro = (($('filtroBuscaContratoIptu') || {}).value || '').trim().toLowerCase();
     var statusFiltro = (($('filtroStatusIptu') || {}).value || 'todos');
+    var quantidadeResultadosIptu = 0;
     for (var i = 0; i < imoveisOrdenados.length; i++) {
       var item = imoveisOrdenados[i];
       if (!item) continue;
@@ -2567,36 +2772,46 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       if (statusFiltro === 'aberto' && !/(pendente|aberto|débito|debito|vencido)/.test(textoConsulta)) continue;
       if (statusFiltro === 'emdia' && !textoConsulta.includes('em dia')) continue;
       if (statusFiltro === 'outros' && (textoConsulta.includes('em dia') || /(pendente|aberto|débito|debito|vencido)/.test(textoConsulta))) continue;
+      quantidadeResultadosIptu++;
       var badge = item.status === 'Alugado' ? 'badge-alugado' : (item.status === 'Rescisão' ? 'badge-rescisao' : 'badge-desocupado');
       var dataInicioBci = formatarDataConsultaGuia(item.dataInicioContrato);
-      html += '<tr><td><b>' + escaparTextoHtml(item.bci || '') + '</b></td><td>' + escaparTextoHtml(item.contrato || '—') + '</td><td>' + escaparTextoHtml(dataInicioBci) + '</td><td>' + escaparTextoHtml(item.cpfCnpj || '-') + '</td><td><span class="badge ' + badge + '">' + escaparTextoHtml(item.status || '') + '</span></td><td>' + (item.statusBci || 'Em dia') + '</td><td>' + escaparTextoHtml(classificarResponsavelGuia(item, 'BCI')) + '</td></tr>';
+      html += '<tr><td><b>' + escaparTextoHtml(item.bci || '') + '</b></td><td>' + escaparTextoHtml(item.contrato || '—') + '</td><td>' + escaparTextoHtml(dataInicioBci) + '</td><td>' + escaparTextoHtml(item.cpfCnpj || '-') + '</td><td><span class="badge ' + badge + '">' + escaparTextoHtml(item.status || '') + '</span></td><td>' + (item.statusBci || 'Em dia') + '</td><td>' + escaparTextoHtml(classificarResponsavelGuia(item, 'BCI')) + '</td>' + checkboxCobrancaConsulta(item,'BCI') + '</tr>';
     }
     if ($('tabelaBcis')) $('tabelaBcis').innerHTML = html;
+    if ($('resultadoIptuCount')) $('resultadoIptuCount').textContent = 'Exibindo ' + quantidadeResultadosIptu.toLocaleString('pt-BR') + ' de ' + imoveisDB.length.toLocaleString('pt-BR') + ' imóveis.';
+    vincularCheckboxesCobranca();
   }
-
   function renderDamae() {
+    limparCobrancasExpiradas();
+    atualizarCardsResumoConsultas();
     var html = '';
     var imoveisOrdenados = imoveisDB.slice().sort(function(a, b) {
       return String(a.contrato || '').localeCompare(String(b.contrato || ''), 'pt-BR', { numeric: true, sensitivity: 'base' });
     });
     var contratoFiltro = (($('filtroBuscaContratoDamae') || {}).value || '').trim().toLowerCase();
     var statusFiltro = (($('filtroStatusDamae') || {}).value || 'todos');
+    var quantidadeResultadosDamae = 0;
     for (var i = 0; i < imoveisOrdenados.length; i++) {
       var item = imoveisOrdenados[i];
       if (!item) continue;
       var textoConsulta = (item.statusDamae || 'Não consultado').replace(/<[^>]*>/g, '').toLowerCase();
       if (contratoFiltro && String(item.contrato || '').toLowerCase().indexOf(contratoFiltro) === -1) continue;
-      if (statusFiltro === 'aberto' && !textoConsulta.includes('em aberto')) continue;
-      if (statusFiltro === 'vencida' && !textoConsulta.includes('guia vencida')) continue;
-      if (statusFiltro === 'emdia' && !textoConsulta.includes('em dia')) continue;
-      if (statusFiltro === 'outros' && (textoConsulta.includes('em dia') || textoConsulta.includes('em aberto') || textoConsulta.includes('guia vencida'))) continue;
+      if (statusFiltro === 'sem_id' && !semIdDamae(item)) continue;
+      if (statusFiltro !== 'sem_id') {
+        if (statusFiltro === 'aberto' && !textoConsulta.includes('em aberto')) continue;
+        if (statusFiltro === 'vencida' && !textoConsulta.includes('guia vencida')) continue;
+        if (statusFiltro === 'emdia' && !textoConsulta.includes('em dia')) continue;
+        if (statusFiltro === 'outros' && (textoConsulta.includes('em dia') || textoConsulta.includes('em aberto') || textoConsulta.includes('guia vencida'))) continue;
+      }
+      quantidadeResultadosDamae++;
       var badge = item.status === 'Alugado' ? 'badge-alugado' : (item.status === 'Rescisão' ? 'badge-rescisao' : 'badge-desocupado');
       var dataInicioDamae = formatarDataConsultaGuia(item.dataInicioContrato);
-      html += '<tr><td><b>' + escaparTextoHtml(item.damaeId || 'Sem ID') + '</b></td><td>' + escaparTextoHtml(item.contrato || '—') + '</td><td>' + escaparTextoHtml(dataInicioDamae) + '</td><td><span class="badge ' + badge + '">' + escaparTextoHtml(item.status || '') + '</span></td><td>' + (item.statusDamae || 'Em dia') + '</td><td>' + escaparTextoHtml(classificarResponsavelGuia(item, 'DAMAE')) + '</td></tr>';
+      html += '<tr><td><b>' + escaparTextoHtml(item.damaeId || 'Sem ID') + '</b></td><td>' + escaparTextoHtml(item.contrato || '—') + '</td><td>' + escaparTextoHtml(dataInicioDamae) + '</td><td><span class="badge ' + badge + '">' + escaparTextoHtml(item.status || '') + '</span></td><td>' + (item.statusDamae || 'Em dia') + '</td><td>' + escaparTextoHtml(classificarResponsavelGuia(item, 'DAMAE')) + '</td>' + checkboxCobrancaConsulta(item,'DAMAE') + '</tr>';
     }
     if ($('tabelaDamae')) $('tabelaDamae').innerHTML = html;
+    if ($('resultadoDamaeCount')) $('resultadoDamaeCount').textContent = 'Exibindo ' + quantidadeResultadosDamae.toLocaleString('pt-BR') + ' de ' + imoveisDB.length.toLocaleString('pt-BR') + ' imóveis.';
+    vincularCheckboxesCobranca();
   }
-
   function exportarAbaAbertaExcel() {
     if (!window.XLSX) {
       alert('Não foi possível carregar o exportador Excel. Verifique sua conexão e tente novamente.');
@@ -2610,7 +2825,8 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     var nomesAbas = {
       contas: 'Contas a Pagar', dashboard: 'Dashboard', comissoes: 'Comissões',
       aluguel: 'Aluguel Fechado', rescisao: 'Rescisão', imoveis: 'Imóveis',
-      buscas: 'Consultas IPTU', damae: 'Consultas DAMAE', usuarios: 'Utilizadores'
+      buscas: 'Consultas IPTU', damae: 'Consultas DAMAE', usuarios: 'Utilizadores',
+      condominios: 'Condomínios'
     };
     var chaveAba = abaAtiva.id.replace(/^tab-/, '');
     var nomeAba = nomesAbas[chaveAba] || $('tituloAbaAtual').innerText || 'Dados';
@@ -2703,6 +2919,30 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     var aviso = colunasSensíveisOmitidas ? ' Colunas de senha/credenciais foram omitidas por segurança.' : '';
     if ($('statusSyncText')) $('statusSyncText').innerText = 'Exportação concluída: ' + nomeAba + '.' + aviso;
   }
+
+  document.addEventListener('click', function(event) {
+    var botao=event.target && event.target.closest ? event.target.closest('button') : null;
+    if (!botao || !/pesquisar|buscar|filtrar/i.test(botao.textContent || '')) return;
+    var aba=botao.closest('.tab-content');
+    if (!aba || aba.querySelector('#resultadoImoveisCount,#resultadoIptuCount,#resultadoDamaeCount')) return;
+    window.setTimeout(function() {
+      var corpo=aba.querySelector('tbody');
+      if (!corpo) return;
+      var linhas=Array.prototype.filter.call(corpo.querySelectorAll(':scope > tr'),function(tr) {
+        return tr.style.display !== 'none' && !tr.classList.contains('linha-detalhe-expandida');
+      });
+      var contador=aba.querySelector('.result-count-generico');
+      if (!contador) {
+        contador=document.createElement('div');
+        contador.className='result-count result-count-generico';
+        contador.setAttribute('aria-live','polite');
+        var tabela=corpo.closest('.table-container');
+        if (tabela && tabela.parentNode) tabela.parentNode.insertBefore(contador,tabela);
+        else aba.appendChild(contador);
+      }
+      contador.textContent=linhas.length.toLocaleString('pt-BR')+' resultado(s) encontrado(s) com os filtros selecionados.';
+    },0);
+  });
 </script>
 </body>
 </html>
