@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sistema de Gestão Financeira - Realiza Imóveis</title>
-
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
@@ -99,11 +99,8 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 <div id="loginScreen">
   <div class="login-box">
     <h2>Realiza Imóveis</h2><p>Painel de Gestão Financeira</p>
-    <form id="formLogin">
-      <div class="form-group" style="margin-bottom:12px;"><label>Utilizador</label><input type="text" id="loginUser" required placeholder="Seu usuário" autocomplete="username"></div>
-      <div class="form-group" style="margin-bottom:20px;"><label>Palavra-passe</label><input type="password" id="loginPass" required placeholder="Sua senha" autocomplete="current-password"></div>
-      <button type="submit" class="btn" style="width:100%;justify-content:center;">Entrar no Sistema</button>
-    </form>
+    <div style="display:flex;justify-content:center;margin:12px 0 18px;min-height:44px;" id="googleSignInButton"></div>
+    <p style="margin:0!important;font-size:.78rem!important;line-height:1.5;">Entre com a conta Google autorizada pelo administrador.</p>
     <div class="form-group" style="margin-top:16px; text-align:left;"><label for="inputSheetsLogin">Conectar ao Google Sheets (necessário em cada novo navegador)</label><input type="url" id="inputSheetsLogin" placeholder="https://script.google.com/macros/s/AKfycby9vjHPCmLpFaEksUUMKsGC6uA7whEYaIRBPO2h2ckP-STFB6u-QdH_0uAlXVZZZiiTzQ/exec" autocomplete="url"><button type="button" class="btn btn-secondary" style="width:100%; margin-top:8px; justify-content:center;" onclick="salvarSheetsAntesLogin()">Conectar / atualizar dados da planilha</button><small style="display:block;margin-top:6px;color:var(--text-muted);">Cole a mesma URL do Aplicativo Web terminada em /exec. Ela será salva apenas neste navegador.</small></div>
     <div id="loginError" style="color:var(--danger); font-size:0.8rem; margin-top:12px; font-weight:600;"></div>
     <div class="extension-help">
@@ -501,16 +498,22 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
 
     <!-- UTILIZADORES -->
     <div id="tab-usuarios" class="tab-content">
-      <div class="card" style="margin-bottom:20px;">
-        <h3 style="color:var(--primary);margin-bottom:12px;">Cadastrar Novo Utilizador</h3>
-        <form id="formNovoUser" onsubmit="event.preventDefault(); adicionarUsuario();" style="grid-template-columns:1fr 1fr auto;">
-          <div class="form-group"><label>Utilizador</label><input type="text" id="novoUserNome" required autocomplete="username"></div>
-          <div class="form-group"><label>Palavra-passe</label><input type="password" id="novoUserPass" required autocomplete="new-password"></div>
-          <div style="display:flex;align-items:flex-end;"><button type="submit" class="btn">Cadastrar</button></div>
+      <div class="card" style="margin-bottom: 20px;">
+        <h3 style="color: var(--primary); margin-bottom: 12px;">Autorizar conta Google</h3>
+        <form id="formNovoUser" onsubmit="event.preventDefault(); adicionarUsuario();" style="grid-template-columns: 1fr auto;">
+          <div class="form-group"><label>E-mail da conta Google autorizada</label><input type="email" id="novoUserEmail" required autocomplete="email" placeholder="pessoa@gmail.com"></div>
+          <div style="display:flex; align-items:flex-end;"><button type="submit" class="btn">Cadastrar acesso</button></div>
           <div style="grid-column:1/-1;text-align:left;"><label>Acesso às abas do sistema (marque as permitidas)</label><div id="novoUserPermissoes" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:6px;margin-top:8px;"></div></div>
         </form>
       </div>
-      <div class="card"><div class="table-container"><table><thead><tr><th>Utilizador</th><th>Palavra-passe</th><th>Acessos</th><th>Ações</th></tr></thead><tbody id="tabelaUsuarios"></tbody></table></div></div>
+      <div class="card">
+        <div class="table-container">
+          <table>
+            <thead><tr><th>Conta Google</th><th>Acessos</th><th>Ações</th></tr></thead>
+            <tbody id="tabelaUsuarios"></tbody>
+          </table>
+        </div>
+      </div>
     </div>
     <!-- CONDOMÍNIOS -->
     <div id="tab-condominios" class="tab-content">
@@ -642,7 +645,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       method: 'POST',
       mode: 'no-cors',
       headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
-      body: JSON.stringify({ aba: aba, dados: dadosArray })
+      body: JSON.stringify({ aba: aba, dados: dadosArray, sessionToken: sessionStorage.getItem(SESSION_KEY) || '' })
     }).then(function() {
       if ($('statusSyncText')) $('statusSyncText').innerText = 'Solicitação enviada ao Google Sheets';
       return true;
@@ -786,7 +789,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     else alert('Os lançamentos da imagem já estão cadastrados; nenhum registro foi duplicado.');
   }
   function buscarAbaSheets(nomeAba) {
-    var url = WEB_APP_URL + (WEB_APP_URL.indexOf('?') >= 0 ? '&' : '?') + 'aba=' + encodeURIComponent(nomeAba) + '&t=' + Date.now();
+    var url = WEB_APP_URL + (WEB_APP_URL.indexOf('?') >= 0 ? '&' : '?') + 'aba=' + encodeURIComponent(nomeAba) + '&sessionToken=' + encodeURIComponent(sessionStorage.getItem(SESSION_KEY) || '');
     return fetch(url, { method: 'GET', cache: 'no-store' }).then(function(resp) {
       if (!resp.ok) throw new Error('Falha HTTP ' + resp.status + ' ao ler ' + nomeAba);
       return resp.json();
@@ -961,11 +964,11 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   try { var scr = JSON.parse(localStorage.getItem('corretores_objs_db')); if (Array.isArray(scr) && scr.length) corretores = scr; } catch(e) {}
   var veiculosCapitacao = ['Marketing', 'Instagram', 'Tráfego Pago', 'Indicação', 'Placa do Imóvel', 'WhatsApp'];
   try { var sv = JSON.parse(localStorage.getItem('veiculos_db')); if (Array.isArray(sv) && sv.length) veiculosCapitacao = sv; } catch(e) {}
-  var usuariosDB = [{ usuario: 'admin', senha: 'oficialgeovana' }];
-  try { var usuariosLocais = JSON.parse(localStorage.getItem('usuarios_db')); if (Array.isArray(usuariosLocais) && usuariosLocais.length) usuariosDB = usuariosLocais; } catch(e) {}
-  var adminLocal = usuariosDB.find(function(x) { return (x.usuario || x.u) === 'admin'; });
-  if (adminLocal) { adminLocal.senha = 'oficialgeovana'; adminLocal.p = 'oficialgeovana'; }
-  else usuariosDB.unshift({ usuario: 'admin', senha: 'oficialgeovana' });
+  var GOOGLE_OAUTH_CLIENT_ID = '472729913175-dtk6h1eojn98i775236p74ng36m0v1o9.apps.googleusercontent.com';
+  var ADMIN_EMAIL = 'geovanacastropb@gmail.com';
+  var SESSION_KEY = 'realiza_google_session';
+  var usuariosDB = [];
+  var googleAuthState = null;
 
   var contas = [];
   try { var s_ct = JSON.parse(localStorage.getItem('contas_db')); if (Array.isArray(s_ct)) contas = s_ct; } catch(e) {}
@@ -986,32 +989,99 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     if ($('inputSheetsLogin') && WEB_APP_URL) $('inputSheetsLogin').value = WEB_APP_URL;
     atualizarObrigatoriedadeImovel();
     renderCheckboxesAcesso('novoUserPermissoes', MODULOS_ACESSO.map(function(m) { return m.id; }), 'novoAcesso');
-    var formLogin = $('formLogin');
-    if (formLogin) formLogin.addEventListener('submit', function(e) {
-      e.preventDefault();
-      var u = $('loginUser').value.trim();
-      var p = $('loginPass').value.trim();
-      $('loginError').innerText = 'Carregando dados compartilhados do Google Sheets...';
-      carregarDadosCompartilhadosSheets().then(function() {
-        var valido = (u === 'admin' && p === 'oficialgeovana') || usuariosDB.some(function(usuario) {
-          return (usuario.usuario || usuario.u) === u && (usuario.senha || usuario.p) === p;
+    iniciarLoginGoogle();
+    // Sessões ficam apenas na sessionStorage e são validadas novamente pelo Apps Script.
+    var sessaoSalva = '';
+    try { sessaoSalva = sessionStorage.getItem(SESSION_KEY) || ''; } catch (e) {}
+    if (sessaoSalva) {
+      obterEstadoSessao(sessaoSalva).then(function(estado) {
+        if (!estado || !estado.ok) { sessionStorage.removeItem(SESSION_KEY); return; }
+        googleAuthState = estado;
+        limparCacheLocalDadosDoSistema();
+        return carregarUsuariosServidor(sessaoSalva).then(function() {
+          return carregarDadosCompartilhadosSheets().then(function() { entrarSistema(estado.email); });
         });
-        if (valido) {
-          localStorage.setItem('sessao_ativa', u);
-          entrarSistema(u);
-        } else $('loginError').innerText = 'Utilizador ou palavra-passe incorretos!';
-      }).catch(function(err) {
-        $('loginError').innerText = 'Não foi possível carregar os dados do Google Sheets. Verifique a URL e a publicação do Apps Script e tente novamente.';
-        console.error('Falha ao carregar dados compartilhados:', err);
-      });
-    });
-    var sessao = localStorage.getItem('sessao_ativa');
-    if (sessao) carregarDadosCompartilhadosSheets().then(function() { entrarSistema(sessao); }).catch(function(err) {
-      console.warn('Não foi possível restaurar a sessão local.', err);
-    });
-    // Os cliques de automação continuam encaminhados pelo content script da extensão.
+      }).catch(function(err) { console.warn('Não foi possível restaurar a sessão Google.', err); });
+    }
+    // Os cliques de automação são encaminhados pelo content script da extensão.
   });
 
+  function iniciarLoginGoogle() {
+    var tentativas = 0;
+    var timer = setInterval(function() {
+      tentativas++;
+      if (window.google && google.accounts && google.accounts.id) {
+        clearInterval(timer);
+        google.accounts.id.initialize({client_id: GOOGLE_OAUTH_CLIENT_ID, callback: receberCredencialGoogle, auto_select: false});
+        google.accounts.id.renderButton($('googleSignInButton'), {theme:'outline', size:'large', text:'signin_with', shape:'rectangular', width:280});
+      } else if (tentativas > 80) {
+        clearInterval(timer);
+        if ($('loginError')) $('loginError').textContent = 'Não foi possível carregar o login do Google. Verifique sua conexão e tente atualizar a página.';
+      }
+    }, 250);
+  }
+  function novoTokenSessaoCliente() {
+    var bytes = new Uint8Array(32);
+    if (!window.crypto || !crypto.getRandomValues) throw new Error('Este navegador não oferece geração segura de sessão.');
+    crypto.getRandomValues(bytes);
+    return Array.from(bytes).map(function(b){return b.toString(16).padStart(2,'0');}).join('');
+  }
+  function requisicaoGoogleLogin(credencial, sessao) {
+    return fetch(WEB_APP_URL, {method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify({acao:'googleLogin',idToken:credencial,sessionToken:sessao})});
+  }
+  function obterEstadoSessao(sessao) {
+    var url=WEB_APP_URL+(WEB_APP_URL.indexOf('?')>=0?'&':'?')+'acao=authState&sessionToken='+encodeURIComponent(sessao)+'&t='+Date.now();
+    return fetch(url,{method:'GET',cache:'no-store'}).then(function(r){return r.json();});
+  }
+  function carregarUsuariosServidor(sessao) {
+    if (!googleAuthState || !googleAuthState.isAdmin) { usuariosDB=[{email:googleAuthState ? googleAuthState.email : '',permissoes:googleAuthState ? googleAuthState.permissoes : []}]; renderUsuarios(); return Promise.resolve(usuariosDB); }
+    var url=WEB_APP_URL+(WEB_APP_URL.indexOf('?')>=0?'&':'?')+'acao=users&sessionToken='+encodeURIComponent(sessao)+'&t='+Date.now();
+    return fetch(url,{method:'GET',cache:'no-store'}).then(function(r){return r.json();}).then(function(data){
+      if (!data || data.ok!==true || !Array.isArray(data.usuarios)) throw new Error('Não foi possível obter a lista central de usuários.');
+      usuariosDB=data.usuarios; renderUsuarios(); return usuariosDB;
+    });
+  }
+  function enviarAcaoAdministrativaUsuario(payload) {
+    var sessao=sessionStorage.getItem(SESSION_KEY)||'';
+    if (!googleAuthState || !googleAuthState.isAdmin || !sessao) return Promise.reject(new Error('Sessão administrativa não encontrada. Entre novamente com a conta Google do administrador.'));
+    payload.acao='userAdmin'; payload.sessionToken=sessao;
+    return fetch(WEB_APP_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify(payload)})
+      .then(function(){return new Promise(function(resolve){setTimeout(resolve,700);});})
+      .then(function(){return carregarUsuariosServidor(sessao);});
+  }
+  function receberCredencialGoogle(resposta) {
+    if (!resposta || !resposta.credential) return;
+    $('loginError').textContent='Validando sua conta Google...';
+    var sessao;
+    try { sessao=novoTokenSessaoCliente(); } catch(e) { $('loginError').textContent=e.message; return; }
+    requisicaoGoogleLogin(resposta.credential,sessao).then(function(){
+      var tentativas=0;
+      function verificar(){
+        return obterEstadoSessao(sessao).then(function(estado){
+          if (estado && estado.ok) return estado;
+          if (++tentativas<6) return new Promise(function(resolve){setTimeout(resolve,900);}).then(verificar);
+          return estado;
+        });
+      }
+      return new Promise(function(resolve){setTimeout(resolve,900);}).then(verificar);
+    }).then(function(estado){
+      if (!estado || estado.ok!==true) throw new Error((estado && estado.mensagem) || 'Esta conta Google ainda não está autorizada. Peça ao administrador para cadastrá-la.');
+      googleAuthState=estado;
+      sessionStorage.setItem(SESSION_KEY,sessao);
+      limparCacheLocalDadosDoSistema();
+      return carregarUsuariosServidor(sessao).then(function(){return carregarDadosCompartilhadosSheets();}).then(function(){entrarSistema(estado.email);});
+    }).catch(function(err){
+      try { sessionStorage.removeItem(SESSION_KEY); } catch(e) {}
+      googleAuthState=null;
+      $('loginError').textContent=err && err.message ? err.message : 'Falha ao autenticar. Tente novamente.';
+      console.error('Falha no login Google:',err);
+    });
+  }
+  function limparCacheLocalDadosDoSistema() {
+    ['contas_db','comissoes_db','alugueis_db','imoveis_db','condominios_db','origens_db','categorias_db','corretores_objs_db','corretores_db','veiculos_db','empreendimentos_comissao_db','formas_pagamento_comissao_db','usuarios_db','sessao_ativa'].forEach(function(chave){try{localStorage.removeItem(chave);}catch(e){}});
+    contas=[]; comissoes=[]; alugueis=[]; imoveisDB=[]; condominiosDB=[]; usuariosDB=[];
+    origens=[]; categorias=[]; corretores=[]; veiculosCapitacao=[]; empreendimentosComissao=[]; formasPagamentoComissao=[];
+  }
   function entrarSistema(user) {
     usuarioLogadoAtual = user;
     $('loginScreen').style.display = 'none';
@@ -1052,7 +1122,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     localStorage.setItem('menu_lateral_recolhido', String(recolhido));
   }
 
-  function sairSistema() { localStorage.removeItem('sessao_ativa'); usuarioLogadoAtual = ''; location.reload(); }
+  function sairSistema() { try { sessionStorage.removeItem(SESSION_KEY); } catch(e) {} limparCacheLocalDadosDoSistema(); googleAuthState=null; location.reload(); }
 
   function mudarAba(aba) {
     if (!usuarioPodeAcessar(aba)) { alert('Este utilizador não tem acesso a essa aba.'); return; }
@@ -1226,93 +1296,75 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     {id:'condominios',label:'Condomínios'}
   ];
   var usuarioPermissoesEmEdicao = '';
+
   function permissoesEfetivasUsuario(nome) {
     var todas = MODULOS_ACESSO.map(function(m) { return m.id; });
-    if (nome === 'admin') return todas;
-    var usuario = usuariosDB.find(function(x) { return (x.usuario || x.u) === nome; });
-    if (!usuario || !Array.isArray(usuario.permissoes)) return todas;
+    if (String(nome || '').toLowerCase() === ADMIN_EMAIL.toLowerCase()) return todas;
+    var usuario = usuariosDB.find(function(x) { return String(x.email || '').toLowerCase() === String(nome || '').toLowerCase(); });
+    if (!usuario || !Array.isArray(usuario.permissoes)) return [];
     return usuario.permissoes.filter(function(id) { return todas.indexOf(id) !== -1; });
   }
+
   function usuarioPodeAcessar(modulo) {
     var nome = usuarioLogadoAtual || localStorage.getItem('sessao_ativa') || '';
-    if (modulo === 'usuarios') return nome === 'admin';
+    if (modulo === 'usuarios') return !!(googleAuthState && googleAuthState.isAdmin && String(nome).toLowerCase() === ADMIN_EMAIL.toLowerCase());
     return permissoesEfetivasUsuario(nome).indexOf(modulo) !== -1;
   }
+
   function aplicarAcessosUsuario(nome) {
-    document.querySelectorAll('.nav-btn[data-modulo]').forEach(function(botao) {
+    var botoes = document.querySelectorAll('.nav-btn[data-modulo]');
+    botoes.forEach(function(botao) {
       var adminOnly = botao.getAttribute('data-admin-only') === 'true';
-      botao.style.display = adminOnly ? (nome === 'admin' ? '' : 'none') : (permissoesEfetivasUsuario(nome).indexOf(botao.getAttribute('data-modulo')) >= 0 ? '' : 'none');
+      botao.style.display = adminOnly ? (String(nome).toLowerCase() === ADMIN_EMAIL.toLowerCase() ? '' : 'none') : (permissoesEfetivasUsuario(nome).indexOf(botao.getAttribute('data-modulo')) >= 0 ? '' : 'none');
     });
-    document.querySelectorAll('[data-admin-only="true"]:not(.nav-btn)').forEach(function(el) { el.style.display = nome === 'admin' ? '' : 'none'; });
+    document.querySelectorAll('[data-admin-only="true"]:not(.nav-btn)').forEach(function(el) { el.style.display = String(nome).toLowerCase() === ADMIN_EMAIL.toLowerCase() ? '' : 'none'; });
   }
+
   function renderCheckboxesAcesso(containerId, selecionados, prefixo) {
-    var container = $(containerId); if (!container) return;
+    var container = $(containerId);
+    if (!container) return;
     var escolhidos = Array.isArray(selecionados) ? selecionados : MODULOS_ACESSO.map(function(m) { return m.id; });
     container.innerHTML = MODULOS_ACESSO.map(function(modulo) {
       var id = prefixo + '_' + modulo.id;
       return '<label for="' + id + '" style="display:flex;align-items:center;gap:7px;padding:7px;border:1px solid var(--border);border-radius:7px;font-size:.82rem;cursor:pointer;"><input id="' + id + '" type="checkbox" value="' + modulo.id + '"' + (escolhidos.indexOf(modulo.id) >= 0 ? ' checked' : '') + ' style="width:auto;">' + modulo.label + '</label>';
     }).join('');
   }
+
   function lerCheckboxesAcesso(containerId) {
     var container = $(containerId);
     return container ? Array.from(container.querySelectorAll('input[type="checkbox"]:checked')).map(function(input) { return input.value; }) : [];
   }
+
   function abrirPermissoesUsuario(nome) {
-    if (usuarioLogadoAtual !== 'admin') { alert('Somente o admin pode alterar acessos.'); return; }
-    var usuario = usuariosDB.find(function(x) { return (x.usuario || x.u) === nome; });
-    if (!usuario || nome === 'admin') return;
+    if (!googleAuthState || !googleAuthState.isAdmin) { alert('Somente o administrador pode alterar acessos.'); return; }
+    var usuario = usuariosDB.find(function(x) { return String(x.email || '').toLowerCase() === String(nome).toLowerCase(); });
+    if (!usuario) return;
     usuarioPermissoesEmEdicao = nome;
     $('tituloPermissoesUsuario').innerText = 'Selecione as abas que ' + nome + ' poderá acessar.';
     renderCheckboxesAcesso('edicaoPermissoesUsuario', permissoesEfetivasUsuario(nome), 'editaAcesso');
     $('modalPermissoesUsuario').style.display = 'flex';
   }
+
   function salvarPermissoesUsuario() {
-    if (usuarioLogadoAtual !== 'admin') return;
+    if (!googleAuthState || !googleAuthState.isAdmin) return;
     var permitidas = lerCheckboxesAcesso('edicaoPermissoesUsuario');
-    if (!permitidas.length) { alert('Marque pelo menos uma aba para este utilizador.'); return; }
-    var usuario = usuariosDB.find(function(x) { return (x.usuario || x.u) === usuarioPermissoesEmEdicao; });
-    if (!usuario) return;
-    usuario.permissoes = permitidas;
-    localStorage.setItem('usuarios_db', JSON.stringify(usuariosDB));
-    $('modalPermissoesUsuario').style.display = 'none'; usuarioPermissoesEmEdicao = ''; renderUsuarios();
+    if (!permitidas.length) { alert('Marque pelo menos uma aba para este usuário.'); return; }
+    enviarAcaoAdministrativaUsuario({operacao:'permissoes',email:usuarioPermissoesEmEdicao,permissoes:permitidas}).then(function(){
+      $('modalPermissoesUsuario').style.display='none'; usuarioPermissoesEmEdicao=''; renderUsuarios();
+    }).catch(function(err){alert(err.message || 'Não foi possível salvar as permissões no servidor.');});
   }
   function adicionarUsuario() {
-    if (usuarioLogadoAtual !== 'admin') { alert('Somente o admin pode cadastrar utilizadores.'); return; }
-    var u = $('novoUserNome').value.trim(), p = $('novoUserPass').value.trim();
-    if (!u || !p) return;
-    if (u === 'admin') { alert('O utilizador admin é protegido.'); return; }
-    if (usuariosDB.some(function(x) { return (x.usuario || x.u) === u; })) { alert('Esse utilizador já existe.'); return; }
-    var permissoes = lerCheckboxesAcesso('novoUserPermissoes');
-    if (!permissoes.length) { alert('Marque pelo menos uma aba para este utilizador.'); return; }
-    usuariosDB.push({usuario:u,senha:p,permissoes:permissoes});
-    localStorage.setItem('usuarios_db', JSON.stringify(usuariosDB));
-    $('novoUserNome').value = ''; $('novoUserPass').value = '';
-    renderCheckboxesAcesso('novoUserPermissoes', MODULOS_ACESSO.map(function(m) { return m.id; }), 'novoAcesso');
-    renderUsuarios(); alert('Utilizador cadastrado com sucesso!');
+    if (!googleAuthState || !googleAuthState.isAdmin) { alert('Somente o administrador pode cadastrar usuários.'); return; }
+    var email=String($('novoUserEmail').value||'').trim().toLowerCase();
+    if (!email) return;
+    if (email===ADMIN_EMAIL.toLowerCase()) { alert('A conta Google do administrador é protegida.'); return; }
+    var permissoes=lerCheckboxesAcesso('novoUserPermissoes');
+    if (!permissoes.length) { alert('Marque pelo menos uma aba para este usuário.'); return; }
+    enviarAcaoAdministrativaUsuario({operacao:'criar',email:email,permissoes:permissoes}).then(function(){
+      $('novoUserEmail').value=''; renderCheckboxesAcesso('novoUserPermissoes',MODULOS_ACESSO.map(function(m){return m.id;}),'novoAcesso');
+      alert('Conta Google autorizada. A pessoa já pode entrar com esse e-mail.');
+    }).catch(function(err){alert(err.message || 'Não foi possível cadastrar a conta no servidor.');});
   }
-  function renderUsuarios() {
-    if (usuarioLogadoAtual !== 'admin') return;
-    var html = '';
-    usuariosDB.forEach(function(usr) {
-      var nome = usr.usuario || usr.u, senha = usr.senha || usr.p;
-      var acessos = permissoesEfetivasUsuario(nome);
-      var resumo = acessos.length === MODULOS_ACESSO.length ? 'Todas as abas' : MODULOS_ACESSO.filter(function(m) { return acessos.indexOf(m.id) >= 0; }).map(function(m) { return m.label; }).join(', ') || 'Nenhuma';
-      var arg = escaparTextoHtml(JSON.stringify(String(nome)));
-      html += '<tr><td><b>' + escaparTextoHtml(nome) + '</b></td><td>' + escaparTextoHtml(senha) + '</td><td>' + escaparTextoHtml(resumo) + '</td><td>';
-      if (nome !== 'admin') html += '<button class="btn btn-secondary btn-sm" onclick="abrirPermissoesUsuario(' + arg + ')">Acessos</button> <button class="btn btn-danger btn-sm" onclick="removerUsuario(' + arg + ')">X</button>';
-      else html += '<small style="color:var(--text-muted)">Protegido</small>';
-      html += '</td></tr>';
-    });
-    if ($('tabelaUsuarios')) $('tabelaUsuarios').innerHTML = html;
-  }
-  function removerUsuario(nome) {
-    if (usuarioLogadoAtual !== 'admin') return;
-    if (confirm('Deseja excluir o utilizador ' + nome + '?')) {
-      usuariosDB = usuariosDB.filter(function(x) { return (x.usuario || x.u) !== nome; });
-      localStorage.setItem('usuarios_db', JSON.stringify(usuariosDB)); renderUsuarios();
-    }
-  }
-
   function salvarBaseCondominios() {
     condominiosDB = normalizarRegistrosUnicosPorId(condominiosDB);
     localStorage.setItem('condominios_db', JSON.stringify(condominiosDB));
@@ -1407,6 +1459,25 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       var acao = escaparTextoHtml(JSON.stringify(String(x.id)));
       return '<tr><td>' + escaparTextoHtml(x.nome || '') + '</td><td>' + escaparTextoHtml(x.endereco || '') + '</td><td>' + escaparTextoHtml(adm ? adm.nome : 'Administradora não encontrada') + '</td><td>' + escaparTextoHtml(adm ? adm.telefone : '') + '</td><td><button type="button" class="btn btn-secondary btn-sm" onclick="editarCondominio(' + acao + ')">Editar</button> <button type="button" class="btn btn-danger btn-sm" onclick="excluirCondominio(' + acao + ')">Excluir</button></td></tr>';
     }).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);">Nenhum condomínio cadastrado.</td></tr>';
+  }
+  function renderUsuarios() {
+    if (!googleAuthState || !googleAuthState.isAdmin) return;
+    var html = '';
+    usuariosDB.forEach(function(usr){
+      var email=String(usr.email||'').toLowerCase();
+      var acessos=Array.isArray(usr.permissoes)?usr.permissoes:[];
+      var nomeParaAcao=escaparTextoHtml(JSON.stringify(email));
+      var resumoAcessos=acessos.length===MODULOS_ACESSO.length?'Todas as abas':MODULOS_ACESSO.filter(function(m){return acessos.indexOf(m.id)>=0;}).map(function(m){return m.label;}).join(', ')||'Nenhuma';
+      html+='<tr><td><b>'+escaparTextoHtml(email)+'</b></td><td>'+escaparTextoHtml(resumoAcessos)+'</td><td><button class="btn btn-secondary btn-sm" onclick="abrirPermissoesUsuario('+nomeParaAcao+')">Acessos</button> <button class="btn btn-danger btn-sm" onclick="removerUsuario('+nomeParaAcao+')">Excluir</button></td></tr>';
+    });
+    html+='<tr><td><b>'+escaparTextoHtml(ADMIN_EMAIL)+'</b></td><td>Todas as abas</td><td><small style="color:var(--text-muted)">Administrador protegido</small></td></tr>';
+    if ($('tabelaUsuarios')) $('tabelaUsuarios').innerHTML=html;
+  }
+  function removerUsuario(email) {
+    if (!googleAuthState || !googleAuthState.isAdmin) return;
+    if (confirm('Deseja revogar o acesso de ' + email + '?')) {
+      enviarAcaoAdministrativaUsuario({operacao:'excluir',email:String(email).toLowerCase()}).catch(function(err){alert(err.message || 'Não foi possível revogar o acesso.');});
+    }
   }
   // CÁLCULOS DA ABA RESCISÃO
   function calcularIPTURescisao() {
