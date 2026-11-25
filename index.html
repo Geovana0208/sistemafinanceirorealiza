@@ -2491,9 +2491,8 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     var agora=Date.now(), alterou=false;
     imoveisDB.forEach(function(item) {
       if (!item) return;
-      ['cobrancaBciMarcadaEm','cobrancaDamaeMarcadaEm'].forEach(function(campo) {
-        if (item[campo] && dataCobrancaExpirada(item[campo],agora)) { item[campo]=''; alterou=true; }
-      });
+      if (item.cobrancaBciMarcadaEm && (!consultaBciPendente(item) || dataCobrancaExpirada(item.cobrancaBciMarcadaEm,agora))) { item.cobrancaBciMarcadaEm=''; alterou=true; }
+      if (item.cobrancaDamaeMarcadaEm && (semIdDamae(item) || !consultaDamaeVencida(item) || dataCobrancaExpirada(item.cobrancaDamaeMarcadaEm,agora))) { item.cobrancaDamaeMarcadaEm=''; alterou=true; }
     });
     if (alterou) {
       try { localStorage.setItem('imoveis_db',JSON.stringify(imoveisDB)); } catch(e) { console.warn('Não foi possível salvar a limpeza local das cobranças.',e); }
@@ -2512,6 +2511,8 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     if (modulo==='BCI') renderBcis(); else renderDamae();
   }
   function checkboxCobrancaConsulta(item, modulo) {
+    var contaAtrasada=modulo==='BCI' ? consultaBciPendente(item) : (modulo==='DAMAE' && !semIdDamae(item) && consultaDamaeVencida(item));
+    if (!contaAtrasada) return '<td class="cobranca-cell">—</td>';
     var campo=modulo==='BCI' ? 'cobrancaBciMarcadaEm' : 'cobrancaDamaeMarcadaEm';
     var data=String(item[campo] || '');
     var marcada=!!data && !dataCobrancaExpirada(data,Date.now());
