@@ -75,6 +75,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--primary);background:#
 .query-progress-track{width:100%;height:12px;background:#d4e0dc;border-radius:99px;overflow:hidden}
 .query-progress-fill{width:0;height:100%;background:var(--primary);border-radius:99px;transition:width .25s ease,background-color .25s ease}
 table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden}
+.result-count{margin:0 0 10px;color:var(--text-muted);font-size:.88rem;font-weight:700}.cobranca-check{width:18px;height:18px;accent-color:var(--primary);cursor:pointer;vertical-align:middle}.cobranca-cell{white-space:nowrap}.cobranca-cell small{display:block;color:var(--text-muted);font-size:.72rem;margin-top:3px}
 th,td{padding:12px 14px;text-align:left;border-bottom:1px solid var(--border);font-size:.88rem;vertical-align:middle}
 th{background:var(--primary-light);color:var(--primary);font-weight:700}
 .conta-a-vencer td{background:#fff7cc}
@@ -404,6 +405,9 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       </div>
       <div class="grid-cards" style="margin-bottom:15px;">
         <div class="card"><div class="card-title">Imóveis cadastrados</div><div class="card-val" id="qtdImoveisCadastrados" style="color:var(--primary);">0</div></div>
+        <div class="card"><div class="card-title">IPTU pendente / vencido</div><div class="card-val" id="qtdImoveisIptuPendente" style="color:var(--danger);">0</div></div>
+        <div class="card"><div class="card-title">DAMAE vencido</div><div class="card-val" id="qtdImoveisDamaeVencido" style="color:var(--danger);">0</div></div>
+        <div class="card"><div class="card-title">Imóveis com contas em dia</div><div class="card-val" id="qtdImoveisContasEmDia" style="color:var(--success);">0</div></div>
       </div>
       <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px; flex-wrap:wrap; gap:10px;">
@@ -415,6 +419,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
           </div></details>
           <button class="btn btn-danger btn-sm" onclick="limparDuplicadosManual()">🧹 Limpar Imóveis Duplicados</button>
         </div>
+        <div class="result-count" id="resultadoImoveisCount" aria-live="polite">Exibindo 0 resultados.</div>
         <div class="table-container">
           <table>
             <thead><tr><th>Contrato</th><th>Início do contrato</th><th>BCI</th><th>DAMAE</th><th>CPF</th><th>Status</th><th>Contas</th><th>Ações</th></tr></thead>
@@ -439,12 +444,17 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
           <div class="query-progress-label" id="progressBciLabel">Nenhuma consulta iniciada.</div>
           <div class="query-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="query-progress-fill" id="progressBciBar"></div></div>
         </div>
+        <div class="grid-cards" style="margin:14px 0;">
+          <div class="card"><div class="card-title">IPTU pendente / vencido</div><div class="card-val" id="qtdIptuVencido" style="color:var(--danger);">0</div></div>
+          <div class="card"><div class="card-title">IPTU em dia</div><div class="card-val" id="qtdIptuEmDia" style="color:var(--success);">0</div></div>
+        </div>
         <details class="filter-panel filter-inline"><summary>Filtros</summary><div class="filter-bar" style="margin-bottom: 15px;">
           <label>Pesquisar Contrato:</label><input type="text" id="filtroBuscaContratoIptu" placeholder="Nº Contrato..." style="max-width:160px;"><label>Consulta:</label><select id="filtroStatusIptu"><option value="todos">Todos</option><option value="aberto">Em aberto</option><option value="emdia">Em dia</option><option value="outros">Não consultado / verificar</option></select><button class="btn btn-success btn-sm" type="button" onclick="renderBcis()">🔎 Pesquisar</button>
         </div></details>
+        <div class="result-count" id="resultadoIptuCount" aria-live="polite">Exibindo 0 resultados.</div>
         <div class="table-container">
           <table>
-            <thead><tr><th>BCI (Formato Original)</th><th>Contrato</th><th>Início do contrato</th><th>CPF</th><th>Status Imóvel</th><th>Status da Consulta</th><th>Responsabilidade da guia</th></tr></thead>
+            <thead><tr><th>BCI (Formato Original)</th><th>Contrato</th><th>Início do contrato</th><th>CPF</th><th>Status Imóvel</th><th>Status da Consulta</th><th>Responsabilidade da guia</th><th>Cobrança realizada</th></tr></thead>
             <tbody id="tabelaBcis"></tbody>
           </table>
         </div>
@@ -466,12 +476,18 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
           <div class="query-progress-label" id="progressDamaeLabel">Nenhuma consulta iniciada.</div>
           <div class="query-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="query-progress-fill" id="progressDamaeBar"></div></div>
         </div>
+        <div class="grid-cards" style="margin:14px 0;">
+          <div class="card"><div class="card-title">Imóveis com DAMAE vencido</div><div class="card-val" id="qtdDamaeVencido" style="color:var(--danger);">0</div></div>
+          <div class="card"><div class="card-title">DAMAE em dia</div><div class="card-val" id="qtdDamaeEmDia" style="color:var(--success);">0</div></div>
+          <div class="card"><div class="card-title">Sem ID DAMAE cadastrado</div><div class="card-val" id="qtdDamaeSemId" style="color:var(--warning);">0</div></div>
+        </div>
         <details class="filter-panel filter-inline"><summary>Filtros</summary><div class="filter-bar" style="margin-bottom: 15px;">
-          <label>Pesquisar Contrato:</label><input type="text" id="filtroBuscaContratoDamae" placeholder="Nº Contrato..." style="max-width:160px;"><label>Consulta:</label><select id="filtroStatusDamae"><option value="todos">Todos</option><option value="aberto">Em aberto</option><option value="vencida">Guia vencida</option><option value="emdia">Em dia</option><option value="outros">Não consultado / verificar</option></select><button class="btn btn-success btn-sm" type="button" onclick="renderDamae()">🔎 Pesquisar</button>
+          <label>Pesquisar Contrato:</label><input type="text" id="filtroBuscaContratoDamae" placeholder="Nº Contrato..." style="max-width:160px;"><label>Consulta:</label><select id="filtroStatusDamae"><option value="todos">Todos</option><option value="aberto">Em aberto</option><option value="vencida">Guia vencida</option><option value="emdia">Em dia</option><option value="outros">Não consultado / verificar</option><option value="sem_id">Sem ID DAMAE</option></select><button class="btn btn-success btn-sm" type="button" onclick="renderDamae()">🔎 Pesquisar</button>
         </div></details>
+        <div class="result-count" id="resultadoDamaeCount" aria-live="polite">Exibindo 0 resultados.</div>
         <div class="table-container">
           <table>
-            <thead><tr><th>ID DAMAE</th><th>Contrato</th><th>Início do contrato</th><th>Status Imóvel</th><th>Status da Consulta</th><th>Responsabilidade da guia</th></tr></thead>
+            <thead><tr><th>ID DAMAE</th><th>Contrato</th><th>Início do contrato</th><th>Status Imóvel</th><th>Status da Consulta</th><th>Responsabilidade da guia</th><th>Cobrança realizada</th></tr></thead>
             <tbody id="tabelaDamae"></tbody>
           </table>
         </div>
@@ -584,6 +600,8 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
         if (!Object.prototype.hasOwnProperty.call(item, 'dataInicioContrato')) item.dataInicioContrato = '';
         if (!Object.prototype.hasOwnProperty.call(item, 'referenciasBci')) item.referenciasBci = '';
         if (!Object.prototype.hasOwnProperty.call(item, 'referenciasDamae')) item.referenciasDamae = '';
+        if (!Object.prototype.hasOwnProperty.call(item, 'cobrancaBciMarcadaEm')) item.cobrancaBciMarcadaEm = '';
+        if (!Object.prototype.hasOwnProperty.call(item, 'cobrancaDamaeMarcadaEm')) item.cobrancaDamaeMarcadaEm = '';
       });
       if (aba === 'Contas') contas = dadosArray;
       if (aba === 'Comissoes') comissoes = dadosArray;
@@ -797,6 +815,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       comissoes = resultados[1].length ? resultados[1] : comissoes;
       alugueis = resultados[2].length ? resultados[2] : alugueis;
       imoveisDB = resultados[3].length ? resultados[3] : imoveisDB;
+      limparCobrancasExpiradas();
       if (precisaLimparContasSheets) sincronizarComSheets('Contas', contas);
       if (precisaLimparComissoesSheets) sincronizarComSheets('Comissoes', comissoes);
 
@@ -2425,16 +2444,105 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     return br ? br[3] + '-' + br[2] + '-' + br[1] : '';
   }
 
+  function textoStatusConsultaLimpo(valor) {
+    return String(valor || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().toLocaleLowerCase('pt-BR');
+  }
+  function consultaBciPendente(item) {
+    return /(pendente|d[eé]bito|guia vencida|vencid[oa])/.test(textoStatusConsultaLimpo(item && item.statusBci));
+  }
+  function consultaBciEmDia(item) {
+    return textoStatusConsultaLimpo(item && item.statusBci).indexOf('em dia') >= 0;
+  }
+  function consultaDamaeVencida(item) {
+    return /(guia vencida|vencid[oa])/.test(textoStatusConsultaLimpo(item && item.statusDamae));
+  }
+  function consultaDamaeEmDia(item) {
+    return textoStatusConsultaLimpo(item && item.statusDamae).indexOf('em dia') >= 0;
+  }
+  function semIdDamae(item) {
+    return !String(item && item.damaeId || '').trim();
+  }
+  function atualizarCardsResumoConsultas() {
+    var totalIptuPendente = imoveisDB.filter(consultaBciPendente).length;
+    var totalIptuEmDia = imoveisDB.filter(consultaBciEmDia).length;
+    var totalDamaeVencida = imoveisDB.filter(consultaDamaeVencida).length;
+    var totalDamaeEmDia = imoveisDB.filter(consultaDamaeEmDia).length;
+    var totalSemId = imoveisDB.filter(semIdDamae).length;
+    var totalContasEmDia = imoveisDB.filter(function(item) { return consultaBciEmDia(item) && consultaDamaeEmDia(item); }).length;
+    var valores = {
+      qtdImoveisIptuPendente: totalIptuPendente,
+      qtdImoveisDamaeVencido: totalDamaeVencida,
+      qtdImoveisContasEmDia: totalContasEmDia,
+      qtdIptuVencido: totalIptuPendente,
+      qtdIptuEmDia: totalIptuEmDia,
+      qtdDamaeVencido: totalDamaeVencida,
+      qtdDamaeEmDia: totalDamaeEmDia,
+      qtdDamaeSemId: totalSemId
+    };
+    Object.keys(valores).forEach(function(id) {
+      var el=$(id); if (el) el.textContent=Number(valores[id]).toLocaleString('pt-BR');
+    });
+  }
+  function dataCobrancaExpirada(valor, agora) {
+    var momento=Date.parse(String(valor || ''));
+    return !isFinite(momento) || agora-momento >= 7*24*60*60*1000;
+  }
+  function limparCobrancasExpiradas() {
+    var agora=Date.now(), alterou=false;
+    imoveisDB.forEach(function(item) {
+      if (!item) return;
+      ['cobrancaBciMarcadaEm','cobrancaDamaeMarcadaEm'].forEach(function(campo) {
+        if (item[campo] && dataCobrancaExpirada(item[campo],agora)) { item[campo]=''; alterou=true; }
+      });
+    });
+    if (alterou) {
+      try { localStorage.setItem('imoveis_db',JSON.stringify(imoveisDB)); } catch(e) { console.warn('Não foi possível salvar a limpeza local das cobranças.',e); }
+      sincronizarComSheets('Imoveis',imoveisDB);
+    }
+    return alterou;
+  }
+  function marcarCobrancaConsulta(modulo, id, marcado) {
+    var item=imoveisDB.find(function(x){return x && String(x.id)===String(id);});
+    if (!item) return;
+    var campo=modulo==='BCI' ? 'cobrancaBciMarcadaEm' : (modulo==='DAMAE' ? 'cobrancaDamaeMarcadaEm' : '');
+    if (!campo) return;
+    item[campo]=marcado ? new Date().toISOString() : '';
+    try { localStorage.setItem('imoveis_db',JSON.stringify(imoveisDB)); } catch(e) { console.warn('Não foi possível salvar a marcação local de cobrança.',e); }
+    sincronizarComSheets('Imoveis',imoveisDB);
+    if (modulo==='BCI') renderBcis(); else renderDamae();
+  }
+  function checkboxCobrancaConsulta(item, modulo) {
+    var campo=modulo==='BCI' ? 'cobrancaBciMarcadaEm' : 'cobrancaDamaeMarcadaEm';
+    var data=String(item[campo] || '');
+    var marcada=!!data && !dataCobrancaExpirada(data,Date.now());
+    var dataExibida=marcada ? formatarDataConsultaGuia(data) : '';
+    return '<td class="cobranca-cell"><label><input class="cobranca-check" type="checkbox" aria-label="Cobrança realizada" data-modulo="'+modulo+'" data-id="'+escaparTextoHtml(item.id)+'"'+(marcada?' checked':'')+'></label>'+(marcada?'<small>Marcada em '+escaparTextoHtml(dataExibida)+'</small>':'')+'</td>';
+  }
+  function vincularCheckboxesCobranca() {
+    [['tabelaBcis','BCI'],['tabelaDamae','DAMAE']].forEach(function(par) {
+      var tbody=$(par[0]);
+      if (!tbody || tbody.getAttribute('data-cobranca-listener')==='1') return;
+      tbody.setAttribute('data-cobranca-listener','1');
+      tbody.addEventListener('change',function(event) {
+        var el=event.target;
+        if (!el || !el.classList || !el.classList.contains('cobranca-check')) return;
+        marcarCobrancaConsulta(par[1],el.getAttribute('data-id'),el.checked);
+      });
+    });
+  }
+
   function renderImoveis() {
     var html = '';
     var totalImoveisCadastrados = imoveisDB.filter(function(item) { return !!item; }).length;
     if ($('qtdImoveisCadastrados')) $('qtdImoveisCadastrados').innerText = totalImoveisCadastrados.toLocaleString('pt-BR');
+    atualizarCardsResumoConsultas();
     var imoveisOrdenados = imoveisDB.slice().sort(function(a, b) {
       return String(a.contrato || '').localeCompare(String(b.contrato || ''), 'pt-BR', { numeric: true, sensitivity: 'base' });
     });
     var contratoFiltro = (($('filtroBuscaContratoImoveis') || {}).value || '').trim().toLowerCase();
     var contasFiltro = (($('filtroStatusImoveis') || {}).value || 'todos');
     var imovelFiltro = (($('filtroImovelStatus') || {}).value || 'todos');
+    var quantidadeResultadosImoveis = 0;
     for (var i = 0; i < imoveisOrdenados.length; i++) {
       var item = imoveisOrdenados[i];
       if (!item) continue;
@@ -2445,6 +2553,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       var tudoEmDia = statusContas.includes('em dia') && !temPendente;
       if (contasFiltro === 'pendente' && !temPendente) continue;
       if (contasFiltro === 'em_dia' && !tudoEmDia) continue;
+      quantidadeResultadosImoveis++;
       var badge = item.status === 'Alugado' ? 'badge-alugado' : (item.status === 'Rescisão' ? 'badge-rescisao' : 'badge-desocupado');
       if (imovelInlineId === String(item.id)) {
         html += '<tr class="inline-edit-row"><td>' + campoInline('ieImovelContrato','Código do Contrato',item.contrato || '') + '</td><td>' + campoInline('ieImovelInicioContrato','Início do contrato',normalizarDataImovelParaInput(item.dataInicioContrato), 'date') + '</td><td>' + campoInline('ieImovelBci','Número do BCI',item.bci || '') + '</td><td>' + campoInline('ieImovelDamae','ID Eletrônico DAMAE (opcional)',item.damaeId || '') + '</td><td>' + campoInline('ieImovelCpf','CPF / CNPJ Proprietário',item.cpfCnpj || '') + '</td><td>' + selectInline('ieImovelStatus','Status do Imóvel',item.status || 'Alugado',['Alugado','Desocupado','Rescisão'],'atualizarObrigatoriedadeInlineImovel()') + '</td><td><small>IPTU: ' + (item.statusBci || 'Em dia') + '<br>DAMAE: ' + (item.statusDamae || 'Em dia') + '</small></td><td><button class="btn btn-success btn-sm" onclick="salvarEdicaoInlineImovel(\'' + escaparTextoHtml(item.id) + '\')">Salvar</button> <button class="btn btn-secondary btn-sm" onclick="cancelarEdicaoInline(\'imovel\')">Cancelar</button></td></tr>';
@@ -2456,6 +2565,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       html += '<td><button class="btn btn-secondary btn-sm" onclick="editarImovel(\'' + escaparTextoHtml(item.id) + '\')">✏️</button> <button class="btn btn-danger btn-sm" onclick="excluirImovel(\'' + escaparTextoHtml(item.id) + '\')">X</button></td></tr>';
     }
     if ($('tabelaImoveisResumo')) $('tabelaImoveisResumo').innerHTML = html;
+    if ($('resultadoImoveisCount')) $('resultadoImoveisCount').textContent = 'Exibindo ' + quantidadeResultadosImoveis.toLocaleString('pt-BR') + ' de ' + totalImoveisCadastrados.toLocaleString('pt-BR') + ' imóveis.';
     if (imovelInlineId !== null) atualizarObrigatoriedadeInlineImovel();
   }
 
@@ -2550,12 +2660,15 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     return resumo;
   }
   function renderBcis() {
+    limparCobrancasExpiradas();
+    atualizarCardsResumoConsultas();
     var html = '';
     var imoveisOrdenados = imoveisDB.slice().sort(function(a, b) {
       return String(a.contrato || '').localeCompare(String(b.contrato || ''), 'pt-BR', { numeric: true, sensitivity: 'base' });
     });
     var contratoFiltro = (($('filtroBuscaContratoIptu') || {}).value || '').trim().toLowerCase();
     var statusFiltro = (($('filtroStatusIptu') || {}).value || 'todos');
+    var quantidadeResultadosIptu = 0;
     for (var i = 0; i < imoveisOrdenados.length; i++) {
       var item = imoveisOrdenados[i];
       if (!item) continue;
@@ -2564,36 +2677,46 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       if (statusFiltro === 'aberto' && !/(pendente|aberto|débito|debito|vencido)/.test(textoConsulta)) continue;
       if (statusFiltro === 'emdia' && !textoConsulta.includes('em dia')) continue;
       if (statusFiltro === 'outros' && (textoConsulta.includes('em dia') || /(pendente|aberto|débito|debito|vencido)/.test(textoConsulta))) continue;
+      quantidadeResultadosIptu++;
       var badge = item.status === 'Alugado' ? 'badge-alugado' : (item.status === 'Rescisão' ? 'badge-rescisao' : 'badge-desocupado');
       var dataInicioBci = formatarDataConsultaGuia(item.dataInicioContrato);
-      html += '<tr><td><b>' + escaparTextoHtml(item.bci || '') + '</b></td><td>' + escaparTextoHtml(item.contrato || '—') + '</td><td>' + escaparTextoHtml(dataInicioBci) + '</td><td>' + escaparTextoHtml(item.cpfCnpj || '-') + '</td><td><span class="badge ' + badge + '">' + escaparTextoHtml(item.status || '') + '</span></td><td>' + (item.statusBci || 'Em dia') + '</td><td>' + escaparTextoHtml(classificarResponsavelGuia(item, 'BCI')) + '</td></tr>';
+      html += '<tr><td><b>' + escaparTextoHtml(item.bci || '') + '</b></td><td>' + escaparTextoHtml(item.contrato || '—') + '</td><td>' + escaparTextoHtml(dataInicioBci) + '</td><td>' + escaparTextoHtml(item.cpfCnpj || '-') + '</td><td><span class="badge ' + badge + '">' + escaparTextoHtml(item.status || '') + '</span></td><td>' + (item.statusBci || 'Em dia') + '</td><td>' + escaparTextoHtml(classificarResponsavelGuia(item, 'BCI')) + '</td>' + checkboxCobrancaConsulta(item,'BCI') + '</tr>';
     }
     if ($('tabelaBcis')) $('tabelaBcis').innerHTML = html;
+    if ($('resultadoIptuCount')) $('resultadoIptuCount').textContent = 'Exibindo ' + quantidadeResultadosIptu.toLocaleString('pt-BR') + ' de ' + imoveisDB.length.toLocaleString('pt-BR') + ' imóveis.';
+    vincularCheckboxesCobranca();
   }
-
   function renderDamae() {
+    limparCobrancasExpiradas();
+    atualizarCardsResumoConsultas();
     var html = '';
     var imoveisOrdenados = imoveisDB.slice().sort(function(a, b) {
       return String(a.contrato || '').localeCompare(String(b.contrato || ''), 'pt-BR', { numeric: true, sensitivity: 'base' });
     });
     var contratoFiltro = (($('filtroBuscaContratoDamae') || {}).value || '').trim().toLowerCase();
     var statusFiltro = (($('filtroStatusDamae') || {}).value || 'todos');
+    var quantidadeResultadosDamae = 0;
     for (var i = 0; i < imoveisOrdenados.length; i++) {
       var item = imoveisOrdenados[i];
       if (!item) continue;
       var textoConsulta = (item.statusDamae || 'Não consultado').replace(/<[^>]*>/g, '').toLowerCase();
       if (contratoFiltro && String(item.contrato || '').toLowerCase().indexOf(contratoFiltro) === -1) continue;
-      if (statusFiltro === 'aberto' && !textoConsulta.includes('em aberto')) continue;
-      if (statusFiltro === 'vencida' && !textoConsulta.includes('guia vencida')) continue;
-      if (statusFiltro === 'emdia' && !textoConsulta.includes('em dia')) continue;
-      if (statusFiltro === 'outros' && (textoConsulta.includes('em dia') || textoConsulta.includes('em aberto') || textoConsulta.includes('guia vencida'))) continue;
+      if (statusFiltro === 'sem_id' && !semIdDamae(item)) continue;
+      if (statusFiltro !== 'sem_id') {
+        if (statusFiltro === 'aberto' && !textoConsulta.includes('em aberto')) continue;
+        if (statusFiltro === 'vencida' && !textoConsulta.includes('guia vencida')) continue;
+        if (statusFiltro === 'emdia' && !textoConsulta.includes('em dia')) continue;
+        if (statusFiltro === 'outros' && (textoConsulta.includes('em dia') || textoConsulta.includes('em aberto') || textoConsulta.includes('guia vencida'))) continue;
+      }
+      quantidadeResultadosDamae++;
       var badge = item.status === 'Alugado' ? 'badge-alugado' : (item.status === 'Rescisão' ? 'badge-rescisao' : 'badge-desocupado');
       var dataInicioDamae = formatarDataConsultaGuia(item.dataInicioContrato);
-      html += '<tr><td><b>' + escaparTextoHtml(item.damaeId || 'Sem ID') + '</b></td><td>' + escaparTextoHtml(item.contrato || '—') + '</td><td>' + escaparTextoHtml(dataInicioDamae) + '</td><td><span class="badge ' + badge + '">' + escaparTextoHtml(item.status || '') + '</span></td><td>' + (item.statusDamae || 'Em dia') + '</td><td>' + escaparTextoHtml(classificarResponsavelGuia(item, 'DAMAE')) + '</td></tr>';
+      html += '<tr><td><b>' + escaparTextoHtml(item.damaeId || 'Sem ID') + '</b></td><td>' + escaparTextoHtml(item.contrato || '—') + '</td><td>' + escaparTextoHtml(dataInicioDamae) + '</td><td><span class="badge ' + badge + '">' + escaparTextoHtml(item.status || '') + '</span></td><td>' + (item.statusDamae || 'Em dia') + '</td><td>' + escaparTextoHtml(classificarResponsavelGuia(item, 'DAMAE')) + '</td>' + checkboxCobrancaConsulta(item,'DAMAE') + '</tr>';
     }
     if ($('tabelaDamae')) $('tabelaDamae').innerHTML = html;
+    if ($('resultadoDamaeCount')) $('resultadoDamaeCount').textContent = 'Exibindo ' + quantidadeResultadosDamae.toLocaleString('pt-BR') + ' de ' + imoveisDB.length.toLocaleString('pt-BR') + ' imóveis.';
+    vincularCheckboxesCobranca();
   }
-
   function exportarAbaAbertaExcel() {
     if (!window.XLSX) {
       alert('Não foi possível carregar o exportador Excel. Verifique sua conexão e tente novamente.');
@@ -2700,6 +2823,30 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     var aviso = colunasSensíveisOmitidas ? ' Colunas de senha/credenciais foram omitidas por segurança.' : '';
     if ($('statusSyncText')) $('statusSyncText').innerText = 'Exportação concluída: ' + nomeAba + '.' + aviso;
   }
+
+  document.addEventListener('click', function(event) {
+    var botao=event.target && event.target.closest ? event.target.closest('button') : null;
+    if (!botao || !/pesquisar|buscar|filtrar/i.test(botao.textContent || '')) return;
+    var aba=botao.closest('.tab-content');
+    if (!aba || aba.querySelector('#resultadoImoveisCount,#resultadoIptuCount,#resultadoDamaeCount')) return;
+    window.setTimeout(function() {
+      var corpo=aba.querySelector('tbody');
+      if (!corpo) return;
+      var linhas=Array.prototype.filter.call(corpo.querySelectorAll(':scope > tr'),function(tr) {
+        return tr.style.display !== 'none' && !tr.classList.contains('linha-detalhe-expandida');
+      });
+      var contador=aba.querySelector('.result-count-generico');
+      if (!contador) {
+        contador=document.createElement('div');
+        contador.className='result-count result-count-generico';
+        contador.setAttribute('aria-live','polite');
+        var tabela=corpo.closest('.table-container');
+        if (tabela && tabela.parentNode) tabela.parentNode.insertBefore(contador,tabela);
+        else aba.appendChild(contador);
+      }
+      contador.textContent=linhas.length.toLocaleString('pt-BR')+' resultado(s) encontrado(s) com os filtros selecionados.';
+    },0);
+  });
 </script>
 </body>
 </html>
