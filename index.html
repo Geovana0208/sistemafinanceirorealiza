@@ -592,6 +592,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
           <div class="form-group"><label for="condominioNome">Nome do condomínio</label><input type="text" id="condominioNome" required maxlength="160" placeholder="Nome do condomínio"></div>
           <div class="form-group"><label for="condominioEndereco">Endereço</label><input type="text" id="condominioEndereco" required maxlength="240" placeholder="Rua, número, bairro, cidade"></div>
           <div class="form-group"><label for="condominioAdministradora">Administradora correspondente</label><select id="condominioAdministradora" required><option value="">Cadastre uma administradora primeiro</option></select></div>
+          <div class="form-group"><label for="condominioFotoInput">Foto para identificação do condomínio (opcional)</label><input type="file" id="condominioFotoInput" accept="image/jpeg,image/png,image/webp" onchange="selecionarFotoCondominio(this)"><small style="color:var(--text-muted);">JPG, PNG ou WEBP. A imagem será reduzida para economizar espaço.</small><div id="previewFotoCondominioContainer" style="display:none;align-items:center;gap:10px;margin-top:6px;"><img id="previewFotoCondominio" alt="Prévia da foto do condomínio" style="width:96px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--border);"><button type="button" class="btn btn-secondary btn-sm" onclick="removerFotoCondominioSelecionada()">Remover foto</button></div></div>
           <div style="display:flex;align-items:flex-end;gap:8px;"><button type="submit" class="btn" id="btnSalvarCondominio">Cadastrar condomínio</button><button type="button" class="btn btn-secondary" id="btnCancelarCondominio" onclick="limparFormCondominio()" style="display:none;">Cancelar</button></div>
         </form>
       </div>
@@ -602,6 +603,8 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     </div>
   </main>
 </div>
+<!-- Visualização da foto do condomínio -->
+<div class="modal-bg" id="modalFotoCondominio" role="dialog" aria-modal="true" aria-labelledby="tituloFotoCondominio" onclick="if(event.target===this)fecharFotoCondominio()"><div class="modal-content" style="width:min(94vw,1000px);max-width:1000px;max-height:94vh;overflow:auto;"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;"><h3 id="tituloFotoCondominio" style="color:var(--primary);">Foto do condomínio</h3><button type="button" class="btn btn-secondary btn-sm" onclick="fecharFotoCondominio()" aria-label="Fechar foto">Fechar</button></div><p id="legendaFotoCondominio" style="color:var(--text-muted);margin-bottom:12px;"></p><img id="imagemFotoCondominioModal" alt="Foto ampliada do condomínio" style="display:block;max-width:100%;max-height:76vh;margin:0 auto;object-fit:contain;border-radius:8px;"></div></div>
 <!-- Modais -->
 <div class="modal-bg" id="modalOrigens"><div class="modal-content"><h3 style="color: var(--primary); margin-bottom: 10px;">Gerenciar Contas de Saída</h3><div style="display:flex; gap:8px; margin-bottom:15px;"><input type="text" id="novaOrigemNome" placeholder="Nova Conta" style="flex:1;"><button class="btn btn-sm" onclick="adicionarOrigem()">Add</button></div><div id="listaOrigens" style="max-height:200px; overflow-y:auto; margin-bottom:15px;"></div><button class="btn btn-secondary" style="width:100%;" onclick="$('modalOrigens').style.display='none';renderContas()">Fechar</button></div></div>
 <div class="modal-bg" id="modalCategorias"><div class="modal-content"><h3 style="color: var(--primary); margin-bottom: 10px;">Gerenciar Categorias</h3><div style="display:flex; gap:8px; margin-bottom:15px;"><input type="text" id="novaCategoriaNome" placeholder="Nova Categoria" style="flex:1;"><button class="btn btn-sm" onclick="adicionarCategoria()">Add</button></div><div id="listaCategorias" style="max-height:200px; overflow-y:auto; margin-bottom:15px;"></div><button class="btn btn-secondary" style="width:100%;" onclick="$('modalCategorias').style.display='none';renderContas()">Fechar</button></div></div>
@@ -1038,6 +1041,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   var imoveisDB = [];
   try { var s_im = JSON.parse(localStorage.getItem('imoveis_db')); if (Array.isArray(s_im)) imoveisDB = s_im; } catch(e) {}
   var condominiosDB = [];
+  var fotoCondominioSelecionada = '';
   try { var s_cd = JSON.parse(localStorage.getItem('condominios_db')); if (Array.isArray(s_cd)) condominiosDB = s_cd; } catch(e) {}
 
   document.addEventListener('DOMContentLoaded', function() {
@@ -1411,9 +1415,74 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     condominiosDB = condominiosDB.filter(function(x) { return !(x.tipo === 'administradora' && String(x.id) === String(id)); });
     salvarBaseCondominios(); renderCondominios();
   }
+  function mostrarPreviewFotoCondominio(foto) {
+    var caixa = $('previewFotoCondominioContainer'), imagem = $('previewFotoCondominio');
+    if (!caixa || !imagem) return;
+    if (!foto) { caixa.style.display = 'none'; imagem.removeAttribute('src'); return; }
+    imagem.src = foto; caixa.style.display = 'flex';
+  }
+  function comprimirFotoCondominio(arquivo) {
+    return new Promise(function(resolve, reject) {
+      var leitor = new FileReader();
+      leitor.onerror = function() { reject(new Error('Não foi possível ler o arquivo de imagem.')); };
+      leitor.onload = function() {
+        var imagem = new Image();
+        imagem.onerror = function() { reject(new Error('O arquivo selecionado não é uma imagem compatível.')); };
+        imagem.onload = function() {
+          try {
+            var escala = Math.min(1, 480 / Math.max(imagem.naturalWidth, imagem.naturalHeight));
+            var canvas = document.createElement('canvas');
+            canvas.width = Math.max(1, Math.round(imagem.naturalWidth * escala));
+            canvas.height = Math.max(1, Math.round(imagem.naturalHeight * escala));
+            var contexto = canvas.getContext('2d');
+            contexto.fillStyle = '#ffffff'; contexto.fillRect(0, 0, canvas.width, canvas.height);
+            contexto.drawImage(imagem, 0, 0, canvas.width, canvas.height);
+            var qualidade = 0.82, dados = canvas.toDataURL('image/jpeg', qualidade);
+            while (dados.length > 42000 && qualidade > 0.42) { qualidade = Math.max(0.42, qualidade - 0.08); dados = canvas.toDataURL('image/jpeg', qualidade); }
+            if (dados.length > 45000) {
+              var escalaMenor = 220 / Math.max(canvas.width, canvas.height), pequeno = document.createElement('canvas');
+              pequeno.width = Math.max(1, Math.round(canvas.width * escalaMenor)); pequeno.height = Math.max(1, Math.round(canvas.height * escalaMenor));
+              var contextoPequeno = pequeno.getContext('2d'); contextoPequeno.fillStyle = '#ffffff'; contextoPequeno.fillRect(0, 0, pequeno.width, pequeno.height);
+              contextoPequeno.drawImage(canvas, 0, 0, pequeno.width, pequeno.height); dados = pequeno.toDataURL('image/jpeg', 0.5);
+            }
+            if (dados.length > 45000) reject(new Error('A foto ficou grande demais após a compressão. Escolha uma imagem menor.'));
+            else resolve(dados);
+          } catch (erro) { reject(erro); }
+        };
+        imagem.src = leitor.result;
+      };
+      leitor.readAsDataURL(arquivo);
+    });
+  }
+  async function selecionarFotoCondominio(input) {
+    var arquivo = input && input.files && input.files[0];
+    if (!arquivo) return;
+    if (!['image/jpeg','image/png','image/webp'].includes(arquivo.type)) { alert('Selecione uma imagem JPG, PNG ou WEBP.'); input.value = ''; return; }
+    if (arquivo.size > 10 * 1024 * 1024) { alert('A foto deve ter no máximo 10 MB antes da compressão.'); input.value = ''; return; }
+    try { fotoCondominioSelecionada = await comprimirFotoCondominio(arquivo); mostrarPreviewFotoCondominio(fotoCondominioSelecionada); }
+    catch (erro) { alert(erro.message || 'Não foi possível preparar a foto.'); input.value = ''; }
+  }
+  function removerFotoCondominioSelecionada() {
+    fotoCondominioSelecionada = '';
+    if ($('condominioFotoInput')) $('condominioFotoInput').value = '';
+    mostrarPreviewFotoCondominio('');
+  }
+  function visualizarFotoCondominio(id) {
+    var registro = condominiosDB.find(function(x) { return x && x.tipo === 'condominio' && String(x.id) === String(id); });
+    if (!registro || !registro.foto || !/^(https?:\/\/|data:image\/(?:jpeg|png|webp);base64,)/i.test(String(registro.foto))) return;
+    $('tituloFotoCondominio').textContent = registro.nome || 'Foto do condomínio';
+    $('legendaFotoCondominio').textContent = registro.endereco || '';
+    $('imagemFotoCondominioModal').src = registro.foto;
+    $('modalFotoCondominio').style.display = 'flex';
+  }
+  function fecharFotoCondominio() {
+    if ($('modalFotoCondominio')) $('modalFotoCondominio').style.display = 'none';
+    if ($('imagemFotoCondominioModal')) $('imagemFotoCondominioModal').removeAttribute('src');
+  }
   function limparFormCondominio() {
     if ($('formCondominio')) $('formCondominio').reset();
     if ($('condominioId')) $('condominioId').value = '';
+    fotoCondominioSelecionada = ''; mostrarPreviewFotoCondominio('');
     if ($('btnSalvarCondominio')) $('btnSalvarCondominio').textContent = 'Cadastrar condomínio';
     if ($('btnCancelarCondominio')) $('btnCancelarCondominio').style.display = 'none';
   }
@@ -1427,7 +1496,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     if (!nome || !endereco || !administradora) { alert('Informe o nome, o endereço e selecione uma administradora cadastrada.'); return; }
     var registro = condominiosDB.find(function(x) { return x.tipo === 'condominio' && String(x.id) === String(id); });
     if (!registro) { registro = {id:'cond_' + Date.now() + '_' + Math.random().toString(36).slice(2,8), tipo:'condominio'}; condominiosDB.push(registro); }
-    registro.nome = nome; registro.endereco = endereco; registro.administradoraId = administradora.id;
+    registro.nome = nome; registro.endereco = endereco; registro.administradoraId = administradora.id; registro.foto = fotoCondominioSelecionada || '';
     salvarBaseCondominios(); limparFormCondominio(); renderCondominios();
   }
   function editarCondominio(id) {
@@ -1435,6 +1504,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     if (!registro) return;
     $('condominioId').value = registro.id; $('condominioNome').value = registro.nome || '';
     $('condominioEndereco').value = registro.endereco || ''; $('condominioAdministradora').value = registro.administradoraId || '';
+    fotoCondominioSelecionada = registro.foto || ''; mostrarPreviewFotoCondominio(fotoCondominioSelecionada);
     $('btnSalvarCondominio').textContent = 'Salvar alterações'; $('btnCancelarCondominio').style.display = '';
     $('condominioNome').focus();
   }
@@ -1463,7 +1533,9 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     if (tbodyCondominios) tbodyCondominios.innerHTML = listaCondominios.map(function(x) {
       var adm = administradoras.find(function(a) { return String(a.id) === String(x.administradoraId); });
       var acao = escaparTextoHtml(JSON.stringify(String(x.id)));
-      return '<tr><td>' + escaparTextoHtml(x.nome || '') + '</td><td>' + escaparTextoHtml(x.endereco || '') + '</td><td>' + escaparTextoHtml(adm ? adm.nome : 'Administradora não encontrada') + '</td><td>' + escaparTextoHtml(adm ? adm.telefone : '') + '</td><td><button type="button" class="btn btn-secondary btn-sm" onclick="editarCondominio(' + acao + ')">Editar</button> <button type="button" class="btn btn-danger btn-sm" onclick="excluirCondominio(' + acao + ')">Excluir</button></td></tr>';
+      var foto = String(x.foto || ''), fotoSegura = /^(https?:\/\/|data:image\/(?:jpeg|png|webp);base64,)/i.test(foto) ? escaparTextoHtml(foto) : '';
+      var identificacao = fotoSegura ? '<button type="button" onclick="visualizarFotoCondominio(' + acao + ')" aria-label="Abrir foto do condomínio ' + escaparTextoHtml(x.nome || '') + '" style="display:inline-flex;align-items:center;gap:8px;border:0;background:transparent;color:var(--primary);font:inherit;font-weight:700;cursor:pointer;text-align:left;"><img src="' + fotoSegura + '" alt="" style="width:42px;height:34px;object-fit:cover;border-radius:5px;border:1px solid var(--border);"><span>' + escaparTextoHtml(x.nome || '') + '</span></button>' : escaparTextoHtml(x.nome || '');
+      return '<tr><td>' + identificacao + '</td><td>' + escaparTextoHtml(x.endereco || '') + '</td><td>' + escaparTextoHtml(adm ? adm.nome : 'Administradora não encontrada') + '</td><td>' + escaparTextoHtml(adm ? adm.telefone : '') + '</td><td><button type="button" class="btn btn-secondary btn-sm" onclick="editarCondominio(' + acao + ')">Editar</button> <button type="button" class="btn btn-danger btn-sm" onclick="excluirCondominio(' + acao + ')">Excluir</button></td></tr>';
     }).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);">Nenhum condomínio cadastrado.</td></tr>';
   }
   // CÁLCULOS DA ABA RESCISÃO
