@@ -377,34 +377,34 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       <div class="grid-main" style="grid-template-columns: 1fr 1fr;">
         <div class="card">
           <h3 style="color: var(--primary); margin-bottom: 12px;">Cálculo Proporcional de IPTU (Anual)</h3>
-          <div class="form-group" style="margin-bottom:8px;"><label>Valor Anual do IPTU (R$)</label><input type="number" step="0.01" id="rescisaoIptuValor" placeholder="Ex: 1200.00"></div>
-          <div class="form-group" style="margin-bottom:8px;"><label>Data Inicial (Inquilino)</label><input type="date" id="rescisaoIptuInicio"></div>
-          <div class="form-group" style="margin-bottom:8px;"><label>Data Final (Inquilino)</label><input type="date" id="rescisaoIptuFim"></div>
+          <div class="form-group" style="margin-bottom:8px;"><label>Valor Anual do IPTU (R$)</label><input type="number" step="0.01" id="rescisaoIptuValor" oninput="atualizarTotaisLancamentosIntegraisRescisao()" placeholder="Ex: 1200.00"></div>
+          <div class="form-group" style="margin-bottom:8px;"><label>Data Inicial (Inquilino)</label><input type="date" id="rescisaoIptuInicio" oninput="atualizarTotaisLancamentosIntegraisRescisao()"></div>
+          <div class="form-group" style="margin-bottom:8px;"><label>Data Final (Inquilino)</label><input type="date" id="rescisaoIptuFim" oninput="atualizarTotaisLancamentosIntegraisRescisao()"></div>
           <button class="btn btn-success" style="width:100%; margin-top:5px;" onclick="calcularIPTURescisao()">Calcular IPTU Proporcional</button>
           <div id="resIptuCalc" style="margin-top:12px; font-size:0.9rem; color: var(--text-main);"></div>
         </div>
         <div class="card">
           <h3 style="color: var(--primary); margin-bottom: 12px;">Proporcional Mensal (Aluguel, Água e Luz)</h3>
-          <div class="form-group" style="margin-bottom:10px;"><label>Dias Totais do Mês</label><input type="number" id="rescisaoDiasMes" value="30"></div>
+          <div class="form-group" style="margin-bottom:10px;"><label>Dias Totais do Mês</label><input type="number" id="rescisaoDiasMes" oninput="atualizarTotaisLancamentosIntegraisRescisao()" value="30"></div>
           <div style="border-top:1px solid var(--border); padding-top:8px; margin-top:8px;">
             <label style="color:var(--primary); font-weight:bold;">Aluguel</label>
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px; margin-top:4px;">
-              <input type="number" step="0.01" id="rescisaoAluguelVal" placeholder="Valor Mensal">
-              <input type="number" id="rescisaoAluguelDias" placeholder="Dias Inquilino">
+              <input type="number" step="0.01" id="rescisaoAluguelVal" oninput="atualizarTotaisLancamentosIntegraisRescisao()" placeholder="Valor Mensal">
+              <input type="number" id="rescisaoAluguelDias" oninput="atualizarTotaisLancamentosIntegraisRescisao()" placeholder="Dias Inquilino">
             </div>
           </div>
           <div style="border-top:1px solid var(--border); padding-top:8px; margin-top:8px;">
             <label style="color:var(--primary); font-weight:bold;">Água</label>
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px; margin-top:4px;">
-              <input type="number" step="0.01" id="rescisaoAguaVal" placeholder="Valor Mensal">
-              <input type="number" id="rescisaoAguaDias" placeholder="Dias Inquilino">
+              <input type="number" step="0.01" id="rescisaoAguaVal" oninput="atualizarTotaisLancamentosIntegraisRescisao()" placeholder="Valor Mensal">
+              <input type="number" id="rescisaoAguaDias" oninput="atualizarTotaisLancamentosIntegraisRescisao()" placeholder="Dias Inquilino">
             </div>
           </div>
           <div style="border-top:1px solid var(--border); padding-top:8px; margin-top:8px;">
             <label style="color:var(--primary); font-weight:bold;">Luz</label>
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px; margin-top:4px;">
-              <input type="number" step="0.01" id="rescisaoLuzVal" placeholder="Valor Mensal">
-              <input type="number" id="rescisaoLuzDias" placeholder="Dias Inquilino">
+              <input type="number" step="0.01" id="rescisaoLuzVal" oninput="atualizarTotaisLancamentosIntegraisRescisao()" placeholder="Valor Mensal">
+              <input type="number" id="rescisaoLuzDias" oninput="atualizarTotaisLancamentosIntegraisRescisao()" placeholder="Dias Inquilino">
             </div>
           </div>
           <button class="btn btn-success" style="width:100%; margin-top:12px;" onclick="calcularMensaisRescisao()">Calcular Proporcionais</button>
@@ -436,7 +436,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
             <div style="text-align:right;margin-top:8px;font-weight:700;">Subtotal de outras contas e manutenções: <span id="rescisaoTotalIntegralOutros">R$ 0,00</span></div>
           </section>
         </div>
-        <div style="text-align:right;border-top:1px solid var(--border);margin-top:12px;padding-top:10px;font-size:1rem;font-weight:800;color:var(--primary);">Total integral lançado: <span id="rescisaoTotalIntegralGeral">R$ 0,00</span></div>
+        <div style="text-align:right;border-top:1px solid var(--border);margin-top:12px;padding-top:10px;font-size:1rem;font-weight:800;color:var(--primary);">Total geral (integrais + proporcionais): <span id="rescisaoTotalIntegralGeral">R$ 0,00</span></div>
         <small style="display:block;margin-top:7px;color:var(--text-muted);">Cada linha aceita referência/competência, vencimento, responsável e valor. Use “Adicionar” quantas vezes forem necessárias.</small>
         <section style="border:1px solid var(--border);border-radius:9px;padding:12px;margin-top:14px;">
           <h4 style="margin:0 0 6px;color:var(--primary);">Print adicional para o PDF (opcional)</h4>
@@ -1480,6 +1480,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     if (diffDays < 0) diffDays = 0;
     var valorProporcional = (valorAnual / 365) * diffDays;
     $('resIptuCalc').innerHTML = '<b>Dias de Ocupação:</b> ' + diffDays + ' dias<br><b>IPTU Proporcional:</b> <span style="color:var(--success); font-weight:bold;">' + formatarMoeda(valorProporcional) + '</span>';
+    atualizarTotaisLancamentosIntegraisRescisao();
   }
 
   function calcularMensaisRescisao() {
@@ -1501,6 +1502,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
                                     '<b>Luz Proporcional:</b> ' + formatarMoeda(totalLuz) + '<br>' +
                                     '<hr style="margin:6px 0; border:0; border-top:1px solid var(--border);">' +
                                     '<b>Total Proporcional: <span style="color:var(--success); font-weight:bold;">' + formatarMoeda(totalGeral) + '</span></b>';
+    atualizarTotaisLancamentosIntegraisRescisao();
   }
 
   var contratoLancamentosIntegralAtual = '';
@@ -1680,6 +1682,33 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     }
     atualizarTotaisLancamentosIntegraisRescisao(dados);
   }
+  function calcularTotaisProporcionaisRescisao() {
+    var totalIptuProporcional = 0;
+    var iptuValor = valorNumericoRescisaoPdf('rescisaoIptuValor');
+    var dataInicio = $('rescisaoIptuInicio') ? $('rescisaoIptuInicio').value : '';
+    var dataFim = $('rescisaoIptuFim') ? $('rescisaoIptuFim').value : '';
+    if (iptuValor !== null && dataInicio && dataFim) {
+      var inicio = new Date(dataInicio + 'T00:00:00'), fim = new Date(dataFim + 'T00:00:00');
+      if (!isNaN(inicio.getTime()) && !isNaN(fim.getTime())) {
+        var dias = Math.max(0, Math.round((fim - inicio) / 86400000) + 1);
+        totalIptuProporcional = (iptuValor / 365) * dias;
+      }
+    }
+    var diasMesEl = $('rescisaoDiasMes');
+    var diasMes = diasMesEl ? (Number(diasMesEl.value) || 30) : 30;
+    var pares = [
+      ['rescisaoAluguelVal','rescisaoAluguelDias'],
+      ['rescisaoAguaVal','rescisaoAguaDias'],
+      ['rescisaoLuzVal','rescisaoLuzDias']
+    ];
+    var totalMensalProporcional = 0;
+    pares.forEach(function(par) {
+      var valor = valorNumericoRescisaoPdf(par[0]);
+      var dias = valorNumericoRescisaoPdf(par[1]);
+      if (valor !== null && dias !== null && diasMes > 0) totalMensalProporcional += (valor / diasMes) * dias;
+    });
+    return {iptu:totalIptuProporcional,mensal:totalMensalProporcional,total:totalIptuProporcional + totalMensalProporcional};
+  }
   function atualizarTotaisLancamentosIntegraisRescisao(dados) {
     dados = dados || {agua:lerLinhasLancamentosIntegraisRescisao('rescisaoLancamentosAgua'),iptu:lerLinhasLancamentosIntegraisRescisao('rescisaoLancamentosIptu'),energia:lerLinhasLancamentosIntegraisRescisao('rescisaoLancamentosEnergia'),outros:lerLinhasOutrasContasRescisao()};
     function total(lista) { return lista.reduce(function(soma,item) { var n = Number(String(item.valor || '').replace(',', '.')); return soma + (isFinite(n) && n > 0 ? n : 0); }, 0); }
@@ -1688,7 +1717,8 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     if ($('rescisaoTotalIntegralIptu')) $('rescisaoTotalIntegralIptu').textContent = formatarMoeda(iptu);
     if ($('rescisaoTotalIntegralEnergia')) $('rescisaoTotalIntegralEnergia').textContent = formatarMoeda(energia);
     if ($('rescisaoTotalIntegralOutros')) $('rescisaoTotalIntegralOutros').textContent = formatarMoeda(outros);
-    if ($('rescisaoTotalIntegralGeral')) $('rescisaoTotalIntegralGeral').textContent = formatarMoeda(agua + iptu + energia + outros);
+    var proporcionais = calcularTotaisProporcionaisRescisao();
+    if ($('rescisaoTotalIntegralGeral')) $('rescisaoTotalIntegralGeral').textContent = formatarMoeda(agua + iptu + energia + outros + proporcionais.total);
   }
   function carregarLancamentosIntegraisRescisao(forcar) {
     var codigo = $('rescisaoContratoInput') ? $('rescisaoContratoInput').value.trim() : '';
@@ -2053,6 +2083,22 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
         linhaRescisaoPdf('Dias atribuídos ao inquilino', item.dias === null ? '' : item.dias + ' dias', false) +
         linhaRescisaoPdf(item.nome + ' proporcional', resultado === null ? '' : formatarMoeda(resultado), true) + '</div>';
     }).join('');
+    function somarValoresLancamentosPdf(lista) {
+      return (lista || []).reduce(function(soma,item) {
+        var numero = Number(String(item.valor || '').replace(',','.'));
+        return soma + (isFinite(numero) && numero > 0 ? numero : 0);
+      }, 0);
+    }
+    var totalIntegralPdf = somarValoresLancamentosPdf(lancamentosIntegraisPdf.agua) + somarValoresLancamentosPdf(lancamentosIntegraisPdf.iptu) + somarValoresLancamentosPdf(lancamentosIntegraisPdf.energia) + somarValoresLancamentosPdf(lancamentosIntegraisPdf.outros);
+    var temIntegralPdf = totalIntegralPdf > 0;
+    var totalProporcionalPdf = (proporcionalIptu === null ? 0 : proporcionalIptu) + totalMensal;
+    var temProporcionalPdf = proporcionalIptu !== null || temCalculoMensal;
+    var totalCombinadoPdf = totalIntegralPdf + totalProporcionalPdf;
+    var secaoConsolidadoPdf = (temIntegralPdf || temProporcionalPdf) ? '<section class="section"><h2>Somatório geral — valores integrais e proporcionais</h2>' +
+      (temIntegralPdf ? linhaRescisaoPdf('Total dos débitos integrais', formatarMoeda(totalIntegralPdf), false) : '') +
+      (proporcionalIptu !== null ? linhaRescisaoPdf('IPTU proporcional anual', formatarMoeda(proporcionalIptu), false) : '') +
+      (temCalculoMensal ? linhaRescisaoPdf('Proporcionais mensais (aluguel, água e luz)', formatarMoeda(totalMensal), false) : '') +
+      linhaRescisaoPdf('Total geral (integrais + proporcionais)', formatarMoeda(totalCombinadoPdf), true) + '</section>' : '';
     var cardsConsultaPdf = imovelConsulta ? [
       cardConsultaRescisao('IPTU / Prefeitura', imovelConsulta.bci, imovelConsulta.statusBci, imovelConsulta.referenciasBci, classificarResponsavelGuia(imovelConsulta, 'BCI')),
       cardConsultaRescisao('DAMAE', imovelConsulta.damaeId, imovelConsulta.statusDamae, imovelConsulta.referenciasDamae, classificarResponsavelGuia(imovelConsulta, 'DAMAE'))
@@ -2079,7 +2125,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     var secaoIdentificacao = linhasIdentificacao ? '<section class="section"><h2>Identificação das partes</h2>' + linhasIdentificacao + '</section>' : '';
     var paginasCapturas = paginasCapturasPDFRescisao(codigoContrato, capturasRescisaoPdf, erroCapturasRescisaoPdf);
     var pagina = '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>' + nomeArquivo + '</title>' +
-      '<style>@page{size:A4 portrait;margin:0}*{box-sizing:border-box}html,body{margin:0;padding:0;width:210mm;height:297mm;font-family:Arial,Helvetica,sans-serif;color:#24352f;-webkit-print-color-adjust:exact;print-color-adjust:exact}.page{position:relative;width:210mm;height:297mm;overflow:hidden;background:#fff}.letterhead{position:absolute;inset:0;width:210mm;height:297mm;object-fit:fill;z-index:0}.content{position:relative;z-index:1;padding:42mm 17mm 31mm 24mm;width:100%;height:100%;overflow:hidden}.heading{margin:0 0 1.5mm;color:#244c40;font-size:17pt;line-height:1.15;letter-spacing:.2pt}.meta{margin:0 0 3mm;color:#65756f;font-size:8pt}.section{border:0.5pt solid #cbd7d2;border-radius:2.5mm;padding:3mm 4mm;margin:0 0 2.5mm;background:rgba(255,255,255,.90);break-inside:avoid}.section h2{margin:0 0 1.5mm;color:#2a5045;font-size:10pt}.row{display:flex;justify-content:space-between;gap:6mm;padding:1mm 0;border-bottom:.3pt solid #e3e9e6;font-size:8pt;line-height:1.2}.row:last-child{border-bottom:0}.row strong{text-align:right;font-weight:600}.row.highlight{color:#21483c;font-size:8.3pt}.subsection{margin-top:1.5mm;padding-top:1.5mm;border-top:.5pt solid #d7e1dd}.subsection h3{margin:0 0 1mm;color:#3d6256;font-size:8.5pt}.snapshot-grid{display:grid;grid-template-columns:1fr 1fr;gap:2.5mm;margin-top:2mm}.snapshot-grid article{padding:2.5mm!important;font-size:7.6pt!important}.snapshot-grid article div{font-size:7.4pt!important}.snapshot-empty{font-size:8pt;color:#65756f;margin:2mm 0 0}.snapshot-note{margin:2mm 0 0;color:#65756f;font-size:6.7pt;line-height:1.25}.note{margin-top:2mm;color:#65756f;font-size:7pt;line-height:1.3}.integral-page,.capture-page{page-break-before:always;break-before:page}.integral-content{padding-top:42mm!important}.integral-table{width:100%;border-collapse:collapse;margin-top:5mm;font-size:8pt;background:rgba(255,255,255,.94)}.integral-table th,.integral-table td{border:.5pt solid #cbd7d2;padding:2.2mm 1.8mm;text-align:left;vertical-align:top;overflow-wrap:anywhere}.integral-table th{background:#edf3f0;color:#244c40;font-weight:700}.integral-totals{margin-top:7mm;padding:4mm;border:1px solid #cbd7d2;background:rgba(255,255,255,.94);font-size:9pt;line-height:1.8}.integral-grand{margin-top:2mm;padding-top:2mm;border-top:1px solid #cbd7d2;font-size:11pt;font-weight:800;color:#21483c}.capture-content{padding-top:42mm!important}.capture-image{display:block;max-width:100%;max-height:185mm;width:auto;height:auto;object-fit:contain;object-position:top left;margin:3mm auto 0;border:.5pt solid #cbd7d2;background:#fff}.capture-page .snapshot-empty{font-size:9pt;line-height:1.4}@media print{.page{break-after:avoid;box-shadow:none}.integral-page,.capture-page{page-break-before:always;break-before:page}}</style></head><body><div class="page"><img class="letterhead" src="' + TIMBRADO_RESCISAO_DATA_URI + '" alt="Timbrado Realiza Imóveis"><main class="content"><h1 class="heading">Memória de Cálculo — Rescisão de Locação</h1><p class="meta">Emitido em ' + dataGeracao + '</p>' + secaoIdentificacao + secaoConsultas + secaoIptu + secaoMensais + '<p class="note">Documento gerado a partir dos valores simulados no sistema. Confira os dados e os critérios aplicáveis ao contrato antes de utilizar os valores.</p></main></div>' + paginasLancamentosIntegraisPDFRescisao(codigoContrato, lancamentosIntegraisPdf) + paginasCapturas + paginasPrintsManuaisPDFRescisao(codigoContrato, printsManuaisRescisaoPdf) + '</body></html>';
+      '<style>@page{size:A4 portrait;margin:0}*{box-sizing:border-box}html,body{margin:0;padding:0;width:210mm;height:297mm;font-family:Arial,Helvetica,sans-serif;color:#24352f;-webkit-print-color-adjust:exact;print-color-adjust:exact}.page{position:relative;width:210mm;height:297mm;overflow:hidden;background:#fff}.letterhead{position:absolute;inset:0;width:210mm;height:297mm;object-fit:fill;z-index:0}.content{position:relative;z-index:1;padding:42mm 17mm 31mm 24mm;width:100%;height:100%;overflow:hidden}.heading{margin:0 0 1.5mm;color:#244c40;font-size:17pt;line-height:1.15;letter-spacing:.2pt}.meta{margin:0 0 3mm;color:#65756f;font-size:8pt}.section{border:0.5pt solid #cbd7d2;border-radius:2.5mm;padding:3mm 4mm;margin:0 0 2.5mm;background:rgba(255,255,255,.90);break-inside:avoid}.section h2{margin:0 0 1.5mm;color:#2a5045;font-size:10pt}.row{display:flex;justify-content:space-between;gap:6mm;padding:1mm 0;border-bottom:.3pt solid #e3e9e6;font-size:8pt;line-height:1.2}.row:last-child{border-bottom:0}.row strong{text-align:right;font-weight:600}.row.highlight{color:#21483c;font-size:8.3pt}.subsection{margin-top:1.5mm;padding-top:1.5mm;border-top:.5pt solid #d7e1dd}.subsection h3{margin:0 0 1mm;color:#3d6256;font-size:8.5pt}.snapshot-grid{display:grid;grid-template-columns:1fr 1fr;gap:2.5mm;margin-top:2mm}.snapshot-grid article{padding:2.5mm!important;font-size:7.6pt!important}.snapshot-grid article div{font-size:7.4pt!important}.snapshot-empty{font-size:8pt;color:#65756f;margin:2mm 0 0}.snapshot-note{margin:2mm 0 0;color:#65756f;font-size:6.7pt;line-height:1.25}.note{margin-top:2mm;color:#65756f;font-size:7pt;line-height:1.3}.integral-page,.capture-page{page-break-before:always;break-before:page}.integral-content{padding-top:42mm!important}.integral-table{width:100%;border-collapse:collapse;margin-top:5mm;font-size:8pt;background:rgba(255,255,255,.94)}.integral-table th,.integral-table td{border:.5pt solid #cbd7d2;padding:2.2mm 1.8mm;text-align:left;vertical-align:top;overflow-wrap:anywhere}.integral-table th{background:#edf3f0;color:#244c40;font-weight:700}.integral-totals{margin-top:7mm;padding:4mm;border:1px solid #cbd7d2;background:rgba(255,255,255,.94);font-size:9pt;line-height:1.8}.integral-grand{margin-top:2mm;padding-top:2mm;border-top:1px solid #cbd7d2;font-size:11pt;font-weight:800;color:#21483c}.capture-content{padding-top:42mm!important}.capture-image{display:block;max-width:100%;max-height:185mm;width:auto;height:auto;object-fit:contain;object-position:top left;margin:3mm auto 0;border:.5pt solid #cbd7d2;background:#fff}.capture-page .snapshot-empty{font-size:9pt;line-height:1.4}@media print{.page{break-after:avoid;box-shadow:none}.integral-page,.capture-page{page-break-before:always;break-before:page}}</style></head><body><div class="page"><img class="letterhead" src="' + TIMBRADO_RESCISAO_DATA_URI + '" alt="Timbrado Realiza Imóveis"><main class="content"><h1 class="heading">Memória de Cálculo — Rescisão de Locação</h1><p class="meta">Emitido em ' + dataGeracao + '</p>' + secaoIdentificacao + secaoConsultas + secaoIptu + secaoMensais + secaoConsolidadoPdf + '<p class="note">Documento gerado a partir dos valores simulados no sistema. Confira os dados e os critérios aplicáveis ao contrato antes de utilizar os valores.</p></main></div>' + paginasLancamentosIntegraisPDFRescisao(codigoContrato, lancamentosIntegraisPdf) + paginasCapturas + paginasPrintsManuaisPDFRescisao(codigoContrato, printsManuaisRescisaoPdf) + '</body></html>';
     popup.document.open(); popup.document.write(pagina);
     popup.onafterprint = function() { popup.close(); };
     popup.document.close();
