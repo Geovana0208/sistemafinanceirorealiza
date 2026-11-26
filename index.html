@@ -430,6 +430,11 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
             <div id="rescisaoLancamentosEnergia" style="margin-top:10px;"></div>
             <div style="text-align:right;margin-top:8px;font-weight:700;">Total de energia: <span id="rescisaoTotalIntegralEnergia">R$ 0,00</span></div>
           </section>
+          <section style="border:1px solid var(--border);border-radius:9px;padding:12px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;"><h4 style="margin:0;color:var(--primary);">Outras contas e manutenções</h4><button type="button" class="btn btn-sm" onclick="adicionarLancamentoIntegralRescisao('outros')">+ Adicionar conta/manutenção</button></div>
+            <div id="rescisaoLancamentosOutros" style="margin-top:10px;"></div>
+            <div style="text-align:right;margin-top:8px;font-weight:700;">Subtotal de outras contas e manutenções: <span id="rescisaoTotalIntegralOutros">R$ 0,00</span></div>
+          </section>
         </div>
         <div style="text-align:right;border-top:1px solid var(--border);margin-top:12px;padding-top:10px;font-size:1rem;font-weight:800;color:var(--primary);">Total integral lançado: <span id="rescisaoTotalIntegralGeral">R$ 0,00</span></div>
         <small style="display:block;margin-top:7px;color:var(--text-muted);">Cada linha aceita referência/competência, vencimento, responsável e valor. Use “Adicionar” quantas vezes forem necessárias.</small>
@@ -1605,11 +1610,11 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   }
   function obterDadosLancamentosIntegraisRescisao() {
     var codigo = $('rescisaoContratoInput') ? $('rescisaoContratoInput').value.trim() : '';
-    if (!codigo) return {agua:[], iptu:[], energia:[]};
+    if (!codigo) return {agua:[], iptu:[], energia:[], outros:[]};
     try {
       var dados = JSON.parse(localStorage.getItem(chaveLancamentosIntegraisRescisao(codigo)) || '{}');
-      return {agua:Array.isArray(dados.agua) ? dados.agua : [], iptu:Array.isArray(dados.iptu) ? dados.iptu : [], energia:Array.isArray(dados.energia) ? dados.energia : []};
-    } catch (e) { return {agua:[], iptu:[], energia:[]}; }
+      return {agua:Array.isArray(dados.agua) ? dados.agua : [], iptu:Array.isArray(dados.iptu) ? dados.iptu : [], energia:Array.isArray(dados.energia) ? dados.energia : [], outros:Array.isArray(dados.outros) ? dados.outros : []};
+    } catch (e) { return {agua:[], iptu:[], energia:[], outros:[]}; }
   }
   function lerLinhasLancamentosIntegraisRescisao(id) {
     var area = $(id);
@@ -1619,10 +1624,18 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       return {competencia:valor('competencia'), vencimento:valor('vencimento'), responsavel:valor('responsavel') || 'Inquilino', valor:valor('valor')};
     });
   }
+  function lerLinhasOutrasContasRescisao() {
+    var area = $('rescisaoLancamentosOutros');
+    if (!area) return [];
+    return Array.from(area.querySelectorAll('.rescisao-outro-row')).map(function(linha) {
+      function valor(campo) { var el = linha.querySelector('[data-campo="' + campo + '"]'); return el ? String(el.value || '').trim() : ''; }
+      return {descricao:valor('descricao'), vencimento:valor('vencimento'), responsavel:valor('responsavel') || 'Inquilino', valor:valor('valor')};
+    });
+  }
   function salvarLancamentosIntegraisRescisao() {
     var codigo = $('rescisaoContratoInput') ? $('rescisaoContratoInput').value.trim() : '';
     if (!codigo) return false;
-    var dados = {agua:lerLinhasLancamentosIntegraisRescisao('rescisaoLancamentosAgua'), iptu:lerLinhasLancamentosIntegraisRescisao('rescisaoLancamentosIptu'), energia:lerLinhasLancamentosIntegraisRescisao('rescisaoLancamentosEnergia')};
+    var dados = {agua:lerLinhasLancamentosIntegraisRescisao('rescisaoLancamentosAgua'), iptu:lerLinhasLancamentosIntegraisRescisao('rescisaoLancamentosIptu'), energia:lerLinhasLancamentosIntegraisRescisao('rescisaoLancamentosEnergia'), outros:lerLinhasOutrasContasRescisao()};
     try { localStorage.setItem(chaveLancamentosIntegraisRescisao(codigo), JSON.stringify(dados)); } catch (e) { console.warn('Não foi possível salvar os lançamentos integrais neste navegador.', e); }
     contratoLancamentosIntegralAtual = chaveLancamentosIntegraisRescisao(codigo);
     atualizarTotaisLancamentosIntegraisRescisao(dados);
@@ -1648,38 +1661,57 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     render(dados.agua, 'agua', 'rescisaoLancamentosAgua');
     render(dados.iptu, 'iptu', 'rescisaoLancamentosIptu');
     render(dados.energia || [], 'energia', 'rescisaoLancamentosEnergia');
+    var areaOutros = $('rescisaoLancamentosOutros');
+    var listaOutros = dados.outros || [];
+    if (areaOutros) {
+      if (!listaOutros.length) areaOutros.innerHTML = '<div style="font-size:.8rem;color:var(--text-muted);padding:8px 0;">Nenhuma conta ou manutenção lançada. Use o botão acima para adicionar.</div>';
+      else areaOutros.innerHTML = listaOutros.map(function(item, indice) {
+        var descricao = textoSeguroRescisaoPdf(item.descricao || '');
+        var vencimento = textoSeguroRescisaoPdf(item.vencimento || '');
+        var valor = textoSeguroRescisaoPdf(item.valor || '');
+        var responsavel = item.responsavel === 'Proprietário' ? 'Proprietário' : 'Inquilino';
+        return '<div class="rescisao-outro-row" data-indice="' + indice + '" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;align-items:end;border-bottom:1px solid var(--border);padding:8px 0;">' +
+          '<label style="font-size:.72rem;grid-column:1/-1;">Descrição da conta/manutenção<input data-campo="descricao" type="text" maxlength="160" placeholder="Ex.: troca de fechadura, limpeza, reparo" value="' + descricao + '" oninput="salvarLancamentosIntegraisRescisao()" style="width:100%;"></label>' +
+          '<label style="font-size:.72rem;">Data (opcional)<input data-campo="vencimento" type="date" value="' + vencimento + '" oninput="salvarLancamentosIntegraisRescisao()" style="width:100%;"></label>' +
+          '<label style="font-size:.72rem;">Valor (R$)<input data-campo="valor" type="number" min="0" step="0.01" placeholder="0,00" value="' + valor + '" oninput="salvarLancamentosIntegraisRescisao()" style="width:100%;"></label>' +
+          '<label style="font-size:.72rem;">Responsável<select data-campo="responsavel" onchange="salvarLancamentosIntegraisRescisao()" style="width:100%;"><option' + (responsavel === 'Inquilino' ? ' selected' : '') + '>Inquilino</option><option' + (responsavel === 'Proprietário' ? ' selected' : '') + '>Proprietário</option></select></label>' +
+          '<button type="button" class="btn btn-danger btn-sm" title="Remover lançamento" style="grid-column:2;justify-self:end;" onclick="removerLancamentoIntegralRescisao(\'outros\',' + indice + ')">Remover</button></div>';
+      }).join('');
+    }
     atualizarTotaisLancamentosIntegraisRescisao(dados);
   }
   function atualizarTotaisLancamentosIntegraisRescisao(dados) {
-    dados = dados || {agua:lerLinhasLancamentosIntegraisRescisao('rescisaoLancamentosAgua'),iptu:lerLinhasLancamentosIntegraisRescisao('rescisaoLancamentosIptu'),energia:lerLinhasLancamentosIntegraisRescisao('rescisaoLancamentosEnergia')};
+    dados = dados || {agua:lerLinhasLancamentosIntegraisRescisao('rescisaoLancamentosAgua'),iptu:lerLinhasLancamentosIntegraisRescisao('rescisaoLancamentosIptu'),energia:lerLinhasLancamentosIntegraisRescisao('rescisaoLancamentosEnergia'),outros:lerLinhasOutrasContasRescisao()};
     function total(lista) { return lista.reduce(function(soma,item) { var n = Number(String(item.valor || '').replace(',', '.')); return soma + (isFinite(n) && n > 0 ? n : 0); }, 0); }
-    var agua = total(dados.agua || []), iptu = total(dados.iptu || []), energia = total(dados.energia || []);
+    var agua = total(dados.agua || []), iptu = total(dados.iptu || []), energia = total(dados.energia || []), outros = total(dados.outros || []);
     if ($('rescisaoTotalIntegralAgua')) $('rescisaoTotalIntegralAgua').textContent = formatarMoeda(agua);
     if ($('rescisaoTotalIntegralIptu')) $('rescisaoTotalIntegralIptu').textContent = formatarMoeda(iptu);
     if ($('rescisaoTotalIntegralEnergia')) $('rescisaoTotalIntegralEnergia').textContent = formatarMoeda(energia);
-    if ($('rescisaoTotalIntegralGeral')) $('rescisaoTotalIntegralGeral').textContent = formatarMoeda(agua + iptu + energia);
+    if ($('rescisaoTotalIntegralOutros')) $('rescisaoTotalIntegralOutros').textContent = formatarMoeda(outros);
+    if ($('rescisaoTotalIntegralGeral')) $('rescisaoTotalIntegralGeral').textContent = formatarMoeda(agua + iptu + energia + outros);
   }
   function carregarLancamentosIntegraisRescisao(forcar) {
     var codigo = $('rescisaoContratoInput') ? $('rescisaoContratoInput').value.trim() : '';
     var chave = codigo ? chaveLancamentosIntegraisRescisao(codigo) : '';
     if (!forcar && chave === contratoLancamentosIntegralAtual) return;
     contratoLancamentosIntegralAtual = chave;
-    renderizarLancamentosIntegraisRescisao(codigo ? obterDadosLancamentosIntegraisRescisao() : {agua:[],iptu:[],energia:[]});
+    renderizarLancamentosIntegraisRescisao(codigo ? obterDadosLancamentosIntegraisRescisao() : {agua:[],iptu:[],energia:[],outros:[]});
   }
   function adicionarLancamentoIntegralRescisao(tipo) {
     var codigo = $('rescisaoContratoInput') ? $('rescisaoContratoInput').value.trim() : '';
     if (!codigo) { alert('Informe primeiro o código do contrato para associar os lançamentos.'); return; }
     if (contratoLancamentosIntegralAtual !== chaveLancamentosIntegraisRescisao(codigo)) carregarLancamentosIntegraisRescisao(true);
-    var dados = {agua:lerLinhasLancamentosIntegraisRescisao('rescisaoLancamentosAgua'),iptu:lerLinhasLancamentosIntegraisRescisao('rescisaoLancamentosIptu'),energia:lerLinhasLancamentosIntegraisRescisao('rescisaoLancamentosEnergia')};
+    var dados = {agua:lerLinhasLancamentosIntegraisRescisao('rescisaoLancamentosAgua'),iptu:lerLinhasLancamentosIntegraisRescisao('rescisaoLancamentosIptu'),energia:lerLinhasLancamentosIntegraisRescisao('rescisaoLancamentosEnergia'),outros:lerLinhasOutrasContasRescisao()};
     if (tipo === 'agua') dados.agua.push({competencia:'',vencimento:'',responsavel:'Inquilino',valor:''});
     else if (tipo === 'iptu') dados.iptu.push({competencia:'',vencimento:'',responsavel:'Inquilino',valor:''});
     else if (tipo === 'energia') dados.energia.push({competencia:'',vencimento:'',responsavel:'Inquilino',valor:''});
+    else if (tipo === 'outros') dados.outros.push({descricao:'',vencimento:'',responsavel:'Inquilino',valor:''});
     renderizarLancamentosIntegraisRescisao(dados);
     salvarLancamentosIntegraisRescisao();
   }
   function removerLancamentoIntegralRescisao(tipo, indice) {
-    var dados = {agua:lerLinhasLancamentosIntegraisRescisao('rescisaoLancamentosAgua'),iptu:lerLinhasLancamentosIntegraisRescisao('rescisaoLancamentosIptu'),energia:lerLinhasLancamentosIntegraisRescisao('rescisaoLancamentosEnergia')};
-    var lista = tipo === 'agua' ? dados.agua : (tipo === 'energia' ? dados.energia : dados.iptu);
+    var dados = {agua:lerLinhasLancamentosIntegraisRescisao('rescisaoLancamentosAgua'),iptu:lerLinhasLancamentosIntegraisRescisao('rescisaoLancamentosIptu'),energia:lerLinhasLancamentosIntegraisRescisao('rescisaoLancamentosEnergia'),outros:lerLinhasOutrasContasRescisao()};
+    var lista = tipo === 'agua' ? dados.agua : (tipo === 'energia' ? dados.energia : (tipo === 'outros' ? dados.outros : dados.iptu));
     if (indice >= 0 && indice < lista.length) lista.splice(indice,1);
     renderizarLancamentosIntegraisRescisao(dados);
     salvarLancamentosIntegraisRescisao();
@@ -1922,11 +1954,13 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     (dados.agua || []).forEach(function(item) { itens.push({tipo:'Contas de água',competencia:item.competencia,vencimento:item.vencimento,responsavel:item.responsavel,valor:item.valor}); });
     (dados.iptu || []).forEach(function(item) { itens.push({tipo:'IPTU / Prefeitura',competencia:item.competencia,vencimento:item.vencimento,responsavel:item.responsavel,valor:item.valor}); });
     (dados.energia || []).forEach(function(item) { itens.push({tipo:'Contas de energia',competencia:item.competencia,vencimento:item.vencimento,responsavel:item.responsavel,valor:item.valor}); });
+    (dados.outros || []).forEach(function(item) { itens.push({tipo:'Conta/manutenção',descricao:item.descricao,competencia:'',vencimento:item.vencimento,responsavel:item.responsavel,valor:item.valor}); });
     function preenchido(valor) { return valor != null && String(valor).trim() !== ''; }
-    itens = itens.filter(function(item) { return preenchido(item.competencia) || preenchido(item.vencimento) || preenchido(item.valor); });
+    itens = itens.filter(function(item) { return preenchido(item.descricao) || preenchido(item.competencia) || preenchido(item.vencimento) || preenchido(item.valor); });
     if (!itens.length) return '';
     var colunas = [
       {chave:'tipo',titulo:'Tipo'},
+      {chave:'descricao',titulo:'Descrição'},
       {chave:'competencia',titulo:'Competência'},
       {chave:'vencimento',titulo:'Vencimento'},
       {chave:'responsavel',titulo:'Responsável'},
@@ -1935,11 +1969,13 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     var totalAgua = (dados.agua || []).reduce(function(s,v) { return s + (preenchido(v.valor) ? (Number(String(v.valor).replace(',','.')) || 0) : 0); }, 0);
     var totalIptu = (dados.iptu || []).reduce(function(s,v) { return s + (preenchido(v.valor) ? (Number(String(v.valor).replace(',','.')) || 0) : 0); }, 0);
     var totalEnergia = (dados.energia || []).reduce(function(s,v) { return s + (preenchido(v.valor) ? (Number(String(v.valor).replace(',','.')) || 0) : 0); }, 0);
+    var totalOutros = (dados.outros || []).reduce(function(s,v) { return s + (preenchido(v.valor) ? (Number(String(v.valor).replace(',','.')) || 0) : 0); }, 0);
     var temAgua = (dados.agua || []).some(function(v) { return preenchido(v.valor); });
     var temIptu = (dados.iptu || []).some(function(v) { return preenchido(v.valor); });
     var temEnergia = (dados.energia || []).some(function(v) { return preenchido(v.valor); });
-    var temTotal = temAgua || temIptu || temEnergia;
-    var totalGeral = totalAgua + totalIptu + totalEnergia;
+    var temOutros = (dados.outros || []).some(function(v) { return preenchido(v.valor); });
+    var temTotal = temAgua || temIptu || temEnergia || temOutros;
+    var totalGeral = totalAgua + totalIptu + totalEnergia + totalOutros;
     var paginas = [], tamanhoPagina = 6;
     for (var inicio = 0; inicio < itens.length; inicio += tamanhoPagina) {
       var fatia = itens.slice(inicio, inicio + tamanhoPagina);
@@ -1962,6 +1998,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
           (temAgua ? '<div>Total integral contas de água: <b>' + textoSeguroRescisaoPdf(formatarMoeda(totalAgua)) + '</b></div>' : '') +
           (temIptu ? '<div>Total integral IPTU/Prefeitura: <b>' + textoSeguroRescisaoPdf(formatarMoeda(totalIptu)) + '</b></div>' : '') +
           (temEnergia ? '<div>Total integral contas de energia: <b>' + textoSeguroRescisaoPdf(formatarMoeda(totalEnergia)) + '</b></div>' : '') +
+          (temOutros ? '<div>Total outras contas e manutenções: <b>' + textoSeguroRescisaoPdf(formatarMoeda(totalOutros)) + '</b></div>' : '') +
           '<div class="integral-grand">Total integral lançado: ' + textoSeguroRescisaoPdf(formatarMoeda(totalGeral)) + '</div></div>';
       }
       paginas.push('<div class="page integral-page"><img class="letterhead" src="' + TIMBRADO_RESCISAO_DATA_URI + '" alt="Timbrado Realiza Imóveis"><main class="content integral-content"><h1 class="heading">Débitos integrais de meses/anos</h1><p class="meta">' + (codigoContrato ? 'Contrato ' + textoSeguroRescisaoPdf(codigoContrato) + ' · ' : '') + 'Lançamentos ' + (inicio + 1) + ' a ' + Math.min(inicio + tamanhoPagina, itens.length) + ' de ' + itens.length + '</p><table class="integral-table"><thead><tr>' + cabecalho + '</tr></thead><tbody>' + linhas + '</tbody></table>' + totais + '<p class="note">Valores informados integralmente pelo usuário; estes lançamentos não são rateados por dias.</p></main></div>');
