@@ -3355,8 +3355,14 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     }
     return alterou;
   }
-  function marcarCobrancaConsulta(modulo, id, marcado) {
-    var item=imoveisDB.find(function(x){return x && String(x.id)===String(id);});
+  function marcarCobrancaConsulta(modulo, id, marcado, contrato) {
+    var idInformado=String(id || '').trim();
+    var contratoInformado=String(contrato || '').trim();
+    var item=imoveisDB.find(function(x){
+      if (!x) return false;
+      if (idInformado && String(x.id || '').trim() === idInformado) return true;
+      return !idInformado && contratoInformado && String(x.contrato || '').trim() === contratoInformado;
+    });
     if (!item) return;
     var campo=modulo==='BCI' ? 'cobrancaBciMarcadaEm' : (modulo==='DAMAE' ? 'cobrancaDamaeMarcadaEm' : '');
     if (!campo) return;
@@ -3372,7 +3378,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     var data=String(item[campo] || '');
     var marcada=!!data && !dataCobrancaExpirada(data,Date.now());
     var dataExibida=marcada ? formatarDataConsultaGuia(data) : '';
-    return '<td class="cobranca-cell"><label><input class="cobranca-check" type="checkbox" aria-label="Cobrança realizada" data-modulo="'+modulo+'" data-id="'+escaparTextoHtml(item.id)+'"'+(marcada?' checked':'')+'></label>'+(marcada?'<small>Marcada em '+escaparTextoHtml(dataExibida)+'</small>':'')+'</td>';
+    return '<td class="cobranca-cell"><label><input class="cobranca-check" type="checkbox" aria-label="Cobrança realizada" data-modulo="'+modulo+'" data-id="'+escaparTextoHtml(item.id || '')+'" data-contrato="'+escaparTextoHtml(item.contrato || '')+'"'+(marcada?' checked':'')+'></label>'+(marcada?'<small>Marcada em '+escaparTextoHtml(dataExibida)+'</small>':'')+'</td>';
   }
   function vincularCheckboxesCobranca() {
     [['tabelaBcis','BCI'],['tabelaDamae','DAMAE']].forEach(function(par) {
@@ -3382,7 +3388,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
       tbody.addEventListener('change',function(event) {
         var el=event.target;
         if (!el || !el.classList || !el.classList.contains('cobranca-check')) return;
-        marcarCobrancaConsulta(par[1],el.getAttribute('data-id'),el.checked);
+        marcarCobrancaConsulta(par[1],el.getAttribute('data-id'),el.checked,el.getAttribute('data-contrato'));
       });
     });
   }
