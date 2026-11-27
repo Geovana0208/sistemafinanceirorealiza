@@ -688,6 +688,8 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
         if (!Object.prototype.hasOwnProperty.call(item, 'dataInicioContrato')) item.dataInicioContrato = '';
         if (!Object.prototype.hasOwnProperty.call(item, 'referenciasBci')) item.referenciasBci = '';
         if (!Object.prototype.hasOwnProperty.call(item, 'referenciasDamae')) item.referenciasDamae = '';
+        if (!Object.prototype.hasOwnProperty.call(item, 'referenciasDamaeVencidas')) item.referenciasDamaeVencidas = '';
+        if (!Object.prototype.hasOwnProperty.call(item, 'damaeVencidasDetalhadas')) item.damaeVencidasDetalhadas = false;
         if (!Object.prototype.hasOwnProperty.call(item, 'cobrancaBciMarcadaEm')) item.cobrancaBciMarcadaEm = '';
         if (!Object.prototype.hasOwnProperty.call(item, 'cobrancaDamaeMarcadaEm')) item.cobrancaDamaeMarcadaEm = '';
       });
@@ -3431,7 +3433,19 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
   function classificarResponsavelGuia(item, modulo) {
     var status = String(modulo === 'BCI' ? item.statusBci || '' : item.statusDamae || '')
       .replace(/<[^>]*>/g, ' ').toLocaleLowerCase('pt-BR');
-    var referenciasSalvas = modulo === 'BCI' ? item.referenciasBci : item.referenciasDamae;
+    var referenciasSalvas;
+    if (modulo === 'DAMAE') {
+      var detalhamentoVencidasDisponivel = item.damaeVencidasDetalhadas === true || String(item.damaeVencidasDetalhadas || '').toLowerCase() === 'true';
+      if (!detalhamentoVencidasDisponivel) {
+        if (status.indexOf('em dia') >= 0 || status.indexOf('em aberto') >= 0) return 'Inquilino (0), Proprietário (0)';
+        if (/(guia vencida|vencid[oa])/.test(status)) return 'Atualize a consulta DAMAE para separar apenas as guias vencidas';
+        if (status.indexOf('não consultado') >= 0 || status.indexOf('nao consultado') >= 0) return 'Aguardando consulta';
+        return 'Atualize a consulta DAMAE para identificar vencimentos';
+      }
+      referenciasSalvas = item.referenciasDamaeVencidas;
+    } else {
+      referenciasSalvas = item.referenciasBci;
+    }
     var referencias = Array.isArray(referenciasSalvas)
       ? referenciasSalvas
       : String(referenciasSalvas || '').split(/[|;,\n]+/);
@@ -3458,6 +3472,7 @@ th{background:var(--primary-light);color:var(--primary);font-weight:700}
     });
 
     if (!referenciasUnicas.length) {
+      if (modulo === 'DAMAE') return 'Inquilino (0), Proprietário (0)';
       if (status.indexOf('em dia') >= 0) return 'Inquilino (0), Proprietário (0)';
       if (/(pendente|em aberto|guia vencida|d[eé]bito|inconclusivo)/.test(status)) return 'Referência não capturada';
       if (status.indexOf('não consultado') >= 0 || status.indexOf('nao consultado') >= 0) return 'Aguardando consulta';
